@@ -40,6 +40,15 @@
   --team-mint: #9dffd6;
   --team-rose: #ffa3c4;
 
+  /* Look: the pub theme. A future theme (company, party, retro...) only overrides these and the colours above,
+     for example under :root[data-look="party"]. */
+  --bg-lobby: url('/img/bg-lobby.webp');
+  --bg-stage: url('/img/bg-stage.webp');
+  --bg-play: url('/img/bg-screen.webp');
+  --bg-board: url('/img/bg-board.webp');
+  --bg-finale: url('/img/bg-finale.webp');
+  --bg-phone: url('/img/bg-phone.webp');
+
   /* Answer colours A B C D */
   --ans-0: #ffb43c;
   --ans-1: #ff4fa3;

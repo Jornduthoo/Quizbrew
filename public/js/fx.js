@@ -1,4 +1,4 @@
-// Quizbrew effects: ambient light particles and bursts (confetti, sparks) on two light canvases.
+// Quizbrew effects: ambient light particles and bursts made of light only (sparks, glints): nothing falls on two light canvases.
 // Built for cheap laptops and old phones: one glow sprite drawn with drawImage, no shadowBlur,
 // max 30 fps, fewer particles on weak devices, paused when the tab is hidden, off with reduced motion.
 // Add ?fx=off|low|high to the URL to force a level.
@@ -9,13 +9,13 @@
   const quality = forced || (reduced ? 'off' : weak ? 'low' : 'high');
   document.documentElement.classList.add('fx-' + quality);
 
-  const FX = { quality, ambient() {}, confetti() {}, sparks() {}, rain() {}, clear() {} };
+  const noop = () => {};
+  const FX = { quality, ambient: noop, sparks: noop, sparksAt: noop, glints: noop, celebrate: noop, confetti: noop, rain: noop, swarm: noop, clear: noop };
   window.FX = FX;
   if (quality === 'off') return;
 
   const DPR = Math.min(window.devicePixelRatio || 1, quality === 'high' ? 1.5 : 1);
   const FRAME = 1000 / 30;
-  const PALETTE = ['#ffb43c', '#ff4fa3', '#3ee6ff', '#a8ff3e', '#f6d48c', '#b07cff'];
 
   function layer(cls) {
     const c = document.createElement('canvas');
@@ -58,11 +58,12 @@
   const pick = a => a[(Math.random() * a.length) | 0];
   const scale = quality === 'high' ? 1 : 0.45;
 
-  // Ambient modes. dust: warm motes floating up. bubbles: beer bubbles rising. embers: gold sparkles.
+  // Ambient modes. dust: warm motes floating up. lights: soft coloured bokeh. embers: gold sparkles.
   const MODES = {
     dust: { n: 46, colors: ['#ffb43c', '#f6d48c', '#ffcf8a'], size: [3, 9], vy: [-6, -18], vx: 6, alpha: [0.15, 0.5] },
-    bubbles: { n: 46, colors: ['#ffd27a', '#f6d48c', '#ff9fd0', '#9feaff'], size: [5, 18], vy: [-18, -50], vx: 4, alpha: [0.3, 0.7], ring: true },
+    lights: { n: 50, colors: ['#ffb43c', '#f6d48c', '#ff9fd0', '#9feaff'], size: [4, 14], vy: [-5, -16], vx: 8, alpha: [0.15, 0.55] },
     embers: { n: 70, colors: ['#ffcf5a', '#ffb43c', '#fff0b0', '#ff4fa3'], size: [3, 10], vy: [-10, -30], vx: 10, alpha: [0.25, 0.8] },
+    swarm: { n: 160, colors: ['#ffcf5a', '#ffb43c', '#fff0b0', '#f6d48c'], size: [3, 12], vy: [-25, -70], vx: 14, alpha: [0.3, 0.9] },
     stage: { n: 28, colors: ['#ffe2a8', '#f6d48c'], size: [2, 6], vy: [-3, -9], vx: 5, alpha: [0.15, 0.45] },
   };
   let mode = null;
@@ -88,21 +89,27 @@
   const MAX_BITS = quality === 'high' ? 600 : 180;
   function add(p) { if (bits.length < MAX_BITS) bits.push(p); }
 
-  // Paper confetti from a point (x, y in px), shot upwards.
-  FX.confetti = function ({ x = W / 2, y = H / 2, colors = PALETTE, count = 120, spread = 1, dir = -Math.PI / 2, cone = Math.PI * 0.4 } = {}) {
+  // Light only, nothing falls: rising gold glints, and a burst of brass sparks.
+  // Golden light motes welling up from a point (or a line of width w) and fading as they rise.
+  FX.glints = function ({ x = W / 2, y = H / 2, width = 0, count = 50, colors = ['#ffcf5a', '#fff0b0', '#f6d48c'] } = {}) {
     for (let i = 0; i < count * scale; i++) {
-      const ang = dir + rnd(-cone, cone);
-      const sp = rnd(250, 750) * spread;
-      add({ k: 'paper', x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, g: 900, drag: 1.6, c: pick(colors), w: rnd(6, 12), h: rnd(4, 8), r: rnd(0, 6.28), vr: rnd(-12, 12), life: rnd(2.2, 3.6) });
+      add({ k: 'glint', x: x + rnd(-width / 2, width / 2), y: y + rnd(-8, 8), vx: rnd(-50, 50), vy: rnd(-260, -70), g: -20, drag: 1.4, c: pick(colors), s: rnd(8, 22), ph: rnd(0, 6.28), life: rnd(1.2, 2.6) });
     }
     wake();
   };
-  // Confetti falling from the top of the screen for a while.
-  FX.rain = function ({ colors = PALETTE, seconds = 4, perSecond = 90 } = {}) {
-    rainLeft = seconds; rainRate = perSecond * scale; rainColors = colors;
-    wake();
+  // A celebration made of light: a big spark burst plus glints rising. Kept under the old name too.
+  FX.celebrate = FX.confetti = function ({ x = W / 2, y = H / 2, colors, count = 80 } = {}) {
+    const c = colors && colors[0] ? colors[0] : '#ffcf5a';
+    FX.sparks({ x, y, color: '#ffcf5a', count: count * 0.6, speed: 1.3 });
+    FX.sparks({ x, y, color: c, count: count * 0.4, speed: 1 });
+    FX.glints({ x, y, width: 160, count: count * 0.5 });
   };
-  let rainLeft = 0, rainRate = 0, rainColors = PALETTE;
+  // For a while, the ambient particles turn into a thick swarm of embers.
+  FX.rain = FX.swarm = function ({ seconds = 5 } = {}) {
+    const before = mode;
+    FX.ambient(null); FX.ambient('swarm');
+    setTimeout(() => { if (mode === 'swarm') FX.ambient(before === 'swarm' ? 'embers' : before); }, seconds * 1000);
+  };
   // Glowing sparks from a point, all directions.
   FX.sparks = function ({ x = W / 2, y = H / 2, color = '#ffb43c', count = 40, speed = 1 } = {}) {
     for (let i = 0; i < count * scale; i++) {
@@ -118,7 +125,7 @@
     const b = el.getBoundingClientRect();
     FX.sparks({ x: b.left + b.width / 2, y: b.top + b.height / 2, ...opts });
   };
-  FX.clear = function () { bits = []; rainLeft = 0; front.ctx.clearRect(0, 0, W, H); };
+  FX.clear = function () { bits = []; front.ctx.clearRect(0, 0, W, H); };
 
   // One loop for both layers. It stops itself when there is nothing to draw.
   let raf = 0, last = 0, acc = 0;
@@ -135,7 +142,7 @@
       drawAmbient(dt, now / 1000);
       drawBits(dt);
     }
-    if (motes.length || bits.length || rainLeft > 0) raf = requestAnimationFrame(loop);
+    if (motes.length || bits.length) raf = requestAnimationFrame(loop);
   }
 
   function drawAmbient(dt, t) {
@@ -151,16 +158,8 @@
       if (p.y < -30) motes[i] = spawnMote(m, false);
       const a = p.a * (0.6 + 0.4 * Math.sin(t * p.tw * 2 + p.ph));
       g.globalAlpha = a;
-      if (m.ring) {
-        // A bubble: thin ring with a small highlight.
-        const r = p.s * 0.6;
-        g.strokeStyle = p.c; g.lineWidth = 1.6;
-        g.beginPath(); g.arc(p.x, p.y, r, 0, 6.28); g.stroke();
-        g.drawImage(glow(p.c), p.x - r * 0.9, p.y - r * 0.9, r * 0.9, r * 0.9);
-      } else {
-        const d = p.s * 3;
-        g.drawImage(glow(p.c), p.x - d / 2, p.y - d / 2, d, d);
-      }
+      const d = p.s * 3;
+      g.drawImage(glow(p.c), p.x - d / 2, p.y - d / 2, d, d);
     }
     g.globalAlpha = 1;
     g.globalCompositeOperation = 'source-over';
@@ -168,29 +167,21 @@
 
   function drawBits(dt) {
     const g = front.ctx;
-    if (rainLeft > 0) {
-      rainLeft -= dt;
-      for (let i = 0; i < rainRate * dt; i++) {
-        add({ k: 'paper', x: rnd(0, W), y: -20, vx: rnd(-60, 60), vy: rnd(80, 260), g: 260, drag: 0.6, c: pick(rainColors), w: rnd(7, 13), h: rnd(4, 8), r: rnd(0, 6.28), vr: rnd(-8, 8), life: 6 });
-      }
-    }
     if (!bits.length) { g.clearRect(0, 0, W, H); return; }
     g.clearRect(0, 0, W, H);
     const keep = [];
     for (const p of bits) {
       p.life -= dt;
-      if (p.life <= 0 || p.y > H + 40) continue;
+      if (p.life <= 0 || p.y > H + 40 || p.y < -60) continue;
       const k = Math.exp(-p.drag * dt);
       p.vx *= k; p.vy = p.vy * k + p.g * dt;
       p.x += p.vx * dt; p.y += p.vy * dt;
-      if (p.k === 'paper') {
-        p.r += p.vr * dt;
-        g.globalAlpha = Math.min(1, p.life * 1.5);
-        g.fillStyle = p.c;
-        g.save(); g.translate(p.x, p.y); g.rotate(p.r);
-        g.fillRect(-p.w / 2, -p.h / 2 * Math.abs(Math.cos(p.r * 1.7)), p.w, p.h * Math.abs(Math.cos(p.r * 1.7)) + 0.5);
-        g.restore();
-      } else {
+      if (p.k === 'glint') {
+        p.x += Math.sin(p.life * 6 + p.ph) * 20 * dt;
+        g.globalCompositeOperation = 'lighter';
+        g.globalAlpha = Math.min(1, p.life) * (0.6 + 0.4 * Math.sin(p.life * 14 + p.ph));
+        g.drawImage(glow(p.c), p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+        g.globalCompositeOperation = 'source-over';      } else {
         g.globalCompositeOperation = 'lighter';
         g.globalAlpha = Math.min(1, p.life * 1.8);
         const d = p.s * Math.min(1, p.life + 0.3);
