@@ -81,5 +81,13 @@
   "color.yellow": "Geel",
   "color.blue": "Blauw",
   "color.mint": "Munt",
-  "color.rose": "Lichtroze"
+  "color.rose": "Lichtroze",
+  "round.classic": "Meerkeuze",
+  "round.open": "Open vraag",
+  "round.picture": "Fotoronde",
+  "round.music": "Muziekronde",
+  "round.speed": "Snelheidsronde",
+  "round.drawGuess": "Teken en raad",
+  "round.puzzle": "Puzzelronde",
+  "round.lastStanding": "Wie blijft overeind"
 }

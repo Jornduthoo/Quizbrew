@@ -81,5 +81,13 @@
   "color.yellow": "Jaune",
   "color.blue": "Bleu",
   "color.mint": "Menthe",
-  "color.rose": "Rose pâle"
+  "color.rose": "Rose pâle",
+  "round.classic": "Choix multiple",
+  "round.open": "Réponse libre",
+  "round.picture": "Manche photo",
+  "round.music": "Manche musicale",
+  "round.speed": "Manche rapide",
+  "round.drawGuess": "Dessine et devine",
+  "round.puzzle": "Manche énigme",
+  "round.lastStanding": "Le dernier debout"
 }

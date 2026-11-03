@@ -43,5 +43,50 @@
     return res.json();
   }
 
-  window.QB = { $, h, showView, LETTERS, teamVar, countdown, info };
+  // Each round type has its own neon colour and icon, used by round intros and headers.
+  // Add a new round type here and it gets a themed intro everywhere. Icons are 24x24 line drawings.
+  const ROUND_THEMES = {
+    classic: { glow: '#ffb43c', icon: '<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>' },
+    open: { glow: '#3ee6ff', icon: '<path d="M4 4h16v12H10l-5 4v-4H4z"/><path d="M10 8.5a2 2 0 1 1 3 1.7c-.7.4-1 .9-1 1.6"/><path d="M12 14v.01"/>' },
+    picture: { glow: '#ff4fa3', icon: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 8"/>' },
+    music: { glow: '#b07cff', icon: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>' },
+    speed: { glow: '#a8ff3e', icon: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>' },
+    drawGuess: { glow: '#ff7a2e', icon: '<path d="M4 20l4-1L19 8l-3-3L5 16z"/><path d="M14 7l3 3"/>' },
+    puzzle: { glow: '#2fe0b8', icon: '<path d="M4 7h4a2 2 0 1 1 4 0h4v4a2 2 0 1 1 0 4v5H4v-5a2 2 0 1 0 0-4z"/>' },
+    lastStanding: { glow: '#ff4a4a', icon: '<path d="M6 3h12M6 21h12M7 3c0 6 10 6 10 9s-10 3-10 9M17 3c0 6-10 6-10 9s10 3 10 9"/>' },
+  };
+  const roundTheme = type => ROUND_THEMES[type] || ROUND_THEMES.classic;
+  const CROWN = '<svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l1.5-11 5 5L12 4l2.5 8 5-5L21 18z"/><path d="M3.5 21h17"/></svg>';
+
+  // Put each letter (or word) in its own span with --i, so CSS can light them up one by one.
+  function split(el, text, by) {
+    const parts = by === 'word' ? text.split(/(\s+)/) : Array.from(text);
+    let i = 0;
+    el.replaceChildren(...parts.map(p => (/^\s+$/.test(p) ? document.createTextNode(p) : h('span', { class: 'ch', style: `--i: ${i++}` }, p))));
+    el.style.setProperty('--n', i);
+    el.setAttribute('aria-label', text);
+  }
+
+  // Count a number up in an element, with an ease-out. Respects the effects level.
+  function countUp(el, to, ms, delay) {
+    const from = 0;
+    if (!window.FX || FX.quality === 'off' || !to) { el.textContent = to; return; }
+    el.textContent = from;
+    setTimeout(() => {
+      const start = performance.now();
+      const step = now => {
+        const k = Math.min(1, (now - start) / ms);
+        el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)));
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }, delay || 0);
+  }
+
+  // Timeouts that belong to one screen; clear them when the screen changes.
+  const timers = [];
+  const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+  const clearLater = () => { while (timers.length) clearTimeout(timers.pop()); };
+
+  window.QB = { $, h, showView, LETTERS, teamVar, countdown, info, ROUND_THEMES, roundTheme, CROWN, split, countUp, later, clearLater };
 })();

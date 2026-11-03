@@ -119,3 +119,65 @@ body.phone::before {
   padding: 10px; text-align: center;
   background: var(--bad); color: #fff; font-weight: 700;
 }
+
+/* ---------- Effects: glow in your team colour, bursts, stamps. Transform and opacity only. ---------- */
+.glow-bg { position: fixed; inset: 0; z-index: -2; pointer-events: none; overflow: hidden; }
+.glow-bg i {
+  position: absolute; width: 120vw; height: 120vw; left: -60vw; top: -40vw; border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--me) 30%, transparent), transparent 62%);
+  animation: wander 14s ease-in-out infinite alternate;
+}
+.glow-bg i:nth-child(2) { left: 30vw; top: 70vh; background: radial-gradient(circle, rgba(255, 79, 163, .16), transparent 62%); animation-duration: 18s; animation-delay: -6s; }
+@keyframes wander { from { transform: translate(0, 0); } to { transform: translate(30vw, 25vh); } }
+.fx-low .glow-bg i { animation: none; }
+body.phone::before { z-index: -1; }
+
+.view > .logo { animation: flicker 7s infinite; }
+.brass-btn.big { position: relative; overflow: hidden; }
+.brass-btn.big::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, .55) 50%, transparent 60%) -150% 0 / 250% 100% no-repeat;
+  animation: shine 3.2s ease-in-out infinite 1s;
+}
+@keyframes shine { from { background-position: -150% 0; } 60%, to { background-position: 250% 0; } }
+.swatch.on { animation: pop-in .35s cubic-bezier(.2, 1.6, .4, 1); }
+
+/* Waiting badge: a light running round the ring. */
+.badge { position: relative; }
+.badge.pulse::after {
+  content: ''; position: absolute; inset: -12px; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 70%, var(--me) 92%, #fff 100%);
+  -webkit-mask: radial-gradient(circle, transparent 66%, #000 68%, #000 72%, transparent 74%);
+  mask: radial-gradient(circle, transparent 66%, #000 68%, #000 72%, transparent 74%);
+  animation: spin 2.4s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+/* Answer locked: a stamp. */
+.badge.filled { animation: stamp .5s cubic-bezier(.2, 1.5, .4, 1) both; }
+@keyframes stamp {
+  0% { transform: scale(2.4) rotate(-14deg); opacity: 0; }
+  60% { transform: scale(.92) rotate(3deg); opacity: 1; }
+  100% { transform: none; }
+}
+.badge.first { border-color: var(--brass-light); box-shadow: 0 0 40px #ffbf3c, inset 0 0 30px rgba(0, 0, 0, .3); background: radial-gradient(circle at 35% 30%, #fff3c4, #f0b93a 60%, #9a6a12); }
+.badge-crown { position: absolute; top: -46px; left: 50%; width: 64px; margin-left: -32px; animation: crown-drop .7s cubic-bezier(.2, 1.6, .4, 1) both .3s; }
+.badge-crown .crown { width: 100%; display: block; fill: var(--brass-light); stroke: #7a4e14; stroke-width: 1; stroke-linejoin: round; filter: drop-shadow(0 0 10px #ffbf3c); }
+@keyframes crown-drop { from { transform: translateY(-60px) rotate(-25deg); opacity: 0; } }
+
+/* Choices fly in one after the other. */
+.choice { animation: choice-in .45s cubic-bezier(.2, 1.3, .4, 1) both; animation-delay: calc(var(--k, 0) * .07s); position: relative; overflow: hidden; }
+@keyframes choice-in { from { transform: translateX(-30px) scale(.95); opacity: 0; } }
+.choice.tapped { animation: none; transform: scale(.96); filter: brightness(1.25); }
+
+/* Result: light rays behind a correct answer, a shake for a wrong one. */
+#v-reveal { overflow: hidden; }
+.result-wrap { position: relative; display: grid; place-items: center; }
+.rays { position: absolute; width: 420px; height: 420px; border-radius: 50%; opacity: 0; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--good) 35%, transparent) 0 8deg, transparent 8deg 24deg);
+  -webkit-mask: radial-gradient(circle, #000 20%, transparent 70%);
+  mask: radial-gradient(circle, #000 20%, transparent 70%);
+}
+.good-result .rays { opacity: 1; animation: spin 12s linear infinite, fade-in .6s ease both; }
+@keyframes fade-in { from { opacity: 0; } }
+.bad-result .result { animation: pop-in .4s cubic-bezier(.2, 1.5, .4, 1) both, shake .6s ease .4s; }
+.bad-result .say { animation: shake .6s ease .4s; }
