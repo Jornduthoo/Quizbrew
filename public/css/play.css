@@ -232,3 +232,9 @@ body.phone::before { z-index: -1; }
 body.staged .view { min-height: auto; padding-top: 16px; }
 body.staged .view.center { min-height: calc(100dvh - 56.25vw - 80px); }
 .stage-box.big .stage-close::before { content: '✕'; }
+
+/* "Made with Quizbrew" under the final standings on the phone. */
+.made-with { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; margin: 14px 0 0; max-width: 20em; font-size: .9em; color: var(--muted); text-align: center; animation: rise .6s ease both 1.5s; }
+.made-with[hidden] { display: none; }
+.made-with img { height: 32px; width: auto; }
+.made-own { flex-basis: 100%; color: var(--brass-light); }
