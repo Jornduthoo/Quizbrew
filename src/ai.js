@@ -100,6 +100,12 @@ const TYPE_HELP = {
   pickYourLevel: 'per topic an easy, a medium and a hard question; each team picks a level before seeing it',
   hotStreak: 'right answers in a row count up (1x, 2x, 3x); a steady mix of questions',
   listRush: 'teams type as many items of a list as they can (countries, colours, players...)',
+  drawGuess: 'every team draws the same funny thing on its phone, then the teams vote for the best drawing',
+  captionThis: 'teams write the funniest caption for a picture, then vote for the best one',
+  bluffBank: 'an obscure question; teams write a fake answer, then everyone looks for the real one between the bluffs',
+  actItOut: 'one team acts out the answer without words, the others type what it is',
+  photoHunt: 'teams take a photo with their phone for a fun task in the room, then vote for the best photo',
+  whosWho: 'teams answer a personal question, then guess which team wrote which answer',
   crowdMind: 'no right answer: teams score by giving the answer most other teams give',
 };
 

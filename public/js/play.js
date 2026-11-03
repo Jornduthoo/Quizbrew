@@ -37,7 +37,7 @@
   }).then(() => state && render(state, true));
 
   function render(s, force) {
-    const key = [s.phase, s.round && s.round.index, s.questionIndex, s.team ? 1 : 0, s.answer, s.blocked, s.wager].join(':');
+    const key = [s.phase, s.round && s.round.index, s.questionIndex, s.team ? 1 : 0, s.answer, s.blocked, s.wager, s.voted].join(':');
     const fresh = force || key !== lastKey;
     if (key !== lastKey) window.scrollTo(0, 0);
     lastKey = key;
@@ -65,11 +65,18 @@
         wait(t('play.getReady', { title: s.round.title || t(`round.${s.round.type}`) }));
         return renderJoker(s);
       case 'wager': return renderWager(s, fresh);
+      case 'vote':
+        if (s.voted) return wait(t('play.voted'), '✓');
+        return renderVote(s, fresh);
       case 'question':
         if (s.blocked) return wait(t('play.blocked'), '!');
         if (s.out) return wait(t(s.round.type === 'pushYourLuck' ? 'play.bankedWait' : 'play.outOfRound'), s.round.type === 'pushYourLuck' ? '★' : '✗');
         if (s.banked) return wait(t('play.bankedNow', { n: s.pot }), '★');
+        if (s.isActor) return renderActor(s);
         if (s.question.kind === 'buzz') return renderBuzz(s, fresh);
+        if (s.answer !== null && s.answer !== undefined && (s.question.kind === 'draw' || s.question.kind === 'photo')) return wait(t('play.sent'), '✓');
+        if (s.question.kind === 'draw') return renderDraw(s, fresh);
+        if (s.question.kind === 'photo') return renderPhoto(s, fresh);
         if (s.question.kind === 'list') return renderList(s, fresh);
         if (s.answer !== null && s.answer !== undefined) return wait(t('play.locked'), lockedBadge(s));
         if (s.question.kind === 'text' || s.question.kind === 'number') return renderType(s, fresh);
@@ -152,7 +159,8 @@
       input.value = '';
       input.type = number ? 'text' : 'text';
       input.inputMode = number ? 'decimal' : 'text';
-      $('#type-label').textContent = t(number ? 'play.typeNumber' : 'play.typeAnswer');
+      const label = { bluffBank: 'play.typeBluff', captionThis: 'play.typeCaption', whosWho: 'play.typeAboutUs' }[s.round.type];
+      $('#type-label').textContent = t(label || (number ? 'play.typeNumber' : 'play.typeAnswer'));
       $('#type-unit').textContent = s.question.unit || '';
       setTimeout(() => input.focus(), 50);
     }
@@ -234,6 +242,144 @@
     const q = state && state.question;
     if (!q) return;
     socket.emit('answer', q.kind === 'point' ? build[0] : build.slice());
+    if (navigator.vibrate) navigator.vibrate(25);
+  });
+
+  // Act it out: the secret, big, only on the acting team's phone.
+  function renderActor(s) {
+    showView('actor');
+    $('#actor-secret').textContent = s.secret || '';
+  }
+
+  // Drawing: a few neon pens on a dark board; strokes are kept so undo works.
+  const PENS = ['#fff6e0', '#ffb43c', '#ff4fa3', '#3ee6ff', '#a8ff3e', '#ff5a5a', '#1a0e08'];
+  let strokes = [];
+  let pen = PENS[0];
+  function renderDraw(s, fresh) {
+    showView('draw');
+    $('#d-num').textContent = s.question.text;
+    if (fresh) {
+      strokes = [];
+      $('#draw-tools').replaceChildren(...PENS.map(c => h('button', {
+        type: 'button', class: 'pen' + (c === pen ? ' on' : ''), style: `--pen: ${c}`, 'aria-label': c,
+        onclick: e => { pen = c; [...$('#draw-tools').children].forEach(b => b.classList.toggle('on', b === e.currentTarget)); },
+      })));
+      requestAnimationFrame(redraw);
+    }
+    stopTimer = countdown(s.remaining, s.question.time * 1000, left => { $('#d-time').textContent = Math.ceil(left / 1000); });
+  }
+  function redraw() {
+    const c = $('#draw-canvas');
+    const w = c.clientWidth;
+    if (!w) return;
+    if (c.width !== w * 2) { c.width = w * 2; c.height = c.clientHeight * 2; }
+    const g = c.getContext('2d');
+    g.fillStyle = '#120a06';
+    g.fillRect(0, 0, c.width, c.height);
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    for (const st of strokes) {
+      g.strokeStyle = st.c;
+      g.lineWidth = st.c === '#1a0e08' ? 40 : 12;
+      g.beginPath();
+      st.p.forEach(([x, y], i) => (i ? g.lineTo(x * c.width, y * c.height) : g.moveTo(x * c.width, y * c.height)));
+      if (st.p.length === 1) g.lineTo(st.p[0][0] * c.width + 0.1, st.p[0][1] * c.height);
+      g.stroke();
+    }
+  }
+  (() => {
+    const c = $('#draw-canvas');
+    let cur = null;
+    const at = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
+    c.addEventListener('pointerdown', e => { c.setPointerCapture(e.pointerId); cur = { c: pen, p: [at(e)] }; strokes.push(cur); redraw(); });
+    c.addEventListener('pointermove', e => { if (cur) { cur.p.push(at(e)); redraw(); } });
+    const end = () => { cur = null; };
+    c.addEventListener('pointerup', end);
+    c.addEventListener('pointercancel', end);
+  })();
+  $('#draw-undo').addEventListener('click', () => { strokes.pop(); redraw(); });
+  $('#draw-clear').addEventListener('click', () => { strokes = []; redraw(); });
+  $('#draw-send').addEventListener('click', () => {
+    if (!strokes.length) return;
+    // A small copy (600 px wide) goes to the laptop.
+    const src = $('#draw-canvas');
+    const out = document.createElement('canvas');
+    out.width = 600;
+    out.height = Math.round(600 * src.height / src.width);
+    out.getContext('2d').drawImage(src, 0, 0, out.width, out.height);
+    let url = out.toDataURL('image/webp', 0.8);
+    if (!url.startsWith('data:image/webp')) url = out.toDataURL('image/png');
+    socket.emit('answer', url);
+    if (navigator.vibrate) navigator.vibrate(25);
+  });
+
+  // Photo: the phone camera; the picture is made small (900 px, webp) before it is sent.
+  let photoUrl = null;
+  function renderPhoto(s, fresh) {
+    showView('photo');
+    $('#p-num').textContent = s.question.text;
+    if (fresh) {
+      photoUrl = null;
+      $('#photo-preview').hidden = true;
+      $('#photo-label').hidden = false;
+      $('#photo-send').disabled = true;
+    }
+    stopTimer = countdown(s.remaining, s.question.time * 1000, left => { $('#p-time').textContent = Math.ceil(left / 1000); });
+  }
+  $('#photo-input').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try {
+      const bmp = await createImageBitmap(f);
+      const k = Math.min(1, 900 / Math.max(bmp.width, bmp.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(bmp.width * k);
+      c.height = Math.round(bmp.height * k);
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      photoUrl = c.toDataURL('image/webp', 0.78);
+      if (!photoUrl.startsWith('data:image/webp')) photoUrl = c.toDataURL('image/jpeg', 0.8);
+      $('#photo-preview').src = photoUrl;
+      $('#photo-preview').hidden = false;
+      $('#photo-label').hidden = true;
+      $('#photo-send').disabled = false;
+    } catch { alert(t('play.photoFailed')); }
+  });
+  $('#photo-send').addEventListener('click', () => {
+    if (!photoUrl) return;
+    socket.emit('answer', photoUrl);
+    if (navigator.vibrate) navigator.vibrate(25);
+  });
+
+  // Vote: tap the best entry (or the truth). Who's who: give every answer a team colour.
+  let matchPick = [];
+  function renderVote(s, fresh) {
+    showView('vote');
+    const mode = s.vote.mode;
+    $('#v-label').textContent = t(mode === 'truth' ? 'play.findTruth' : mode === 'match' ? 'play.matchTeams' : 'play.voteBest');
+    if (fresh) matchPick = s.ballot.map(() => null);
+    const box = $('#ballot');
+    box.className = 'ballot ' + mode;
+    if (mode === 'match') {
+      box.replaceChildren(...s.ballot.map((b, i) => (b.mine ? null : h('div', { class: 'match-row' },
+        h('p', { class: 'match-text' }, b.content),
+        h('div', { class: 'match-teams' }, s.teamsToMatch.map(tm => h('button', {
+          type: 'button', class: 'match-team' + (matchPick[i] === tm.color ? ' on' : ''), style: teamVar(tm.color),
+          onclick: () => { matchPick[i] = tm.color; renderVote(state); },
+        }, tm.name)))))).filter(Boolean));
+      $('#match-send').hidden = false;
+      $('#match-send').disabled = s.ballot.some((b, i) => !b.mine && !matchPick[i]);
+    } else {
+      $('#match-send').hidden = true;
+      box.replaceChildren(...s.ballot.map((b, i) => h('button', {
+        type: 'button', class: 'ballot-item' + (b.mine ? ' mine' : '') + (b.image ? ' pic' : ''), disabled: b.mine, style: `--k: ${i}`,
+        onclick: () => { socket.emit('vote', i); if (navigator.vibrate) navigator.vibrate(25); },
+      }, h('span', { class: 'letter' }, LETTERS[i] || i + 1), b.image ? h('img', { src: b.content, alt: '' }) : h('span', { class: 'text' }, b.content),
+      b.mine ? h('span', { class: 'mine-tag' }, t('play.yours')) : null)));
+    }
+    stopTimer = countdown(s.remaining, s.vote.time * 1000, left => { $('#v-time').textContent = Math.ceil(left / 1000); });
+  }
+  $('#match-send').addEventListener('click', () => {
+    socket.emit('vote', matchPick.map(c => c || ''));
     if (navigator.vibrate) navigator.vibrate(25);
   });
 
@@ -372,7 +518,10 @@
     $('#result-text').textContent = right ? t(['number', 'point'].includes(s.question.kind) ? 'play.closest' : 'play.correct') : answered ? t('play.wrong') : t('play.noAnswer');
     const k = s.question.kind;
     if (k === 'list') $('#result-text').textContent = t('play.found', { n: s.found || 0 });
-    const solution = k === 'list' ? ''
+    if (s.vote) $('#result-text').textContent = s.lastPoints > 0 ? t('play.votesWon', { n: s.lastPoints }) : t('play.noVotes');
+    const solution = s.round.type === 'bluffBank' ? t('play.truthWas', { text: s.reveal.answerText })
+      : s.vote || s.round.type === 'actItOut' && s.isActor ? ''
+        : k === 'list' ? ''
       : s.round.type === 'crowdMind' ? t('play.crowdSaid', { text: s.reveal.answerText })
         : k === 'level' ? t('play.solutionWas', { text: s.reveal.levels[s.question.level].answer })
           : k === 'buzz' ? (s.reveal.answerText ? t('play.solutionWas', { text: s.reveal.answerText }) : '')

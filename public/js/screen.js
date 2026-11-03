@@ -10,7 +10,7 @@
   let lobbyShown = false;
 
   // Ambient particles per phase.
-  const AMBIENT = { idle: 'lights', lobby: 'lights', roundIntro: 'stage', wager: 'stage', question: 'dust', reveal: 'dust', scoreboard: 'dust', end: 'embers' };
+  const AMBIENT = { idle: 'lights', lobby: 'lights', roundIntro: 'stage', wager: 'stage', vote: 'stage', question: 'dust', reveal: 'dust', scoreboard: 'dust', end: 'embers' };
   const cssColor = name => getComputedStyle(document.body).getPropertyValue(name).trim();
 
   socket.on('language', async lang => {
@@ -33,10 +33,10 @@
   });
 
   function render(s, force) {
-    showView(s.phase, { reveal: 'question' });
+    showView(s.vote && (s.phase === 'reveal' || s.phase === 'vote') ? 'vote' : s.phase, { reveal: 'question' });
     FX.ambient(AMBIENT[s.phase]);
     // Re-render only what changed, so animations play once.
-    const key = [s.phase === 'reveal' ? 'question' : s.phase, s.round && s.round.index, s.questionIndex].join(':');
+    const key = [s.phase === 'reveal' && !s.vote ? 'question' : s.phase, s.round && s.round.index, s.questionIndex].join(':');
     const fresh = force || key !== lastKey;
     if (key !== lastKey) { clearLater(); FX.clear(); Media.stop(); document.body.classList.remove('spot-winner'); }
     lastKey = key;
@@ -45,7 +45,8 @@
     if (s.round) setTheme(s.round.type);
     if (s.phase === 'lobby') renderLobby(s);
     if (s.phase === 'roundIntro' && fresh) renderRoundIntro(s);
-    if (s.phase === 'question' || s.phase === 'reveal') renderQuestion(s, fresh);
+    if (s.vote) renderVote(s, fresh);
+    else if (s.phase === 'question' || s.phase === 'reveal') renderQuestion(s, fresh);
     if (s.phase === 'wager') renderWager(s);
     if (s.phase === 'scoreboard' && fresh) renderScoreboard(s);
     if (s.phase === 'end' && fresh) renderEnd(s);
@@ -104,7 +105,7 @@
     document.body.dataset.kind = kind;
 
     if (fresh) {
-      const text = q.kind === 'level' ? t('screen.ownLevel') : q.scrambled ? t('screen.unscramble') : q.text || (q.clues ? t('screen.findLink') : q.emoji ? t('screen.emojiWhat') : q.audio ? t('screen.listen') : q.images ? t('screen.oddOne') : q.image ? t('screen.whatIsThis') : '');
+      const text = s.round.type === 'actItOut' ? t('screen.actTitle') : q.kind === 'level' ? t('screen.ownLevel') : q.scrambled ? t('screen.unscramble') : q.text || (q.clues ? t('screen.findLink') : q.emoji ? t('screen.emojiWhat') : q.audio ? t('screen.listen') : q.images ? t('screen.oddOne') : q.image ? t('screen.whatIsThis') : '');
       split($('#q-text'), text, 'word');
       const words = text.split(/\s+/).length;
       $('#q-text').parentElement.classList.toggle('long', text.length > 90);
@@ -143,9 +144,15 @@
         $('#q-category').hidden = false;
         $('#q-category').textContent = q.hint;
       }
+      // Act it out: who is on stage.
+      if (s.actor) {
+        $('#q-category').hidden = false;
+        $('#q-category').textContent = t('screen.actsNow', { name: s.actor.name });
+      }
       $('#q-clues').hidden = !q.clues;
       if (q.clues) $('#q-clues').replaceChildren(...q.clues.map((c, i) => h('li', { class: 'clue', style: `--k: ${i}` }, h('span', { class: 'clue-pts' }), h('span', {}, c))));
-      const hintKey = { text: 'screen.typeAnswer', number: 'screen.typeNumber', point: 'screen.tapSpot', order: 'screen.putInOrder', pairs: 'screen.makePairs', buzz: 'screen.buzzNow', list: 'screen.listGo', level: 'screen.answerOnPhone' }[kind];
+      const own = { bluffBank: 'screen.bluffNow', captionThis: 'screen.captionNow', whosWho: 'screen.aboutUs', actItOut: 'screen.guessAct' }[s.round.type];
+      const hintKey = own || { draw: 'screen.drawNow', photo: 'screen.photoNow', text: 'screen.typeAnswer', number: 'screen.typeNumber', point: 'screen.tapSpot', order: 'screen.putInOrder', pairs: 'screen.makePairs', buzz: 'screen.buzzNow', list: 'screen.listGo', level: 'screen.answerOnPhone' }[kind];
       $('#q-typehint').hidden = !hintKey;
       $('#q-typehint').textContent = hintKey ? t(hintKey, { n: q.total }) : '';
       $('#q-list').hidden = true;
@@ -347,6 +354,34 @@
     if (img.complete) place(); else img.addEventListener('load', place, { once: true });
   }
   addEventListener('resize', () => { if ($('#q-pins').children.length) fitPins(); });
+
+  // The ballot: entries with letters while voting; at the reveal the authors, the votes and (for a bluff) the truth.
+  function renderVote(s, fresh) {
+    const reveal = s.phase === 'reveal';
+    document.body.classList.toggle('revealed', reveal);
+    const mode = s.vote.mode;
+    $('#vote-kicker').textContent = t(reveal ? 'screen.voteResult' : mode === 'truth' ? 'screen.findTruth' : mode === 'match' ? 'screen.matchTeams' : 'screen.voteBest');
+    $('#vote-count').textContent = reveal ? '' : t('screen.votedCount', { n: s.answered, total: s.teams.length });
+    if (fresh) split($('#vote-q'), s.question.text || t(`round.${s.round.type}`), 'word');
+    const most = reveal ? Math.max(0, ...s.ballot.map(b => (b.votes || []).length)) : -1;
+    const grid = $('#ballot-grid');
+    grid.className = 'ballot-grid n' + Math.min(s.ballot.length, 8) + (s.ballot.some(b => b.image) ? ' pics' : '');
+    grid.replaceChildren(...s.ballot.map((b, i) => {
+      const win = reveal && mode !== 'match' && (b.truth || (mode === 'best' && most > 0 && (b.votes || []).length === most));
+      return h('li', { class: 'ballot-card' + (b.image ? ' pic' : '') + (b.truth ? ' truth' : '') + (win ? ' win' : ''), style: `--k: ${i}` + (reveal && b.by ? `; ${teamVar(b.by.color)}` : '') },
+        h('span', { class: 'letter' }, LETTERS[i] || String(i + 1)),
+        b.image ? h('img', { src: b.content, alt: '' }) : h('span', { class: 'bc-text' }, b.content),
+        reveal ? h('span', { class: 'bc-by' }, b.truth ? t('screen.theTruth') : b.by ? b.by.name : '') : null,
+        reveal && mode !== 'match' ? h('span', { class: 'bc-votes' }, (b.votes || []).map(v => h('i', { class: 'team-dot', style: teamVar(v.color), title: v.name }))) : null);
+    }));
+    if (stopTimer) stopTimer();
+    if (reveal) {
+      $('#vote-time').textContent = '';
+      if (fresh) later(() => grid.querySelectorAll('.ballot-card.win').forEach(c => FX.sparksAt(c, { color: cssColor('--good'), count: 70 })), 300);
+      return;
+    }
+    stopTimer = countdown(s.remaining, s.vote.time * 1000, left => { $('#vote-time').textContent = Math.ceil(left / 1000); });
+  }
 
   function renderWager(s) {
     const level = s.wagerMode === 'level';

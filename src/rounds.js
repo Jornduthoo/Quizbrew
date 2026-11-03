@@ -13,6 +13,13 @@
 //   buzz      - one big button; the first team to buzz says the answer out loud, the quizmaster judges
 //   list      - type as many items of a list as you can (answer = the typed items)
 //   level     - every team first picks easy, medium or hard and gets its own question (answer = { l, i })
+//   draw      - draw on the phone (answer = picture url)
+//   photo     - take a photo with the phone (answer = picture url)
+//
+// vote: after the question every team votes on what the others made.
+//   best  - vote for the best entry (not your own); every vote is worth the points
+//   truth - find the real answer between the bluffs; right = points, every team you fooled = points
+//   match - match every answer to the team that wrote it; every right match = points
 //
 // A type with its own score(entries, q, base, ctx) gets per team: answer, answeredAt, wager, mem (what the
 // round remembers about the team: streak, pot, out ...) and bank. It may return a new mem per team.
@@ -155,6 +162,31 @@ const choiceOrText = {
   aiShape: '{"question": "What is shown?", "answer": "short answer", "accept": ["..."], "imagePrompt": "a prompt for an image AI that shows the subject without any text in the image"}',
   fromAI: it => ({ question: str(it.question) || '', answer: str(it.answer), accept: list(it.accept), imagePrompt: str(it.imagePrompt) }),
 };
+
+// Drawings and photos arrive as a media url (the server stores the picture first).
+const mediaUrl = raw => (typeof raw === 'string' && /^\/media\/[a-f0-9]{20}\.(webp|png|jpg)$/.test(raw) ? raw : undefined);
+
+// Points after a vote (see vote modes at the top). ctx.ballot: [{ id, teamId|null }], e.vote: index or match list.
+function voteScore(entries, q, base, ctx) {
+  const pts = new Map(entries.map(e => [e.id, 0]));
+  const right = new Map(entries.map(e => [e.id, false]));
+  const ballot = ctx.ballot || [];
+  for (const e of entries) {
+    if (ctx.vote === 'match') {
+      // e.vote: for every ballot entry, the team id the voter thinks wrote it.
+      (Array.isArray(e.vote) ? e.vote : []).forEach((guess, i) => {
+        const b = ballot[i];
+        if (b && b.teamId !== e.id && guess === b.teamId) { pts.set(e.id, pts.get(e.id) + base); right.set(e.id, true); }
+      });
+      continue;
+    }
+    const b = Number.isInteger(e.vote) ? ballot[e.vote] : null;
+    if (!b || b.teamId === e.id) continue;
+    if (ctx.vote === 'truth' && b.teamId === null) { pts.set(e.id, pts.get(e.id) + base); right.set(e.id, true); }
+    else if (b.teamId && pts.has(b.teamId)) { pts.set(b.teamId, pts.get(b.teamId) + base); right.set(b.teamId, true); }
+  }
+  return entries.map(e => ({ points: pts.get(e.id), correct: right.get(e.id) }));
+}
 
 const TYPES = [
   {
@@ -572,6 +604,92 @@ const TYPES = [
     },
     crowd: true,
     aiShape: '{"question": "Name something most people ..."}  (open questions with many possible answers, where a few answers are very common)',
+    fromAI: it => ({ question: str(it.question) }),
+  },
+// ---------- wave 4: party ----------
+  {
+    id: 'drawGuess', family: 'party', kind: 'draw', vote: 'best',
+    defaults: { time: 90, points: 1 },
+    fields: ['question', 'time', 'points'],
+    scorings: [],
+    validate(q, fail) { need.text(q, fail); },
+    parse: raw => mediaUrl(raw),
+    publicQ: () => ({}),
+    revealQ: () => ({ answerText: '' }),
+    score: voteScore,
+    aiShape: '{"question": "Draw ...: a funny thing to draw in one minute"}  (silly, concrete things that are fun to draw)',
+    fromAI: it => ({ question: str(it.question) }),
+  },
+  {
+    id: 'captionThis', family: 'party', kind: 'text', vote: 'best',
+    defaults: { time: 60, points: 1 },
+    fields: ['image', 'question', 'time', 'points'],
+    scorings: [],
+    validate(q, fail) { need.image(q, fail); },
+    parse: raw => (typeof raw === 'string' && raw.trim() ? raw.trim().slice(0, 120) : undefined),
+    publicQ: () => ({}),
+    revealQ: () => ({ answerText: '' }),
+    score: voteScore,
+    aiShape: '{"question": "Write the funniest caption", "imagePrompt": "a prompt for an image AI: a funny, odd scene without text"}',
+    fromAI: it => ({ question: str(it.question), imagePrompt: str(it.imagePrompt) }),
+  },
+  {
+    id: 'bluffBank', family: 'party', kind: 'text', vote: 'truth',
+    defaults: { time: 45, points: 1 },
+    fields: ['question', 'answer', 'image', 'time', 'points'],
+    scorings: [],
+    validate(q, fail) { need.text(q, fail); need.answer(q, fail); },
+    // A bluff that is (almost) the real answer does not count.
+    parse: (raw, q) => (typeof raw === 'string' && raw.trim() && !textMatches(raw, q) ? raw.trim().slice(0, 80) : undefined),
+    publicQ: () => ({}),
+    revealQ: q => ({ answerText: q.answer }),
+    score: voteScore,
+    aiShape: '{"question": "an obscure but real fact as a question", "answer": "the surprising real answer"}  (the real answer should sound unlikely, so bluffs can compete)',
+    fromAI: it => ({ question: str(it.question), answer: str(it.answer) }),
+  },
+  {
+    id: 'actItOut', family: 'party', kind: 'text', judge: true, actor: true,
+    defaults: { time: 60, points: 1 },
+    fields: ['answer', 'time', 'points'],
+    scorings: [],
+    validate(q, fail) { need.answer(q, fail); },
+    parse: textType.parse,
+    isCorrect: (a, q) => textMatches(a, q),
+    publicQ: () => ({}),
+    revealQ: q => ({ answerText: q.answer }),
+    // One team acts the secret out without words; the others type what it is. The actors score if anyone gets it.
+    score: (entries, q, base, ctx) => {
+      const right = entries.map(e => e.id !== ctx.actor && ctx.isRight(e));
+      const any = right.some(Boolean);
+      return entries.map((e, i) => (e.id === ctx.actor ? { points: any ? base : 0, correct: any } : { points: right[i] ? base : 0, correct: right[i] }));
+    },
+    aiShape: '{"answer": "a film, job, animal or action to act out without words", "accept": ["..."]}',
+    fromAI: it => ({ answer: str(it.answer), accept: list(it.accept), question: '' }),
+  },
+  {
+    id: 'photoHunt', family: 'party', kind: 'photo', vote: 'best',
+    defaults: { time: 120, points: 1 },
+    fields: ['question', 'time', 'points'],
+    scorings: [],
+    validate(q, fail) { need.text(q, fail); },
+    parse: raw => mediaUrl(raw),
+    publicQ: () => ({}),
+    revealQ: () => ({ answerText: '' }),
+    score: voteScore,
+    aiShape: '{"question": "Take a photo of ...: a fun task that can be done in the room in 2 minutes"}',
+    fromAI: it => ({ question: str(it.question) }),
+  },
+  {
+    id: 'whosWho', family: 'party', kind: 'text', vote: 'match',
+    defaults: { time: 60, points: 1 },
+    fields: ['question', 'time', 'points'],
+    scorings: [],
+    validate(q, fail) { need.text(q, fail); },
+    parse: raw => (typeof raw === 'string' && raw.trim() ? raw.trim().slice(0, 100) : undefined),
+    publicQ: () => ({}),
+    revealQ: () => ({ answerText: '' }),
+    score: voteScore,
+    aiShape: '{"question": "a personal question teams answer about themselves, e.g. Our worst holiday ever was ..."}',
     fromAI: it => ({ question: str(it.question) }),
   },
 ];

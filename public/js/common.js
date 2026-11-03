@@ -77,6 +77,12 @@
     pickYourLevel: { glow: '#4f8bff', icon: '<path d="M4 20v-4h4v4M10 20v-9h4v9M16 20V5h4v15"/>' },
     hotStreak: { glow: '#ff7a2e', icon: '<path d="M12 21c-4 0-7-3-7-7 0-3 2-5 3-7 1 2 2 3 3 3 0-3 1-5 4-7 0 4 4 6 4 11 0 4-3 7-7 7z"/>' },
     listRush: { glow: '#a8ff3e', icon: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>' },
+    drawGuess: { glow: '#ff4fa3', icon: '<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>' },
+    captionThis: { glow: '#ffe94a', icon: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M7 20h10M9 9h6M9 12h4"/>' },
+    bluffBank: { glow: '#b07cff', icon: '<path d="M4 9c2-4 14-4 16 0-2 4-14 4-16 0z"/><circle cx="12" cy="9" r="2"/><path d="M8 17c2 2 6 2 8 0"/>' },
+    actItOut: { glow: '#ff7a2e', icon: '<circle cx="12" cy="5" r="2.5"/><path d="M12 8v6M12 14l-4 6M12 14l4 6M6 10l6 1 6-3"/>' },
+    photoHunt: { glow: '#3ee6ff', icon: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>' },
+    whosWho: { glow: '#2fe0b8', icon: '<circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M3 19c0-3 2.5-5 5-5M21 19c0-3-2.5-5-5-5"/><path d="M11 16h2"/>' },
     crowdMind: { glow: '#3ee6ff', icon: '<circle cx="12" cy="7" r="3"/><circle cx="5" cy="10" r="2.2"/><circle cx="19" cy="10" r="2.2"/><path d="M7 20c0-3 2-5 5-5s5 2 5 5M1.5 19c0-2.5 1.5-4 3.5-4M22.5 19c0-2.5-1.5-4-3.5-4"/>' },
   };
   const roundTheme = type => ROUND_THEMES[type] || ROUND_THEMES.classic;
