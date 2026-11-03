@@ -611,6 +611,7 @@
   "host.tagline": "Brouw een quiz in seconden",
   "host.network": "Quizavond op je eigen netwerk",
   "host.screenHint": "Sleep het naar de tv of beamer. Teams scannen de QR-code.",
+  "host.remoteExpired": "Deze remote-link is verlopen: Quizbrew is herstart. Scan de remote-QR op de laptop opnieuw.",
   "host.remoteTileHint": "Stuur de quiz vanaf je gsm of tablet terwijl je rondloopt.",
   "host.tagBuild": "Maken",
   "host.tagScreen": "Tonen",
