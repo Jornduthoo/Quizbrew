@@ -11,6 +11,7 @@
   socket.on('language', async lang => {
     await I18n.load(lang);
     $('#lang').value = lang;
+    renderLooks();
     if (state) render(state);
     loadQuizzes();
   });
@@ -23,9 +24,20 @@
     $('#lang').replaceChildren(...languages.map(l => h('option', { value: l.code }, l.name)));
     $('#lang').value = I18n.lang;
     $('#join-url').textContent = info.url.replace(/^https?:\/\//, '');
+    looks = info.looks;
+    renderLooks();
   });
+  let looks = [];
+  function renderLooks() {
+    const cur = document.documentElement.dataset.look;
+    $('#look').replaceChildren(...looks.map(l => h('option', { value: l }, t('look.' + l))));
+    $('#look').value = cur;
+  }
+  $('#look').addEventListener('change', e => socket.emit('look', e.target.value));
+  socket.on('look', l => { $('#look').value = l; });
   $('#lang').addEventListener('change', e => socket.emit('language', e.target.value));
   if (!remote) {
+    $('#remote-tile').addEventListener('click', e => { e.stopPropagation(); $('#remote-btn').click(); scrollTo({ top: 0, behavior: 'smooth' }); });
     $('#remote-btn').addEventListener('click', async () => {
       const pop = $('#remote-pop');
       pop.hidden = !pop.hidden;
@@ -39,6 +51,7 @@
   function loadQuizzes() {
     socket.emit('quizzes', ({ samples, library }) => {
       const card = (q, ref, edit) => h('li', { class: 'quiz-card panel' },
+        h('img', { class: 'quiz-icon', src: '/img/icons/quiz.webp', alt: '' }),
         h('div', { class: 'quiz-info' },
           h('h3', {}, q.title || q.name),
           h('p', {}, t('host.quizMeta', { rounds: q.rounds, questions: q.questions }))),
@@ -47,9 +60,6 @@
           edit && !remote ? h('a', { class: 'ghost-btn', href: '/builder?open=' + encodeURIComponent(edit) }, t('host.edit')) : null,
           remote ? null : h('a', { class: 'ghost-btn', href: '/print?' + (edit ? 'open=' + encodeURIComponent(edit) : 'sample=' + encodeURIComponent(ref)), target: '_blank' }, t('host.print'))));
       $('#quiz-list').replaceChildren(
-        remote ? '' : h('li', { class: 'quiz-card panel builder-card' },
-          h('div', { class: 'quiz-info' }, h('h3', { class: 'neon' }, t('builder.title')), h('p', {}, t('host.builderHint'))),
-          h('a', { class: 'brass-btn', href: '/builder' }, t('host.openBuilder'))),
         ...library.map(q => card(q, { library: q.path }, q.path)),
         ...samples.map(q => card(q, q.file, null)));
     });

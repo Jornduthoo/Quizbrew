@@ -700,7 +700,7 @@ class Game {
       title: this.quiz ? this.quiz.title : '',
       jokers: !!(this.quiz && this.quiz.jokers),
       round: round ? {
-        index: this.roundIndex, total: this.quiz.rounds.length, title: mystery ? '? ? ?' : round.title, type: round.type, mystery: !!mystery,
+        index: this.roundIndex, total: this.quiz.rounds.length, title: mystery ? '? ? ?' : round.title, type: round.type, family: (rounds.get(round.type) || {}).family || 'classic', mystery: !!mystery,
         questions: round.questions.length, scoring: round.scoring, twists: round.twists,
       } : null,
       questionIndex: this.questionIndex,

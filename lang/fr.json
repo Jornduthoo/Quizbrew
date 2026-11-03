@@ -599,5 +599,17 @@
   "print.jokers": "chaque équipe a un joker",
   "print.scoreSheet": "Feuille de scores",
   "print.team": "Équipe",
-  "print.total": "Total"
+  "print.total": "Total",
+  "host.look": "Style",
+  "look.pub": "🎤 Pub",
+  "look.space": "🪩 Disco spatiale",
+  "look.jungle": "🌴 Temple de la jungle",
+  "look.spooky": "👻 Manoir hanté",
+  "look.arcade": "🕹️ Arcade rétro",
+  "host.tagline": "Soirée quiz sur ton propre réseau",
+  "host.screenHint": "Glisse-le sur la télé ou le projecteur. Les équipes scannent le QR code.",
+  "host.remoteTileHint": "Pilote le quiz depuis ton téléphone ou ta tablette en te déplaçant.",
+  "host.tagBuild": "Créer",
+  "host.tagScreen": "Montrer",
+  "host.tagRemote": "Piloter"
 }

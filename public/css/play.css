@@ -8,7 +8,7 @@ body.phone {
 }
 body.phone::before {
   content: ''; position: fixed; inset: 0; pointer-events: none;
-  background: linear-gradient(180deg, rgba(10, 5, 3, .35), rgba(10, 5, 3, .75));
+  background: linear-gradient(180deg, rgb(var(--k-wood-9) / .35), rgb(var(--k-wood-9) / .75));
 }
 .view {
   position: relative;
@@ -18,9 +18,9 @@ body.phone::before {
   animation: rise .4s ease both;
 }
 .view.center { align-items: center; justify-content: center; text-align: center; }
-.logo { width: min(78vw, 340px); margin: 8px auto 0; display: block; filter: drop-shadow(0 0 18px rgba(255, 170, 60, .25)); }
+.logo { width: min(78vw, 340px); margin: 8px auto 0; display: block; filter: drop-shadow(0 0 18px rgb(var(--k-amber) / .25)); }
 
-.card { padding: 22px 18px; display: flex; flex-direction: column; gap: 12px; background-color: rgba(26, 14, 8, .88); }
+.card { padding: 22px 18px; display: flex; flex-direction: column; gap: 12px; background-color: rgb(var(--k-wood-8) / .88); }
 .label { margin: 4px 0 0; font-size: .82em; text-transform: uppercase; letter-spacing: .14em; color: var(--brass-light); font-weight: 700; }
 #team-name {
   width: 100%;
@@ -63,7 +63,7 @@ body.phone::before {
   box-shadow: 0 0 30px var(--me), inset 0 0 30px rgba(0, 0, 0, .5);
   background: rgba(0, 0, 0, .35);
 }
-.badge.filled { background: var(--me); color: #1a0e08; animation: pop-in .45s cubic-bezier(.2, 1.4, .4, 1) both; }
+.badge.filled { background: var(--me); color: var(--ink); animation: pop-in .45s cubic-bezier(.2, 1.4, .4, 1) both; }
 .badge.pulse { --glow: var(--me); animation: pulse-glow 2.2s ease-in-out infinite; }
 
 .answer-view { padding-top: 16px; gap: 12px; }
@@ -80,7 +80,7 @@ body.phone::before {
   border-radius: 18px;
   text-align: left;
   font-size: 1.4em; font-weight: 750;
-  color: #1a0e08;
+  color: var(--ink);
   background: var(--a);
   box-shadow: 0 0 18px var(--a), inset 0 -5px 0 rgba(0, 0, 0, .22), inset 0 2px 0 rgba(255, 255, 255, .35);
   transition: transform .1s;
@@ -89,7 +89,7 @@ body.phone::before {
 .choice .letter {
   flex: none; width: 52px; height: 52px; border-radius: 14px;
   display: grid; place-items: center;
-  background: rgba(26, 14, 8, .85); color: var(--a);
+  background: rgb(var(--k-wood-8) / .85); color: var(--a);
   font-size: 1.5em; font-weight: 800;
 }
 .choice .text { line-height: 1.2; }
@@ -108,7 +108,7 @@ body.phone::before {
   position: fixed; left: 0; right: 0; bottom: 0;
   display: flex; align-items: center; gap: 10px;
   padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
-  background: rgba(15, 8, 5, .92);
+  background: rgb(var(--k-wood-9) / .92);
   border-top: 2px solid var(--c);
   box-shadow: 0 -6px 24px rgba(0, 0, 0, .5), 0 -1px 14px var(--c);
   font-weight: 700;
@@ -127,7 +127,7 @@ body.phone::before {
   background: radial-gradient(circle, color-mix(in srgb, var(--me) 30%, transparent), transparent 62%);
   animation: wander 14s ease-in-out infinite alternate;
 }
-.glow-bg i:nth-child(2) { left: 30vw; top: 70vh; background: radial-gradient(circle, rgba(255, 79, 163, .16), transparent 62%); animation-duration: 18s; animation-delay: -6s; }
+.glow-bg i:nth-child(2) { left: 30vw; top: 70vh; background: radial-gradient(circle, rgb(var(--k-pink) / .16), transparent 62%); animation-duration: 18s; animation-delay: -6s; }
 @keyframes wander { from { transform: translate(0, 0); } to { transform: translate(30vw, 25vh); } }
 .fx-low .glow-bg i { animation: none; }
 body.phone::before { z-index: -1; }
@@ -159,9 +159,9 @@ body.phone::before { z-index: -1; }
   60% { transform: scale(.92) rotate(3deg); opacity: 1; }
   100% { transform: none; }
 }
-.badge.first { border-color: var(--brass-light); box-shadow: 0 0 40px #ffbf3c, inset 0 0 30px rgba(0, 0, 0, .3); background: radial-gradient(circle at 35% 30%, #fff3c4, #f0b93a 60%, #9a6a12); }
+.badge.first { border-color: var(--brass-light); box-shadow: 0 0 40px var(--neon-amber), inset 0 0 30px rgba(0, 0, 0, .3); background: radial-gradient(circle at 35% 30%, #fff3c4, #f0b93a 60%, #9a6a12); }
 .badge-crown { position: absolute; top: -46px; left: 50%; width: 64px; margin-left: -32px; animation: crown-drop .7s cubic-bezier(.2, 1.6, .4, 1) both .3s; }
-.badge-crown .crown { width: 100%; display: block; fill: var(--brass-light); stroke: #7a4e14; stroke-width: 1; stroke-linejoin: round; filter: drop-shadow(0 0 10px #ffbf3c); }
+.badge-crown .crown { width: 100%; display: block; fill: var(--brass-light); stroke: #7a4e14; stroke-width: 1; stroke-linejoin: round; filter: drop-shadow(0 0 10px var(--neon-amber)); }
 @keyframes crown-drop { from { transform: translateY(-60px) rotate(-25deg); opacity: 0; } }
 
 /* Choices fly in one after the other. */

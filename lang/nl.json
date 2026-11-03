@@ -599,5 +599,17 @@
   "print.jokers": "elk team heeft één joker",
   "print.scoreSheet": "Scoreblad",
   "print.team": "Team",
-  "print.total": "Totaal"
+  "print.total": "Totaal",
+  "host.look": "Stijl",
+  "look.pub": "🎤 Café",
+  "look.space": "🪩 Ruimtedisco",
+  "look.jungle": "🌴 Jungletempel",
+  "look.spooky": "👻 Spookhuis",
+  "look.arcade": "🕹️ Retro-arcade",
+  "host.tagline": "Quizavond op je eigen netwerk",
+  "host.screenHint": "Sleep het naar de tv of beamer. Teams scannen de QR-code.",
+  "host.remoteTileHint": "Stuur de quiz vanaf je gsm of tablet terwijl je rondloopt.",
+  "host.tagBuild": "Maken",
+  "host.tagScreen": "Tonen",
+  "host.tagRemote": "Sturen"
 }

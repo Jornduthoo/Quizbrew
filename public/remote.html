@@ -15,6 +15,10 @@
     <span class="quiz-name" id="quiz-name"></span>
     <div class="top-actions">
       <span class="join-url" id="join-url" hidden></span>
+      <label class="lang look-pick">
+        <span class="sr" data-i18n="host.look"></span>
+        <select id="look"></select>
+      </label>
       <label class="lang">
         <span class="sr" data-i18n="host.language"></span>
         <select id="lang"></select>
@@ -24,7 +28,11 @@
 
   <!-- Pick a quiz -->
   <main id="v-idle" class="view library" hidden>
-    <h1 class="neon" data-i18n="host.pickQuiz"></h1>
+<div class="hero">
+      <img class="hero-logo" src="/img/logo.webp" alt="Quizbrew">
+      <p class="hero-tag" data-i18n="host.tagline"></p>
+    </div>
+    <h1 class="section-title" data-i18n="host.pickQuiz"></h1>
     <p class="hint" data-i18n="host.pickQuizHint"></p>
     <ul class="quiz-list" id="quiz-list"></ul>
   </main>

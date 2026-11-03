@@ -38,7 +38,7 @@
   // ---------- start ----------
 
   async function start() {
-    const lang = await fetch('/api/info').then(r => r.json()).then(i => i.language).catch(() => 'en');
+    const lang = await QB.info().then(i => i.language).catch(() => 'en');
     await I18n.load(lang);
     catalog = await api('GET', '/catalog');
     await refreshLibrary();

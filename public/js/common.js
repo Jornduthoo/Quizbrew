@@ -40,7 +40,28 @@
 
   async function info() {
     const res = await fetch('/api/info');
-    return res.json();
+    const data = await res.json();
+    applyLook(data.look);
+    return data;
+  }
+
+  // The look (pub, space, jungle...) is set by the quizmaster and followed by every screen.
+  // The last one is remembered, so a page does not flash in the wrong look while it loads.
+  function applyLook(look) {
+    if (!look || !/^[a-z]+$/.test(look)) return;
+    document.documentElement.dataset.look = look;
+    try { localStorage.setItem('qb.look', look); } catch { /* private mode */ }
+  }
+  try { applyLook(localStorage.getItem('qb.look') || 'pub'); } catch { applyLook('pub'); }
+  // Every socket a page opens follows look changes live.
+  if (window.io) {
+    const connect = window.io;
+    window.io = function (...args) {
+      const socket = connect(...args);
+      socket.on('look', applyLook);
+      return socket;
+    };
+    Object.assign(window.io, connect);
   }
 
   // Each round type has its own neon colour and icon, used by round intros and headers.
@@ -126,5 +147,5 @@
   const later = (fn, ms) => timers.push(setTimeout(fn, ms));
   const clearLater = () => { while (timers.length) clearTimeout(timers.pop()); };
 
-  window.QB = { $, h, showView, LETTERS, teamVar, countdown, info, ROUND_THEMES, roundTheme, CROWN, split, countUp, later, clearLater };
+  window.QB = { applyLook, $, h, showView, LETTERS, teamVar, countdown, info, ROUND_THEMES, roundTheme, CROWN, split, countUp, later, clearLater };
 })();
