@@ -718,5 +718,6 @@
   "screen.break": "Pause",
   "screen.breakSub": "Beine vertreten, kurz durchatmen. Weiter geht's in",
   "screen.breakOver": "Zurück auf die Plätze!",
-  "play.break": "Pause! Weiter in {time}"
+  "play.break": "Pause! Weiter in {time}",
+  "play.bigText": "Größere Schrift"
 }

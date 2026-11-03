@@ -528,6 +528,18 @@
   $('#stage-tap').addEventListener('click', () => { $('#stage').classList.add('big'); fitStage(); });
   $('#stage-close').addEventListener('click', () => { $('#stage').classList.remove('big'); fitStage(); });
 
+  // Bigger text for whoever holds the phone at arm's length; remembered on this phone.
+  const setBigText = on => {
+    document.body.classList.toggle('big-text', on);
+    $('#text-size').setAttribute('aria-pressed', String(on));
+  };
+  setBigText(store.get('qb.bigText') === '1');
+  $('#text-size').addEventListener('click', () => {
+    const on = !document.body.classList.contains('big-text');
+    store.set('qb.bigText', on ? '1' : '0');
+    setBigText(on);
+  });
+
   // Reactions: tap an emoji and it floats up on the big screen. Not during a question, so nobody is distracted.
   const REACT_PHASES = ['lobby', 'roundIntro', 'reveal', 'scoreboard', 'awards', 'end'];
   REACTIONS.forEach((emoji, i) => {
@@ -603,7 +615,7 @@
           if (navigator.vibrate) navigator.vibrate(25);
           socket.emit('answer', i);
         },
-      }, h('span', { class: 'letter' }, tf ? (i === 0 ? '✓' : '✗') : LETTERS[i]), h('span', { class: 'text' }, a))));
+      }, h('span', { class: 'letter', 'data-shape': tf ? null : i }, tf ? (i === 0 ? '✓' : '✗') : LETTERS[i]), h('span', { class: 'text' }, a))));
     }
     // Shrinking options and the 50/50 lifeline: answers that are gone can not be tapped.
     const gone = new Set(s.question.gone || []);
