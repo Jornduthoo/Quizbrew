@@ -4,6 +4,7 @@ const path = require('path');
 const express = require('express');
 const { Server } = require('socket.io');
 const QRCode = require('qrcode');
+const crypto = require('crypto');
 const { Game, validateQuiz } = require('./game');
 const { TEAM_COLORS } = require('./teams');
 const i18n = require('./i18n');
@@ -25,6 +26,10 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
 
   const language = () => (i18n.isSupported(settings.get('language')) ? settings.get('language') : i18n.DEFAULT);
   const canHost = address => hostFromAnywhere || network.isLocal(address);
+  // The quizmaster's remote: a phone or tablet on the wifi with the secret link (new on every start) may drive the quiz.
+  const remoteKey = crypto.randomBytes(9).toString('hex');
+  const isRemote = key => typeof key === 'string' && key.length === remoteKey.length && crypto.timingSafeEqual(Buffer.from(key), Buffer.from(remoteKey));
+  const baseUrl = () => joinUrl().replace(/\/play$/, '');
   const joinUrl = () => {
     const addr = lanAddresses()[0] || 'localhost';
     return `http://${addr}:${server.address() ? server.address().port : port}/play`;
@@ -48,6 +53,15 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   app.get('/host', (req, res) => {
     if (!canHost(req.socket.remoteAddress)) return res.redirect('/play');
     res.sendFile(path.join(pub, 'host.html'));
+  });
+  app.get('/remote', (req, res) => {
+    if (!canHost(req.socket.remoteAddress) && !isRemote(req.query.key)) return res.redirect('/play');
+    res.sendFile(path.join(pub, 'remote.html'));
+  });
+  // The run sheet to print: every round, question and answer.
+  app.get('/print', (req, res) => {
+    if (!canHost(req.socket.remoteAddress)) return res.redirect('/play');
+    res.sendFile(path.join(pub, 'print.html'));
   });
   app.get('/screen', (req, res) => res.sendFile(path.join(pub, 'screen.html')));
   app.get('/play', (req, res) => res.sendFile(path.join(pub, 'play.html')));
@@ -76,6 +90,10 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       res.status(400).json({ error: 'error.generic', detail: err.message });
     }
   };
+  api.get('/remote', handle(async () => {
+    const url = `${baseUrl()}/remote?key=${remoteKey}`;
+    return { url, qr: await QRCode.toString(url, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#1b0f08', light: '#0000' } }) };
+  }));
   api.get('/catalog', handle(() => rounds.catalog()));
   api.get('/library', handle(() => ({ tree: library.tree(), samples: quizzes.list() })));
   api.get('/library/quiz', handle(req => (req.query.sample ? quizzes.load(String(req.query.sample)) : library.read(String(req.query.path || '')))));
@@ -138,7 +156,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     socket.emit('language', language());
 
     if (role === 'host') {
-      if (!canHost(socket.handshake.address)) return socket.disconnect(true);
+      if (!canHost(socket.handshake.address) && !isRemote(socket.handshake.query.key)) return socket.disconnect(true);
       socket.join('host');
       socket.emit('state', game.hostState());
       on('quizzes', cb => {
@@ -217,7 +235,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   });
 
   return {
-    app, io, server, game,
+    app, io, server, game, remoteKey,
     listen: () => new Promise(resolve => server.listen(port, () => resolve(server.address().port))),
     close: () => new Promise(resolve => { game.reset(); io.close(); server.close(() => resolve()); }),
   };

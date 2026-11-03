@@ -720,6 +720,7 @@
 
   $('#export-json').addEventListener('click', async () => { await flushSave(); location.href = '/api/host/export?path=' + encodeURIComponent(current.path); });
   $('#export-csv').addEventListener('click', async () => { await flushSave(); location.href = '/api/host/export?format=csv&path=' + encodeURIComponent(current.path); });
+  $('#print-sheet').addEventListener('click', async () => { await flushSave(); window.open('/print?open=' + encodeURIComponent(current.path), '_blank'); });
   $('#delete-quiz').addEventListener('click', () => deleteItem(current.path, false));
 
   $('#play-btn').addEventListener('click', async () => {

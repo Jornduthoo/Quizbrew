@@ -1,7 +1,9 @@
 // The quizmaster's laptop: pick a quiz, drive the pace, keep an eye on the teams.
 (function () {
   const { $, h, showView, LETTERS, teamVar } = QB;
-  const socket = io({ query: { role: 'host' } });
+  // On the remote (a phone or tablet), the secret key from the link lets this page drive the quiz.
+  const remote = document.body.classList.contains('remote');
+  const socket = io({ query: { role: 'host', key: new URLSearchParams(location.search).get('key') || '' } });
   let state = null;
   let languages = [];
   let joinInfo = null;
@@ -23,6 +25,16 @@
     $('#join-url').textContent = info.url.replace(/^https?:\/\//, '');
   });
   $('#lang').addEventListener('change', e => socket.emit('language', e.target.value));
+  if (!remote) {
+    $('#remote-btn').addEventListener('click', async () => {
+      const pop = $('#remote-pop');
+      pop.hidden = !pop.hidden;
+      if (pop.hidden || $('#remote-qr').innerHTML) return;
+      const r = await fetch('/api/host/remote').then(x => x.json());
+      $('#remote-qr').innerHTML = r.qr;
+      $('#remote-url').textContent = r.url;
+    });
+  }
 
   function loadQuizzes() {
     socket.emit('quizzes', ({ samples, library }) => {
@@ -32,9 +44,10 @@
           h('p', {}, t('host.quizMeta', { rounds: q.rounds, questions: q.questions }))),
         h('div', { class: 'card-actions' },
           h('button', { class: 'brass-btn', onclick: () => socket.emit('load', ref, res => { if (res && res.error) alert(t('error.quizInvalid') + '\n' + (res.detail || '')); }) }, t('host.open')),
-          edit ? h('a', { class: 'ghost-btn', href: '/builder?open=' + encodeURIComponent(edit) }, t('host.edit')) : null));
+          edit && !remote ? h('a', { class: 'ghost-btn', href: '/builder?open=' + encodeURIComponent(edit) }, t('host.edit')) : null,
+          remote ? null : h('a', { class: 'ghost-btn', href: '/print?' + (edit ? 'open=' + encodeURIComponent(edit) : 'sample=' + encodeURIComponent(ref)), target: '_blank' }, t('host.print'))));
       $('#quiz-list').replaceChildren(
-        h('li', { class: 'quiz-card panel builder-card' },
+        remote ? '' : h('li', { class: 'quiz-card panel builder-card' },
           h('div', { class: 'quiz-info' }, h('h3', { class: 'neon' }, t('builder.title')), h('p', {}, t('host.builderHint'))),
           h('a', { class: 'brass-btn', href: '/builder' }, t('host.openBuilder'))),
         ...library.map(q => card(q, { library: q.path }, q.path)),

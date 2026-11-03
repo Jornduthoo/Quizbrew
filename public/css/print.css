@@ -1,0 +1,96 @@
+/* The run sheet: warm paper on the pub wall on screen, clean black on white when printed. */
+body.sheet {
+  min-height: 100%;
+  background: linear-gradient(180deg, rgba(10, 5, 3, .6), rgba(10, 5, 3, .92)), url('/img/bg-screen.webp') center top / cover fixed, var(--wood-900);
+  --ink: #23160d;
+  --ink-soft: #6b5440;
+  --paper: #fbf3e2;
+  --rule: #e4d3b2;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.sheet-bar {
+  position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 18px; padding: 10px 24px;
+  background: rgba(15, 8, 5, .85); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(217, 165, 74, .35);
+}
+.sheet-bar .logo { height: 38px; margin-right: auto; }
+.sheet-bar .toggle { display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+.sheet-bar input { accent-color: var(--brass); width: 18px; height: 18px; }
+
+.paper {
+  width: min(210mm, calc(100% - 24px)); margin: 28px auto 60px; padding: 18mm 16mm; box-sizing: border-box;
+  background: var(--paper); color: var(--ink); border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(217, 165, 74, .5), 0 30px 80px rgba(0, 0, 0, .6), 0 0 60px rgba(255, 180, 60, .12);
+  font-size: 11pt; line-height: 1.4;
+}
+.loading { text-align: center; color: var(--ink-soft); }
+
+.cover { display: grid; grid-template-columns: auto 1fr; gap: 6mm 8mm; align-items: center; padding-bottom: 8mm; border-bottom: 2px solid var(--ink); margin-bottom: 8mm; }
+.cover-logo { width: 34mm; padding: 3mm 4mm; border-radius: 8px; background: #1a0e08; box-shadow: 0 0 0 1.5px #b5762a; }
+.cover .kicker { margin: 0; text-transform: uppercase; letter-spacing: .2em; font-size: 9pt; font-weight: 800; color: #b5762a; }
+.cover h1 { margin: 1mm 0 0; font-size: 28pt; line-height: 1.05; font-weight: 800; }
+.cover .meta { margin: 2mm 0 0; color: var(--ink-soft); font-weight: 600; }
+.overview { grid-column: 1 / -1; list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2mm 3mm; }
+.overview li { display: flex; align-items: center; gap: 2mm; padding: 1mm 3mm 1mm 1mm; border-radius: 999px; border: 1.5px solid color-mix(in srgb, var(--g) 70%, var(--ink)); font-weight: 700; font-size: 9.5pt; }
+.overview b { width: 6mm; height: 6mm; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--g) 80%, #000 5%); color: var(--ink); font-size: 8.5pt; }
+
+.round { margin: 0 0 9mm; break-inside: auto; }
+.r-head { display: grid; grid-template-columns: auto auto 1fr; gap: 4mm; align-items: start; padding: 3mm 4mm; border-radius: 8px; background: linear-gradient(90deg, color-mix(in srgb, var(--g) 22%, var(--paper)), var(--paper) 70%); border-left: 5px solid color-mix(in srgb, var(--g) 85%, var(--ink)); break-after: avoid; }
+.r-num { width: 11mm; height: 11mm; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: var(--paper); font-size: 15pt; font-weight: 800; }
+.r-icon { width: 11mm; height: 11mm; color: color-mix(in srgb, var(--g) 70%, var(--ink)); }
+.r-icon svg { width: 100%; height: 100%; }
+.r-head h2 { margin: 0; font-size: 16pt; line-height: 1.1; }
+.r-type { margin: 1mm 0 0; color: var(--ink-soft); font-size: 9.5pt; }
+.r-rules { margin: 2mm 0 0; display: flex; flex-wrap: wrap; gap: 1.5mm; }
+.chip { padding: .3mm 2.5mm; border-radius: 999px; background: rgba(35, 22, 13, .08); font-size: 8.5pt; font-weight: 700; }
+.r-note { margin: 2mm 0 0; font-size: 9pt; font-style: italic; color: var(--ink-soft); }
+
+.q-table { width: 100%; border-collapse: collapse; margin-top: 3mm; }
+.q-table th { text-align: left; font-size: 8pt; text-transform: uppercase; letter-spacing: .12em; color: var(--ink-soft); padding: 1.5mm 2mm; border-bottom: 1.5px solid var(--ink); }
+.q-table td { padding: 2.5mm 2mm; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.q-table tr { break-inside: avoid; }
+.q-table .qn { width: 7mm; font-weight: 800; color: color-mix(in srgb, var(--g) 60%, var(--ink)); font-size: 12pt; }
+.q-table .num { width: 11mm; text-align: right; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.q-table .ans { width: 40%; }
+.q-text { margin: 0; font-weight: 600; }
+.q-text.mono { letter-spacing: .2em; font-weight: 800; }
+.muted { color: var(--ink-soft); font-style: italic; }
+.cat { display: inline-block; padding: 0 2mm; margin-right: 1mm; border-radius: 4px; background: color-mix(in srgb, var(--g) 30%, var(--paper)); font-size: 8.5pt; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.emoji { display: block; font-size: 18pt; }
+.clues { margin: 1mm 0 0; padding-left: 5mm; font-size: 10pt; }
+.q-media { display: flex; flex-wrap: wrap; gap: 2mm; margin-top: 2mm; align-items: center; }
+.q-media img { height: 18mm; max-width: 40mm; object-fit: cover; border-radius: 3px; border: 1px solid var(--rule); }
+.q-media figure { margin: 0; text-align: center; font-size: 8pt; font-weight: 800; }
+.m-note { font-size: 9pt; color: var(--ink-soft); font-weight: 600; }
+.a-main { font-size: 11.5pt; }
+.accept { margin: .8mm 0 0; font-size: 9pt; color: var(--ink-soft); }
+.a-choices, .a-order { margin: 0; padding: 0; list-style: none; font-size: 10pt; }
+.a-order { padding-left: 5mm; list-style: decimal; }
+.a-choices li { color: var(--ink-soft); }
+.a-choices li.right { color: var(--ink); font-weight: 800; }
+.a-choices li.right::after { content: ' ✓'; color: #1f9a52; }
+.a-block p { margin: 0 0 1mm; font-size: 10pt; }
+.a-list { margin: 0; font-size: 10pt; }
+body.no-answers .q-table .ans > * { visibility: hidden; }
+body.no-answers .q-table td.ans { background: repeating-linear-gradient(0deg, transparent 0 6mm, var(--rule) 6mm calc(6mm + 1px)); }
+
+.scores { break-before: page; }
+.scores h2 { margin: 0 0 4mm; font-size: 18pt; }
+.s-table { width: 100%; border-collapse: collapse; }
+.s-table th { font-size: 9pt; padding: 2mm; border-bottom: 2px solid var(--ink); }
+.s-table td { height: 11mm; border: 1px solid var(--rule); }
+.s-table .team { width: 30%; text-align: left; }
+.s-table .total { width: 14%; background: rgba(181, 118, 42, .1); font-weight: 800; }
+
+@media (max-width: 700px) {
+  .paper { padding: 8mm 5mm; font-size: 10pt; }
+  .sheet-bar { flex-wrap: wrap; gap: 10px; padding: 8px 12px; }
+  .q-table .ans { width: 38%; }
+}
+
+@page { size: A4; margin: 12mm; }
+@media print {
+  body.sheet { background: #fff; }
+  .sheet-bar { display: none; }
+  .paper { width: auto; margin: 0; padding: 0; box-shadow: none; border-radius: 0; background: #fff; }
+}

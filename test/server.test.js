@@ -87,3 +87,26 @@ test('host controls only work from this laptop', async t => {
   await once(host, 'disconnect');
   host.close();
 });
+
+test('the remote link lets a phone drive the quiz; the run sheet stays on this laptop', async t => {
+  const lan = require('../src/network').lanAddresses()[0];
+  if (!lan) return t.skip('no network address on this machine');
+  const qb = createServer({ port: 0, settings: memorySettings(), library: tmpLibrary() });
+  const port = await qb.listen();
+  t.after(() => qb.close());
+  const base = `http://${lan}:${port}`;
+  const remote = await (await fetch(`http://127.0.0.1:${port}/api/host/remote`)).json();
+  assert.match(remote.url, new RegExp(`/remote\\?key=${qb.remoteKey}$`));
+  assert.match(remote.qr, /<svg/);
+  assert.equal((await fetch(`${base}/remote?key=${qb.remoteKey}`, { redirect: 'manual' })).status, 200);
+  assert.equal((await fetch(`${base}/remote?key=wrong`, { redirect: 'manual' })).status, 302);
+  assert.equal((await fetch(`${base}/print?sample=pub-warm-up.json`, { redirect: 'manual' })).status, 302);
+  assert.equal((await fetch(`http://127.0.0.1:${port}/print?sample=pub-warm-up.json`)).status, 200);
+  const ok = connect(base, { query: { role: 'host', key: qb.remoteKey }, transports: ['websocket'], forceNew: true, reconnection: false });
+  const s = await once(ok, 'state');
+  assert.equal(s.phase, 'idle');
+  ok.close();
+  const bad = connect(base, { query: { role: 'host', key: 'nope' }, transports: ['websocket'], forceNew: true, reconnection: false });
+  await once(bad, 'disconnect');
+  bad.close();
+});

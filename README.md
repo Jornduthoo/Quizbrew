@@ -32,6 +32,11 @@ Open http://localhost:3000/builder (or "Open quiz builder" on the quizmaster scr
 - Import and export: `.quizbrew.json` (pictures inside the file) and spreadsheets (`.csv`, comma or semicolon).
 - AI help per round or for the whole evening: with your own Gemini, Claude or ChatGPT key (kept in `data/settings.json`), or by copying the prompt into any AI chat and pasting the answer back.
 
+## Run sheet and remote
+
+- **Run sheet**: *Run sheet* on a quiz card (or in the builder) opens a printable sheet with every round, question, answer, time and points, plus an empty score sheet. Untick *With answers* for a copy without answers.
+- **Remote**: *Remote* in the top bar shows a QR code. Scan it with your phone or tablet on the same wifi to get the big Next button, the answers and the judge buttons in your hand. The secret link changes every time Quizbrew starts.
+
 ## Round types
 
 | Type | Phones | How it scores |

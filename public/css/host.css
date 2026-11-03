@@ -97,3 +97,27 @@ body.host {
 .qr-mini { width: 150px; height: 150px; padding: 10px; border-radius: 14px; background: var(--cream); box-shadow: 0 0 0 3px var(--brass), 0 0 30px rgba(255, 180, 60, .25); }
 .qr-mini svg { width: 100%; height: 100%; display: block; }
 .big-url { margin: 4px 0 0; font-size: 1.5em; font-weight: 800; color: var(--cream); }
+
+/* The remote link */
+.remote-pop { position: fixed; top: 74px; right: 24px; z-index: 6; display: flex; gap: 18px; align-items: center; max-width: 520px; padding: 18px 20px; animation: rise .3s ease both; }
+.remote-pop .qr-mini { flex: none; }
+.remote-pop h3 { margin: 0; font-size: 1.2em; }
+.remote-url { margin: 8px 0 0; font-size: .8em; color: var(--brass-light); word-break: break-all; }
+
+/* The remote on a phone or tablet: the big button always under your thumb. */
+body.remote .topbar { padding: 8px 14px; gap: 10px; }
+body.remote .topbar .logo { height: 32px; }
+body.remote .key-hint { display: none; }
+@media (max-width: 900px) {
+  /* No entrance animation here: a transform would trap the fixed button bar inside the page. */
+  body.host .view { padding: 16px 12px 120px; animation: none; }
+  body.host .stage { padding: 18px 16px; min-height: 0; }
+  body.host .phase-title { font-size: 1.45em; }
+  body.host .mini-answers { grid-template-columns: 1fr; }
+  body.host .controls { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; margin: 0; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); background: rgba(15, 8, 5, .92); backdrop-filter: blur(8px); border-top: 1px solid rgba(217, 165, 74, .35); flex-wrap: nowrap; }
+  body.host .brass-btn.next { flex: 1; min-width: 0; padding: .9em 1em; }
+  body.host .adjust { opacity: 1; }
+  body.host .quiz-list { grid-template-columns: 1fr; }
+  body.host .buzz-judge { flex-wrap: wrap; }
+  body.host .buzz-judge button { flex: 1; min-height: 52px; font-size: 1.1em; }
+}

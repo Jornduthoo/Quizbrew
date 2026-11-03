@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quizbrew run sheet</title>
+  <link rel="preload" href="/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/print.css">
+</head>
+<body class="sheet">
+  <!-- Only on screen: print, with or without answers -->
+  <nav class="sheet-bar">
+    <img class="logo" src="/img/logo.webp" alt="Quizbrew">
+    <label class="toggle"><input type="checkbox" id="show-answers" checked> <span data-i18n="print.withAnswers"></span></label>
+    <label class="toggle"><input type="checkbox" id="show-scores" checked> <span data-i18n="print.withScoreSheet"></span></label>
+    <button class="brass-btn" id="print-now" type="button" data-i18n="print.print"></button>
+  </nav>
+
+  <main class="paper" id="paper">
+    <p class="loading" data-i18n="print.loading"></p>
+  </main>
+
+  <script src="/js/i18n.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/print.js"></script>
+</body>
+</html>
