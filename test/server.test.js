@@ -69,6 +69,13 @@ test('host, screen and phone play a question together', async t => {
   const lang = once(screen, 'language');
   host.emit('language', 'nl');
   assert.equal(await lang, 'nl');
+
+  // Phones-only mode reaches the phones; nonsense is ignored.
+  const mode = once(back, 'mode');
+  host.emit('mode', 'nonsense');
+  host.emit('mode', 'phones');
+  assert.equal(await mode, 'phones');
+  assert.equal((await (await fetch(`${url}/api/info`)).json()).mode, 'phones');
 });
 
 test('host controls only work from this laptop', async t => {

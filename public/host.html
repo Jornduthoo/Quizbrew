@@ -17,6 +17,10 @@
       <span class="join-url" id="join-url" data-i18n-attr="title:host.joinAddress"></span>
       <a class="ghost-btn" href="/screen" target="quizbrew-screen" data-i18n="host.openScreen"></a>
       <button class="ghost-btn" id="remote-btn" type="button" data-i18n="host.remote"></button>
+      <label class="lang mode-pick">
+        <span class="sr" data-i18n="host.mode"></span>
+        <select id="mode"></select>
+      </label>
       <label class="lang look-pick">
         <span class="sr" data-i18n="host.look"></span>
         <select id="look"></select>
@@ -76,6 +80,10 @@
       <p class="phase-kicker" id="phase-kicker"></p>
       <h1 class="phase-title" id="phase-title"></h1>
       <div class="preview" id="preview"></div>
+      <!-- Phones-only mode: what the phones show, with the sound for the room. -->
+      <div class="screen-copy" id="screen-copy" hidden>
+        <iframe id="screen-copy-frame" title="Quizbrew" allow="autoplay"></iframe>
+      </div>
       <div class="controls">
         <button class="brass-btn next" id="next"></button>
         <span class="key-hint" data-i18n="host.keyHint"></span>

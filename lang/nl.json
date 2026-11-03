@@ -673,5 +673,9 @@
   "play.joinTeam": "Al een ploeg? Speel mee met je ploeggenoten",
   "play.joinTeamHint": "Tik op je ploeg en speel mee op deze gsm. Het eerste antwoord van de ploeg telt, dus overleg eerst.",
   "play.joinTeamSure": "Op deze gsm meespelen met {name}?",
-  "host.phones": "📱{n}"
+  "host.phones": "📱{n}",
+  "host.mode": "Hoe spelen",
+  "mode.screen": "📺 Groot scherm",
+  "mode.phones": "📱 Alleen gsm's",
+  "play.bigger": "Toon het scherm groot"
 }
