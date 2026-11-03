@@ -687,5 +687,8 @@
   "host.resumeMeta": "Ronde {n} van {total} · {teams} ploegen. Alle scores staan er nog; de gsm's doen vanzelf weer mee.",
   "host.addTime": "+10 s",
   "host.back": "↶ Stap terug",
-  "host.judgeAfter": "Tik ✓ of ✗ om een antwoord toch goed of fout te rekenen."
+  "host.judgeAfter": "Tik ✓ of ✗ om een antwoord toch goed of fout te rekenen.",
+  "play.teamPhoto": "Ploegfoto (mag): tik voor een selfie",
+  "play.teamPhotoLater": "📷 Ploegfoto toevoegen",
+  "play.teamPhotoChange": "📷 Nieuwe ploegfoto"
 }

@@ -51,6 +51,7 @@
     bar.hidden = !s.team;
     if (s.team) {
       bar.style.cssText = teamVar(s.team.color);
+      $('#bar-dot').replaceWith(Object.assign(QB.dot(s.team), { id: 'bar-dot' }));
       $('#bar-name').textContent = s.team.name;
       $('#bar-score').textContent = t('play.score', { n: s.team.score });
       document.body.style.setProperty('--me', `var(--team-${s.team.color})`);
@@ -69,7 +70,11 @@
 
     switch (s.phase) {
       case 'idle': return showView('idle');
-      case 'lobby': return wait(t('play.youreIn'));
+      case 'lobby':
+        wait(t('play.youreIn'));
+        $('#photo-later').hidden = false;
+        $('#photo-later').textContent = t(s.team.photo ? 'play.teamPhotoChange' : 'play.teamPhotoLater');
+        return;
       case 'roundIntro':
         wait(t('play.getReady', { title: s.round.title || t(`round.${s.round.type}`) }));
         return renderJoker(s);
@@ -436,7 +441,33 @@
     $('#wait-quip').textContent = '';
     $('#standings').hidden = true;
     $('#made-with').hidden = true;
+    $('#photo-later').hidden = true;
   }
+
+  // Team photo: a selfie, cut to a square of 360 px. Picked before joining it goes along right after the join.
+  let pendingPhoto = null;
+  async function squarePhoto(file) {
+    const bmp = await createImageBitmap(file);
+    const side = Math.min(bmp.width, bmp.height);
+    const c = document.createElement('canvas');
+    c.width = c.height = 360;
+    c.getContext('2d').drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, 360, 360);
+    const url = c.toDataURL('image/webp', 0.8);
+    return url.startsWith('data:image/webp') ? url : c.toDataURL('image/jpeg', 0.82);
+  }
+  $('#tp-input').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    try {
+      const url = await squarePhoto(f);
+      if (state && state.team) return socket.emit('photo', url);
+      pendingPhoto = url;
+      $('#tp-face').style.backgroundImage = `url("${url}")`;
+      $('#tp-label').classList.add('has');
+    } catch { /* not a picture */ }
+  });
+  $('#photo-later').addEventListener('click', () => $('#tp-input').click());
 
   function renderStandings(rows) {
     const list = $('#standings');
@@ -446,7 +477,7 @@
       const rank = h('span', { class: 'st-rank' }, String(r.rank));
       if (r.rank === 1) rank.innerHTML = CROWN;
       return h('li', { class: 'st-row' + (r.me ? ' me' : ''), style: teamVar(r.color) + `; --k: ${i}` },
-        rank, h('span', { class: 'st-name' }, r.name), h('span', { class: 'st-score' }, String(r.score)));
+        rank, h('span', { class: 'st-name' }, QB.dot(r), ' ', r.name), h('span', { class: 'st-score' }, String(r.score)));
     }));
   }
 
@@ -519,8 +550,9 @@
     $('#join-error').textContent = '';
     if (!name) return ($('#join-error').textContent = t('error.nameEmpty'));
     socket.emit('join', { teamId, name, color: picked }, res => {
-      if (res.error) $('#join-error').textContent = t(res.error);
-      else if (navigator.vibrate) navigator.vibrate(30);
+      if (res.error) return ($('#join-error').textContent = t(res.error));
+      if (pendingPhoto) { socket.emit('photo', pendingPhoto); pendingPhoto = null; }
+      if (navigator.vibrate) navigator.vibrate(30);
     });
   });
 

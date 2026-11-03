@@ -379,6 +379,8 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .step { display: flex; flex-direction: column; align-items: center; width: 20vw; animation: rise .9s cubic-bezier(.2, 1.2, .4, 1) both; }
 .step .who { display: flex; flex-direction: column; align-items: center; gap: .4vh; margin-bottom: 1.5vh; font-weight: 800; font-size: 1.5em; text-align: center; }
 .step .who .team-dot { width: 1.2em; height: 1.2em; }
+.step .who .team-dot.photo { width: 2.2em; height: 2.2em; border-width: .14em; }
+.place1 .who .team-dot.photo { width: 2.8em; height: 2.8em; }
 .step .who .crown-wrap { position: static; transform: none; width: 1.6em; margin-bottom: -.2em; animation: crown-drop2 .8s cubic-bezier(.2, 1.6, .4, 1) both 2.3s, bob 2.4s ease-in-out infinite 3.1s; }
 @keyframes crown-drop2 { from { transform: translateY(-40vh) rotate(-30deg); opacity: 0; } }
 @keyframes bob { 50% { transform: translateY(-.2em) rotate(4deg); } }
@@ -396,13 +398,13 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 }
 .step .medal { width: 2.4em; height: 2.4em; display: grid; place-items: center; border-radius: 50%; font-weight: 900; font-size: 1.6em; color: var(--ink); }
 .place1 { animation-delay: 1.4s; }
-.place1 .block { height: 30vh; }
+.place1 .block { height: 24vh; }
 .place1 .medal { background: radial-gradient(circle at 35% 30%, #fff3c4, #f0b93a 60%, #9a6a12); box-shadow: 0 0 30px var(--neon-amber); }
 .place1 .who { font-size: 2.1em; text-shadow: 0 0 16px var(--c); }
 .place2 { animation-delay: .7s; }
-.place2 .block { height: 21vh; }
+.place2 .block { height: 16vh; }
 .place2 .medal { background: radial-gradient(circle at 35% 30%, #fff, #c8c8d2 60%, #77778a); }
-.place3 .block { height: 15vh; }
+.place3 .block { height: 13vh; }
 .place3 .medal { background: radial-gradient(circle at 35% 30%, #ffe0c4, #d18a4c 60%, #7a4416); }
 .rest { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: .8vh 1.6vw; color: var(--muted); font-size: 1.1em; }
 .rest li { display: flex; align-items: center; gap: .5em; }
@@ -420,3 +422,8 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .end .made-with img { height: 3em; width: auto; filter: drop-shadow(0 0 8px rgb(0 0 0 / .8)); }
 .end .made-own { color: var(--brass-light); }
 @keyframes made-in { to { opacity: .85; } }
+/* Long team names stay on one line on the podium, so the whole end screen fits. */
+.step .who .name { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.place1 .who .team-dot.photo { width: 2.3em; height: 2.3em; }
+.end { gap: 1.6vh; }
+.end-title { font-size: 3.7em; }

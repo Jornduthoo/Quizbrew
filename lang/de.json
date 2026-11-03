@@ -687,5 +687,8 @@
   "host.resumeMeta": "Runde {n} von {total} · {teams} Teams. Alle Punkte sind noch da; die Handys machen von selbst wieder mit.",
   "host.addTime": "+10 s",
   "host.back": "↶ Zurück",
-  "host.judgeAfter": "Tippe ✓ oder ✗, um eine Antwort nachträglich als richtig oder falsch zu zählen."
+  "host.judgeAfter": "Tippe ✓ oder ✗, um eine Antwort nachträglich als richtig oder falsch zu zählen.",
+  "play.teamPhoto": "Teamfoto (freiwillig): tippen für ein Selfie",
+  "play.teamPhotoLater": "📷 Teamfoto hinzufügen",
+  "play.teamPhotoChange": "📷 Neues Teamfoto"
 }

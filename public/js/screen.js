@@ -71,12 +71,13 @@
     if (!lobbyQuipTimer) { lobbyQuip(); lobbyQuipTimer = setInterval(() => { if (state && state.phase === 'lobby') lobbyQuip(); }, 9000); }
     $('#lobby-title').textContent = s.title;
     const list = $('#lobby-teams');
-    const known = new Set([...list.children].map(li => li.dataset.name));
-    const names = new Set(s.teams.map(t => t.name));
-    [...list.children].forEach(li => { if (!names.has(li.dataset.name)) li.remove(); });
+    // A team that adds its photo later gets its chip again.
+    const known = new Set([...list.children].map(li => li.dataset.name + '|' + (li.dataset.photo || '')));
+    const names = new Set(s.teams.map(t => t.name + '|' + (t.photo || '')));
+    [...list.children].forEach(li => { if (!names.has(li.dataset.name + '|' + (li.dataset.photo || ''))) li.remove(); });
     s.teams.forEach(team => {
-      if (known.has(team.name)) return;
-      const chip = h('li', { class: 'team-chip', style: teamVar(team.color), 'data-name': team.name }, h('span', { class: 'team-dot' }), team.name);
+      if (known.has(team.name + '|' + (team.photo || ''))) return;
+      const chip = h('li', { class: 'team-chip', style: teamVar(team.color), 'data-name': team.name, 'data-photo': team.photo || '' }, QB.dot(team), team.name);
       list.append(chip);
       // A new team arriving gets a little burst of sparks in its colour.
       if (lobbyShown) setTimeout(() => FX.sparksAt(chip, { color: cssColor('--team-' + team.color), count: 34 }), 250);
@@ -512,7 +513,7 @@
       countUp(score, r.score, 900, delay * 1000 + 200);
       const row = h('li', { class: 'sb-row' + (r.rank <= 3 ? ` top top${r.rank}` : ''), style: `${teamVar(r.color)}; --d: ${delay}s` },
         h('span', { class: 'rank' }, r.rank === 1 ? h('span', { class: 'crown-wrap' }) : null, r.rank),
-        h('span', { class: 'team-dot' }),
+        QB.dot(r),
         h('span', { class: 'name' }, r.name),
         moved > 0 ? h('span', { class: 'moved up' }, '▲ ' + moved) : moved < 0 ? h('span', { class: 'moved down' }, '▼ ' + -moved) : h('span', { class: 'moved' }),
         score);
@@ -536,11 +537,11 @@
     const rows = s.ranking;
     const podium = [rows[1], rows[0], rows[2]].filter(Boolean);
     $('#podium').replaceChildren(...podium.map(r => h('div', { class: `step place${r.rank}`, style: teamVar(r.color) },
-      h('div', { class: 'who' }, r.rank === 1 ? h('span', { class: 'crown-wrap' }) : null, h('span', { class: 'team-dot' }), h('span', { class: 'name' }, r.name), h('span', { class: 'pts' }, t('screen.points', { n: r.score }))),
+      h('div', { class: 'who' }, r.rank === 1 ? h('span', { class: 'crown-wrap' }) : null, QB.dot(r), h('span', { class: 'name' }, r.name), h('span', { class: 'pts' }, t('screen.points', { n: r.score }))),
       h('div', { class: 'block' }, h('span', { class: 'medal' }, r.rank)))));
     const crown = $('#podium .crown-wrap');
     if (crown) crown.innerHTML = CROWN;
-    $('#rest').replaceChildren(...rows.slice(3).map(r => h('li', { style: teamVar(r.color) }, h('span', { class: 'rank' }, r.rank), h('span', { class: 'team-dot' }), r.name, h('span', { class: 'score' }, r.score))));
+    $('#rest').replaceChildren(...rows.slice(3).map(r => h('li', { style: teamVar(r.color) }, h('span', { class: 'rank' }, r.rank), QB.dot(r), r.name, h('span', { class: 'score' }, r.score))));
     const winner = rows[0];
     if (!winner) return;
     // The winner lands at about 2.3 s: the spots swing onto the podium, brass sparks fly, gold light swarms up.

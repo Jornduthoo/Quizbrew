@@ -255,7 +255,7 @@
       const status = !tm.connected ? 'away' : tm.blocked ? 'blocked' : tm.away ? 'left' : (s.phase === 'question' && tm.answered) ? 'answered' : '';
       return h('li', { class: 'team-row ' + status, style: teamVar(r.color) },
         h('span', { class: 'rank' }, r.rank),
-        h('span', { class: 'team-dot' }),
+        QB.dot(r),
         h('span', { class: 'name', title: !tm.connected ? t('host.offline') : '' }, r.name, tm.joker ? h('span', { class: 'joker-star', title: t('host.jokerPlayed') }, ' ★') : null, tm.phones > 1 ? h('span', { class: 'phones' }, ' ' + t('host.phones', { n: tm.phones })) : null),
         h('span', { class: 'tag' + (status === 'answered' ? ' ok' : status ? ' warn' : ''), title: status === 'answered' ? t('host.answered') : null },
           status === 'answered' ? '✓' : status === 'away' ? t('host.offline') : status === 'left' ? t('host.leftPage') : status === 'blocked' ? t('host.blocked') : ''),

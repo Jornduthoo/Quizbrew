@@ -25,6 +25,11 @@
       <input id="team-name" maxlength="20" required data-i18n-attr="placeholder:play.teamNamePlaceholder" enterkeyhint="done">
       <p class="label" data-i18n="play.pickColor"></p>
       <div class="swatches" id="swatches"></div>
+      <label class="team-photo" id="tp-label">
+        <input type="file" id="tp-input" accept="image/*" capture="user" hidden>
+        <span class="tp-face" id="tp-face"></span>
+        <span class="tp-text" data-i18n="play.teamPhoto"></span>
+      </label>
       <p class="error" id="join-error" role="alert"></p>
       <button class="brass-btn big" type="submit" data-i18n="play.join"></button>
     </form>
@@ -47,6 +52,7 @@
     <div class="badge" id="wait-badge"></div>
     <p class="say" id="wait-text"></p>
     <p class="quip" id="wait-quip"></p>
+    <button class="ghost-btn photo-later" id="photo-later" type="button" hidden data-i18n="play.teamPhotoLater"></button>
     <ol class="standings" id="standings" hidden></ol>
     <p class="made-with" id="made-with" hidden><span data-i18n="brand.madeWith"></span><img src="/img/logo.webp" alt="Quizbrew" width="720" height="326"><span class="made-own" data-i18n="brand.yourOwn"></span></p>
     <button class="brass-btn big joker-btn" id="joker-btn" type="button" hidden data-i18n="play.playJoker"></button>
@@ -161,7 +167,7 @@
     <p class="quip" id="result-quip"></p>
   </section>
 
-  <div class="team-bar" id="team-bar" hidden><span class="team-dot"></span><span id="bar-name"></span><span class="bar-score" id="bar-score"></span></div>
+  <div class="team-bar" id="team-bar" hidden><span class="team-dot" id="bar-dot"></span><span id="bar-name"></span><span class="bar-score" id="bar-score"></span></div>
   <div class="offline" id="offline" hidden data-i18n="play.reconnecting"></div>
 
   <script src="/socket.io/socket.io.js"></script>
