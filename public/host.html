@@ -16,12 +16,23 @@
     <div class="top-actions">
       <span class="join-url" id="join-url" data-i18n-attr="title:host.joinAddress"></span>
       <a class="ghost-btn" href="/screen" target="quizbrew-screen" data-i18n="host.openScreen"></a>
+      <button class="ghost-btn" id="remote-btn" type="button" data-i18n="host.remote"></button>
       <label class="lang">
         <span class="sr" data-i18n="host.language"></span>
         <select id="lang"></select>
       </label>
     </div>
   </header>
+
+  <!-- The remote: scan with the quizmaster's phone or tablet -->
+  <div class="remote-pop panel" id="remote-pop" hidden>
+    <div class="qr-mini" id="remote-qr"></div>
+    <div>
+      <h3 data-i18n="host.remoteTitle"></h3>
+      <p class="hint" data-i18n="host.remoteHint"></p>
+      <p class="remote-url" id="remote-url"></p>
+    </div>
+  </div>
 
   <!-- Pick a quiz -->
   <main id="v-idle" class="view library" hidden>

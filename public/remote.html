@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quizbrew remote</title>
+  <link rel="preload" href="/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/host.css">
+  <link rel="stylesheet" href="/css/rounds.css">
+</head>
+<body class="host remote">
+  <header class="topbar">
+    <img class="logo" src="/img/logo.webp" alt="Quizbrew">
+    <span class="quiz-name" id="quiz-name"></span>
+    <div class="top-actions">
+      <span class="join-url" id="join-url" hidden></span>
+      <label class="lang">
+        <span class="sr" data-i18n="host.language"></span>
+        <select id="lang"></select>
+      </label>
+    </div>
+  </header>
+
+  <!-- Pick a quiz -->
+  <main id="v-idle" class="view library" hidden>
+    <h1 class="neon" data-i18n="host.pickQuiz"></h1>
+    <p class="hint" data-i18n="host.pickQuizHint"></p>
+    <ul class="quiz-list" id="quiz-list"></ul>
+  </main>
+
+  <!-- Running a quiz -->
+  <main id="v-live" class="view live" hidden>
+    <section class="stage panel">
+      <p class="phase-kicker" id="phase-kicker"></p>
+      <h1 class="phase-title" id="phase-title"></h1>
+      <div class="preview" id="preview"></div>
+      <div class="controls">
+        <button class="brass-btn next" id="next"></button>
+        <span class="key-hint" data-i18n="host.keyHint"></span>
+        <button class="ghost-btn danger" id="stop" data-i18n="host.stop"></button>
+      </div>
+    </section>
+    <aside class="teams panel">
+      <h2><span data-i18n="host.teams"></span> <span class="count" id="team-total"></span></h2>
+      <ul id="team-list"></ul>
+      <p class="hint" id="no-teams" data-i18n="host.noTeams"></p>
+    </aside>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/host.js"></script>
+</body>
+</html>
