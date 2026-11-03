@@ -1,0 +1,83 @@
+{
+  "title": "Pack soirée quiz 1",
+  "language": "fr",
+  "jokers": true,
+  "tiebreak": true,
+  "rounds": [
+    {
+      "type": "classic",
+      "title": "Échauffement",
+      "questions": [
+        {"question": "Quelle est la plus petite planète du système solaire ?", "answers": ["Mercure", "Mars", "Vénus", "Pluton"], "correct": 0, "time": 20, "fact": "Mercure est à peine plus grande que notre Lune."},
+        {"question": "Combien de minutes compte une journée ?", "answers": ["1 240", "1 440", "1 640", "1 040"], "correct": 1, "time": 20, "fact": "Soit 86 400 secondes, chaque jour."},
+        {"question": "Quel gaz les plantes absorbent-elles dans l'air ?", "answers": ["Oxygène", "Dioxyde de carbone", "Azote", "Hélium"], "correct": 1, "time": 20, "fact": "En échange, elles rejettent l'oxygène que nous respirons."},
+        {"question": "Qui a peint la Joconde ?", "answers": ["Michel-Ange", "Léonard de Vinci", "Raphaël", "Rembrandt"], "correct": 1, "time": 20, "fact": "Le tableau est étonnamment petit : environ 77 sur 53 cm."},
+        {"question": "Quel est l'animal terrestre le plus rapide ?", "answers": ["Lion", "Guépard", "Cheval", "Lévrier"], "correct": 1, "time": 20, "fact": "Le guépard sprinte à environ 100 km/h, mais seulement sur une courte distance."},
+        {"question": "Combien de joueurs une équipe de football aligne-t-elle sur le terrain ?", "answers": ["9", "10", "11", "12"], "correct": 2, "time": 15, "fact": "Gardien compris, le seul autorisé à toucher le ballon avec les mains."}
+      ]
+    },
+    {
+      "type": "trueFalse",
+      "title": "Vrai ou bluff",
+      "questions": [
+        {"question": "Les bananes sont des baies.", "correct": true, "time": 12, "fact": "Pour les botanistes, oui. Les fraises, elles, n'en sont pas."},
+        {"question": "On peut voir la Grande Muraille de Chine depuis la Lune à l'œil nu.", "correct": false, "time": 12, "fact": "Elle est bien trop étroite. Même en orbite basse, on la distingue à peine."},
+        {"question": "Le miel peut rester comestible pendant des milliers d'années.", "correct": true, "time": 12, "fact": "On a retrouvé des pots de miel dans des tombes égyptiennes antiques."},
+        {"question": "La foudre ne frappe jamais deux fois au même endroit.", "correct": false, "time": 12, "fact": "Les grandes tours sont frappées de nombreuses fois chaque année."},
+        {"question": "Les pieuvres ont le sang bleu.", "correct": true, "time": 12, "fact": "Leur sang transporte l'oxygène grâce au cuivre plutôt qu'au fer."},
+        {"question": "L'être humain n'utilise que 10 % de son cerveau.", "correct": false, "time": 12, "fact": "Les scanners montrent une activité presque partout au fil de la journée."}
+      ]
+    },
+    {
+      "type": "closest",
+      "title": "Le plus proche gagne",
+      "questions": [
+        {"question": "Combien de pays sont membres des Nations unies ?", "answer": 193, "time": 25},
+        {"question": "En quelle année ont eu lieu les premiers Jeux olympiques modernes ?", "answer": 1896, "time": 25, "fact": "Ils se sont déroulés à Athènes."},
+        {"question": "Quelle est la hauteur de l'Everest, en mètres ?", "answer": 8849, "unit": "m", "time": 25},
+        {"question": "Combien de cases compte un échiquier ?", "answer": 64, "time": 20}
+      ]
+    },
+    {
+      "type": "speed",
+      "title": "Manche éclair",
+      "questions": [
+        {"question": "Combien font 7 × 8 ?", "answers": ["54", "56", "64", "48"], "correct": 1, "time": 10},
+        {"question": "Quelle couleur se trouve à l'extérieur d'un arc-en-ciel ?", "answers": ["Rouge", "Violet", "Bleu", "Jaune"], "correct": 0, "time": 10},
+        {"question": "Quelle est la plus grande planète ?", "answers": ["Saturne", "Jupiter", "Neptune", "Terre"], "correct": 1, "time": 10},
+        {"question": "Quelle forme a trois côtés ?", "answers": ["Carré", "Triangle", "Pentagone", "Cercle"], "correct": 1, "time": 10},
+        {"question": "Que fabriquent les abeilles ?", "answers": ["Du lait", "Du miel", "De la soie", "Du coton"], "correct": 1, "time": 10},
+        {"question": "Combien d'heures compte une semaine ?", "answers": ["148", "168", "178", "158"], "correct": 1, "time": 10}
+      ]
+    },
+    {
+      "type": "commonThread",
+      "title": "Le fil rouge",
+      "questions": [
+        {"clues": ["Trompe", "Ivoire", "Savane", "Plus grand animal terrestre"], "answer": "Éléphant", "accept": ["Elephant", "Éléphants"], "time": 40},
+        {"clues": ["Tamise", "Big Ben", "Tower Bridge", "Capitale du Royaume-Uni"], "answer": "Londres", "accept": ["London"], "time": 40},
+        {"clues": ["Épines", "Pétales", "Saint-Valentin", "Fleur rouge"], "answer": "Rose", "accept": ["Roses"], "time": 40},
+        {"clues": ["Coquille", "Jaune", "Omelette", "La poule le pond"], "answer": "Œuf", "accept": ["Oeuf", "Œufs"], "time": 40}
+      ]
+    },
+    {
+      "type": "classic",
+      "title": "Le tour du monde",
+      "questions": [
+        {"question": "Quel pays compte le plus d'habitants ?", "answers": ["Inde", "Chine", "États-Unis", "Indonésie"], "correct": 0, "time": 20, "fact": "L'Inde a dépassé la Chine en 2023."},
+        {"question": "Quel fleuve traverse Paris ?", "answers": ["La Seine", "La Loire", "Le Rhin", "Le Rhône"], "correct": 0, "time": 20, "fact": "Plus de 30 ponts enjambent la Seine à Paris."},
+        {"question": "Dans quel pays se trouve le Machu Picchu ?", "answers": ["Mexique", "Pérou", "Chili", "Bolivie"], "correct": 1, "time": 20, "fact": "L'ancienne cité inca se trouve à environ 2 400 mètres d'altitude."},
+        {"question": "Quel est le plus long fleuve d'Afrique ?", "answers": ["Le Congo", "Le Niger", "Le Nil", "Le Zambèze"], "correct": 2, "time": 20, "fact": "Le Nil traverse 11 pays."},
+        {"question": "Quel pays a la forme d'une botte ?", "answers": ["Grèce", "Espagne", "Italie", "Portugal"], "correct": 2, "time": 15, "fact": "La pointe de la botte touche presque la Sicile."},
+        {"question": "Quelle est la monnaie du Japon ?", "answers": ["Le yuan", "Le won", "Le yen", "Le ringgit"], "correct": 2, "time": 15, "fact": "En japonais, yen signifie « rond » ou « cercle »."}
+      ]
+    },
+    {
+      "type": "jackpot",
+      "title": "Le jackpot",
+      "questions": [
+        {"category": "Sciences", "question": "Quel est le matériau naturel le plus dur sur Terre ?", "answer": "Diamant", "accept": ["Diamants"], "points": 5, "time": 30, "fact": "Le diamant est du carbone pur, comme la mine d'un crayon."}
+      ]
+    }
+  ]
+}

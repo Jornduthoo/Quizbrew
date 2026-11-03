@@ -8,6 +8,8 @@ const QRCode = require('qrcode');
 const crypto = require('crypto');
 const { execFile } = require('child_process');
 const { Game, validateQuiz } = require('./game');
+const { Autopilot } = require('./autopilot');
+const Brand = require('./brand');
 const { TEAM_COLORS } = require('./teams');
 const i18n = require('./i18n');
 const quizzes = require('./quizzes');
@@ -86,9 +88,11 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     all[key] = mine;
     try { fs.writeFileSync(statsFile, JSON.stringify(all)); } catch (err) { console.error('Could not save the statistics:', err.message); }
   };
+  let autopilot = null;
   const game = new Game({
     emit: (target, event, payload) => io.to(target).emit(event, payload),
     onChange: () => {
+      if (autopilot) autopilot.check();
       if (game.phase === 'end' && !statsSaved) saveStats();
       if (game.phase === 'idle' || saveSoon) return;
       saveSoon = setTimeout(saveLive, 500);
@@ -105,6 +109,9 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     }
   }
   game.language = language();
+  const brand = () => Brand.clean(settings.get('brand'));
+  autopilot = new Autopilot(game, { onUpdate: view => io.to('host').emit('auto', view) });
+  autopilot.set(settings.get('autopilot') === true);
   const ai = Ai.create(settings);
 
   // Raffle: the quizmaster draws a team or a ticket number; the big screen spins it out. Winners are not drawn twice.
@@ -244,9 +251,19 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     const url = `${baseUrl()}/check`;
     return { url, addresses: lanAddresses(), qr: await QRCode.toString(url, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#1b0f08', light: '#0000' } }) };
   }));
+  // The venue and its sponsors, for every screen.
+  api.get('/brand', handle(() => brand()));
+  api.put('/brand', handle(req => {
+    const b = Brand.clean(req.body);
+    settings.set('brand', b);
+    io.emit('brand', b);
+    return b;
+  }));
+  // The quiz that is loaded right now, for the answer sheet of the paper teams.
+  api.get('/live-quiz', handle(() => { if (!game.quiz) throw new Error('no quiz'); return game.quiz; }));
   api.get('/catalog', handle(() => rounds.catalog()));
   api.get('/stats', handle(req => readStats()[statsKey({ library: String(req.query.path || '') })] || { plays: 0, q: {} }));
-  api.get('/library', handle(() => ({ tree: library.tree(), samples: quizzes.list() })));
+  api.get('/library', handle(() => ({ tree: library.tree(), samples: quizzes.list(language()) })));
   api.get('/library/quiz', handle(req => (req.query.sample ? quizzes.load(String(req.query.sample)) : library.read(String(req.query.path || '')))));
   api.put('/library/quiz', handle(req => library.save(req.body.path || null, req.body.quiz, { folder: req.body.folder || '' })));
   api.delete('/library/item', handle(req => { library.remove(String(req.query.path || '')); return { ok: true }; }));
@@ -322,16 +339,18 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     socket.emit('look', look());
     socket.emit('mode', mode());
     socket.emit('sfx', settings.get('sfx') !== false);
+    socket.emit('brand', brand());
 
     if (role === 'host') {
       if (!canHost(socket.handshake.address) && !isRemote(socket.handshake.query.key)) return socket.disconnect(true);
       socket.join('host');
       socket.emit('state', game.hostState());
       socket.emit('raffleState', raffleView());
+      socket.emit('auto', autopilot.view());
       if (ratedQuiz === game.quiz) socket.emit('rating', ratingView());
       on('quizzes', cb => {
         const flat = (node, out = []) => { node.quizzes.forEach(q => out.push(q)); node.folders.forEach(f => flat(f, out)); return out; };
-        cb({ samples: quizzes.list(), library: flat(library.tree()).sort((a, b) => b.modified - a.modified), ratings: readRatings() });
+        cb({ samples: quizzes.list(language()), library: flat(library.tree()).sort((a, b) => b.modified - a.modified), ratings: readRatings() });
       });
       on('load', (ref, cb) => {
         try {
@@ -371,8 +390,11 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       });
       on('discard', () => { game.resumable = null; forgetLive(); game.broadcast(); });
       on('kick', teamId => game.kick(String(teamId)));
+      on('paperTeam', (name, cb) => { const r = game.addPaperTeam(name); if (typeof cb === 'function') cb(r); });
+      on('paperPoints', ({ teamId, round, points } = {}) => game.setPaperPoints(String(teamId), round, points));
       on('raffle', (opts, cb) => { const r = drawRaffle(opts); if (typeof cb === 'function') cb(r); });
       on('raffleHide', () => io.to('screen').emit('raffle', null));
+      on('autopilot', value => { settings.set('autopilot', !!value); autopilot.set(!!value); });
       on('raffleReset', () => { raffleWinners = []; io.to('host').emit('raffleState', raffleView()); });
       on('score', ({ teamId, delta } = {}) => game.adjustScore(String(teamId), Number(delta)));
       on('look', name => {

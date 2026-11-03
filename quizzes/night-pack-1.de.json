@@ -1,0 +1,83 @@
+{
+  "title": "Quizabend-Paket 1",
+  "language": "de",
+  "jokers": true,
+  "tiebreak": true,
+  "rounds": [
+    {
+      "type": "classic",
+      "title": "Aufwärmrunde",
+      "questions": [
+        {"question": "Welcher ist der kleinste Planet unseres Sonnensystems?", "answers": ["Merkur", "Mars", "Venus", "Pluto"], "correct": 0, "time": 20, "fact": "Merkur ist nur ein kleines bisschen größer als unser Mond."},
+        {"question": "Wie viele Minuten hat ein Tag?", "answers": ["1.240", "1.440", "1.640", "1.040"], "correct": 1, "time": 20, "fact": "Das sind 86.400 Sekunden, jeden Tag."},
+        {"question": "Welches Gas nehmen Pflanzen aus der Luft auf?", "answers": ["Sauerstoff", "Kohlendioxid", "Stickstoff", "Helium"], "correct": 1, "time": 20, "fact": "Im Gegenzug geben sie den Sauerstoff ab, den wir atmen."},
+        {"question": "Wer hat die Mona Lisa gemalt?", "answers": ["Michelangelo", "Leonardo da Vinci", "Raffael", "Rembrandt"], "correct": 1, "time": 20, "fact": "Das Gemälde ist überraschend klein: etwa 77 mal 53 cm."},
+        {"question": "Welches Tier ist an Land am schnellsten?", "answers": ["Löwe", "Gepard", "Pferd", "Windhund"], "correct": 1, "time": 20, "fact": "Ein Gepard sprintet etwa 100 km/h, hält das aber nur kurz durch."},
+        {"question": "Wie viele Spieler einer Fußballmannschaft stehen auf dem Platz?", "answers": ["9", "10", "11", "12"], "correct": 2, "time": 15, "fact": "Der Torwart zählt mit: der Einzige, der den Ball mit den Händen spielen darf."}
+      ]
+    },
+    {
+      "type": "trueFalse",
+      "title": "Wahr oder Bluff",
+      "questions": [
+        {"question": "Bananen sind Beeren.", "correct": true, "time": 12, "fact": "Botanisch ja, Erdbeeren dagegen nicht."},
+        {"question": "Man kann die Chinesische Mauer vom Mond aus mit bloßem Auge sehen.", "correct": false, "time": 12, "fact": "Dafür ist sie viel zu schmal. Selbst aus niedriger Umlaufbahn sieht man sie kaum."},
+        {"question": "Honig kann Tausende von Jahren genießbar bleiben.", "correct": true, "time": 12, "fact": "In altägyptischen Gräbern fand man Honigtöpfe."},
+        {"question": "Der Blitz schlägt nie zweimal an derselben Stelle ein.", "correct": false, "time": 12, "fact": "Hohe Türme werden jedes Jahr viele Male getroffen."},
+        {"question": "Kraken haben blaues Blut.", "correct": true, "time": 12, "fact": "Ihr Blut transportiert Sauerstoff mit Kupfer statt Eisen."},
+        {"question": "Menschen nutzen nur 10 % ihres Gehirns.", "correct": false, "time": 12, "fact": "Hirnscans zeigen über den Tag fast überall Aktivität."}
+      ]
+    },
+    {
+      "type": "closest",
+      "title": "Am nächsten dran",
+      "questions": [
+        {"question": "Wie viele Länder sind Mitglied der Vereinten Nationen?", "answer": 193, "time": 25},
+        {"question": "In welchem Jahr fanden die ersten Olympischen Spiele der Neuzeit statt?", "answer": 1896, "time": 25, "fact": "Sie fanden in Athen statt."},
+        {"question": "Wie hoch ist der Mount Everest, in Metern?", "answer": 8849, "unit": "m", "time": 25},
+        {"question": "Wie viele Felder hat ein Schachbrett?", "answer": 64, "time": 20}
+      ]
+    },
+    {
+      "type": "speed",
+      "title": "Blitzrunde",
+      "questions": [
+        {"question": "Was ist 7 × 8?", "answers": ["54", "56", "64", "48"], "correct": 1, "time": 10},
+        {"question": "Welche Farbe liegt außen am Regenbogen?", "answers": ["Rot", "Violett", "Blau", "Gelb"], "correct": 0, "time": 10},
+        {"question": "Welcher ist der größte Planet?", "answers": ["Saturn", "Jupiter", "Neptun", "Erde"], "correct": 1, "time": 10},
+        {"question": "Welche Form hat drei Seiten?", "answers": ["Quadrat", "Dreieck", "Fünfeck", "Kreis"], "correct": 1, "time": 10},
+        {"question": "Was stellen Bienen her?", "answers": ["Milch", "Honig", "Seide", "Baumwolle"], "correct": 1, "time": 10},
+        {"question": "Wie viele Stunden hat eine Woche?", "answers": ["148", "168", "178", "158"], "correct": 1, "time": 10}
+      ]
+    },
+    {
+      "type": "commonThread",
+      "title": "Der rote Faden",
+      "questions": [
+        {"clues": ["Rüssel", "Elfenbein", "Savanne", "Größtes Landtier"], "answer": "Elefant", "accept": ["Elefanten"], "time": 40},
+        {"clues": ["Themse", "Big Ben", "Tower Bridge", "Hauptstadt des Vereinigten Königreichs"], "answer": "London", "accept": [], "time": 40},
+        {"clues": ["Dornen", "Blütenblätter", "Valentinstag", "Rote Blume"], "answer": "Rose", "accept": ["Rosen"], "time": 40},
+        {"clues": ["Schale", "Dotter", "Omelett", "Ein Huhn legt es"], "answer": "Ei", "accept": ["Eier"], "time": 40}
+      ]
+    },
+    {
+      "type": "classic",
+      "title": "Einmal um die Welt",
+      "questions": [
+        {"question": "Welches Land hat die meisten Einwohner?", "answers": ["Indien", "China", "Vereinigte Staaten", "Indonesien"], "correct": 0, "time": 20, "fact": "Indien hat China 2023 überholt."},
+        {"question": "Welcher Fluss fließt durch Paris?", "answers": ["Seine", "Loire", "Rhein", "Rhone"], "correct": 0, "time": 20, "fact": "In Paris führen mehr als 30 Brücken über die Seine."},
+        {"question": "In welchem Land liegt Machu Picchu?", "answers": ["Mexiko", "Peru", "Chile", "Bolivien"], "correct": 1, "time": 20, "fact": "Die alte Inkastadt liegt etwa 2.400 Meter über dem Meer."},
+        {"question": "Welcher ist der längste Fluss Afrikas?", "answers": ["Kongo", "Niger", "Nil", "Sambesi"], "correct": 2, "time": 20, "fact": "Der Nil fließt durch 11 Länder."},
+        {"question": "Welches Land hat die Form eines Stiefels?", "answers": ["Griechenland", "Spanien", "Italien", "Portugal"], "correct": 2, "time": 15, "fact": "Die Stiefelspitze berührt fast Sizilien."},
+        {"question": "Was ist die Währung Japans?", "answers": ["Yuan", "Won", "Yen", "Ringgit"], "correct": 2, "time": 15, "fact": "Yen bedeutet auf Japanisch „rund“ oder „Kreis“."}
+      ]
+    },
+    {
+      "type": "jackpot",
+      "title": "Der Jackpot",
+      "questions": [
+        {"category": "Wissenschaft", "question": "Was ist das härteste natürliche Material der Erde?", "answer": "Diamant", "accept": ["Diamanten"], "points": 5, "time": 30, "fact": "Ein Diamant ist reiner Kohlenstoff, wie die Mine eines Bleistifts."}
+      ]
+    }
+  ]
+}

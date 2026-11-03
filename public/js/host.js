@@ -164,6 +164,32 @@
     awards: () => 'host.showWinner',
   };
 
+  // One line of advice for the quizmaster under the title: what to say or do now.
+  function coachStep(s) {
+    if (s.break) return 'break';
+    if (s.phase === 'question' && s.buzz) return 'buzz';
+    if (s.phase === 'question' && s.turn) return 'turn';
+    if (s.phase === 'reveal' && s.canJudge) return 'judge';
+    return s.phase;
+  }
+
+  // Autopilot: a bar fills the next button until Quizbrew presses it.
+  let auto = { on: false, left: 0, total: 0 };
+  function renderAuto() {
+    const btn = $('#autopilot');
+    btn.classList.toggle('on', auto.on);
+    btn.setAttribute('aria-pressed', String(auto.on));
+    const next = $('#next');
+    next.classList.remove('counting');
+    if (auto.left > 0 && auto.total > 0) {
+      void next.offsetWidth; // restart the animation
+      next.style.setProperty('--auto-ms', `${auto.left}ms`);
+      next.style.setProperty('--auto-from', String(1 - auto.left / auto.total));
+      next.classList.add('counting');
+    }
+  }
+  socket.on('auto', a => { auto = a || auto; renderAuto(); });
+
   function render(s) {
     showView(s.phase === 'idle' ? 'idle' : 'live');
     renderCopy();
@@ -187,6 +213,7 @@
     $('#break').hidden = !s.canBreak;
     $('#break').textContent = t(s.break ? 'host.breakMore' : 'host.break');
 
+    $('#coach').textContent = t(`host.coach.${coachStep(s)}`);
     const kicker = $('#phase-kicker');
     const title = $('#phase-title');
     const preview = $('#preview');
@@ -211,14 +238,14 @@
       kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('host.phase.wager')}`;
       title.textContent = s.pick ? t('host.picks', { name: s.pick.by ? s.pick.by.name : '' }) : s.wagerMode === 'predict' ? (s.finalists || []).map(f => f.name).join(` ${t('screen.vs')} `) : s.category || '';
       if (s.pick) preview.append(h('ol', { class: 'mini-answers' }, s.pick.categories.map((c, i) => h('li', { class: s.pick.chosen === i ? 'key' : '' }, h('span', { class: 'letter' }, LETTERS[i]), c))));
-      preview.append(h('p', { class: 'hint' }, t('host.wagered', { n: s.teams.filter(x => x.wagered).length, total: s.teams.length })));
+      preview.append(h('p', { class: 'hint' }, t('host.wagered', { n: s.teams.filter(x => x.wagered).length, total: s.teams.filter(x => !x.paper).length })));
       if (s.answerKey) preview.append(h('p', { class: 'answer-key' }, t('host.answerKey', { text: s.answerKey.answerText })));
     } else if (s.phase === 'vote') {
       kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('host.phase.vote')}`;
       title.textContent = s.question.text || '';
       preview.append(h('ol', { class: 'mini-answers ballot-mini' }, s.ballot.map((b, i) => h('li', {},
         h('span', { class: 'letter' }, LETTERS[i] || String(i + 1)), b.image ? h('img', { class: 'ballot-thumb', src: b.content, alt: '' }) : b.content))));
-      preview.append(h('p', { class: 'hint' }, t('screen.votedCount', { n: s.answered, total: s.teams.length })));
+      preview.append(h('p', { class: 'hint' }, t('screen.votedCount', { n: s.answered, total: s.teams.filter(x => !x.paper).length })));
     } else if (s.phase === 'question' || s.phase === 'reveal') {
       kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions })}`;
       const q = s.question;
@@ -288,7 +315,7 @@
           if (s.canJudge) preview.append(h('p', { class: 'hint' }, t('host.judgeHint')));
         }
       }
-      preview.append(h('p', { class: 'hint' }, t('screen.answeredCount', { n: s.answered, total: s.teams.length })));
+      preview.append(h('p', { class: 'hint' }, t('screen.answeredCount', { n: s.answered, total: s.teams.filter(x => !x.paper).length })));
     } else if (s.phase === 'scoreboard') {
       kicker.textContent = t('host.phase.scoreboard');
       title.textContent = t('screen.standingsAfter', { n: s.round.index + 1 });
@@ -319,19 +346,31 @@
   }
 
   function renderTeams(s) {
+    // Don't redraw under the quizmaster's fingers while they type the points of a paper team.
+    if (document.activeElement && document.activeElement.classList.contains('paper-pts')) { pendingTeams = s; return; }
+    pendingTeams = null;
+    const paper = Object.fromEntries((s.paperTeams || []).map(p => [p.id, p]));
+    $('#paper-hint').hidden = !(s.paperTeams || []).length;
     $('#team-total').textContent = s.teams.length;
     $('#no-teams').hidden = s.teams.length > 0;
     const byName = Object.fromEntries(s.teams.map(tm => [tm.name, tm]));
     $('#team-list').replaceChildren(...s.ranking.map(r => {
       const tm = byName[r.name] || {};
-      const status = !tm.connected ? 'away' : tm.blocked ? 'blocked' : tm.away ? 'left' : (s.phase === 'question' && tm.answered) ? 'answered' : '';
+      const pt = paper[r.id];
+      const status = pt ? 'paper' : !tm.connected ? 'away' : tm.blocked ? 'blocked' : tm.away ? 'left' : (s.phase === 'question' && tm.answered) ? 'answered' : '';
       return h('li', { class: 'team-row ' + status, style: teamVar(r.color) },
         h('span', { class: 'rank' }, r.rank),
         QB.dot(r),
         h('span', { class: 'name', title: !tm.connected ? t('host.offline') : '' }, r.name, tm.joker ? h('span', { class: 'joker-star', title: t('host.jokerPlayed') }, ' ★') : null, tm.phones > 1 ? h('span', { class: 'phones' }, ' ' + t('host.phones', { n: tm.phones })) : null),
-        h('span', { class: 'tag' + (status === 'answered' ? ' ok' : status ? ' warn' : ''), title: status === 'answered' ? t('host.answered') : null },
-          status === 'answered' ? '✓' : status === 'away' ? t('host.offline') : status === 'left' ? t('host.leftPage') : status === 'blocked' ? t('host.blocked') : ''),
+        h('span', { class: 'tag' + (status === 'answered' ? ' ok' : status === 'paper' ? ' paper' : status ? ' warn' : ''), title: status === 'answered' ? t('host.answered') : null },
+          status === 'paper' ? t('host.paperTag') : status === 'answered' ? '✓' : status === 'away' ? t('host.offline') : status === 'left' ? t('host.leftPage') : status === 'blocked' ? t('host.blocked') : ''),
         h('span', { class: 'score' }, r.score),
+        pt && s.paperRound >= 0 ? h('label', { class: 'paper-in', title: t('host.paperPoints', { n: s.paperRound + 1 }) },
+          h('span', {}, t('host.paperRound', { n: s.paperRound + 1 })),
+          h('input', { class: 'paper-pts', type: 'number', inputmode: 'numeric', step: 1, value: pt.points === null ? '' : String(pt.points), placeholder: '0', 'aria-label': t('host.paperPoints', { n: s.paperRound + 1 }),
+            onchange: e => socket.emit('paperPoints', { teamId: r.id, round: s.paperRound, points: Number(e.target.value) || 0 }),
+            onkeydown: e => { if (e.key === 'Enter') e.target.blur(); },
+            onblur: () => setTimeout(() => { if (pendingTeams) renderTeams(pendingTeams); }, 0) })) : null,
         h('span', { class: 'adjust' },
           h('button', { class: 'mini', title: t('host.minusPoint'), onclick: () => socket.emit('score', { teamId: r.id, delta: -1 }) }, '−'),
           h('button', { class: 'mini', title: t('host.plusPoint'), onclick: () => socket.emit('score', { teamId: r.id, delta: 1 }) }, '+'),
@@ -339,10 +378,86 @@
     }));
   }
 
+  let pendingTeams = null;
+  $('#paper-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const name = $('#paper-name').value;
+    socket.emit('paperTeam', name, res => {
+      $('#paper-error').textContent = res && res.error ? t(res.error) : '';
+      if (res && res.ok) $('#paper-name').value = '';
+    });
+  });
+
   $('#next').addEventListener('click', () => socket.emit('next'));
   $('#back').addEventListener('click', () => socket.emit('back'));
   $('#add-time').addEventListener('click', () => socket.emit('addTime'));
   $('#break').addEventListener('click', () => socket.emit('break'));
+  // The venue and its sponsors.
+  let brand = { venue: '', logo: '', sponsors: [] };
+  socket.on('brand', b => { if (b) brand = b; });
+  async function uploadLogo(file) {
+    let blob = file;
+    let type = file.type;
+    if (/^image\/(jpeg|png|webp|bmp)$/.test(type)) {
+      const bmp = await createImageBitmap(file);
+      const scale = Math.min(1, 640 / Math.max(bmp.width, bmp.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(bmp.width * scale);
+      c.height = Math.round(bmp.height * scale);
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      const out = await new Promise(r => c.toBlob(r, 'image/webp', 0.88));
+      if (out && out.type === 'image/webp') { blob = out; type = 'image/webp'; }
+    }
+    const res = await fetch('/api/host/media', { method: 'POST', headers: { 'Content-Type': type }, body: blob });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'upload');
+    return data.url;
+  }
+  function logoSlot(url, set) {
+    const input = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: async e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      slot.classList.add('busy');
+      try { set(await uploadLogo(f)); } catch { $('#venue-error').textContent = t('error.generic'); }
+      slot.classList.remove('busy');
+    } });
+    const slot = h('label', { class: 'logo-pick' + (url ? ' has' : ''), title: t('venue.logo') }, input,
+      url ? h('img', { src: url, alt: '' }) : h('span', { class: 'logo-plus' }, t('venue.logo')));
+    if (!url) return slot;
+    return h('div', { class: 'logo-wrap' }, slot, h('button', { class: 'mini remove', type: 'button', title: t('venue.removeLogo'), onclick: () => set('') }, '×'));
+  }
+  let draft = null;
+  function drawVenue() {
+    $('#venue-logo').replaceChildren(logoSlot(draft.logo, url => { draft.logo = url; drawVenue(); }));
+    $('#sponsor-list').replaceChildren(...draft.sponsors.map((sp, i) => h('li', { class: 'sponsor-row' },
+      logoSlot(sp.logo, url => { sp.logo = url; drawVenue(); }),
+      h('div', { class: 'sponsor-fields' },
+        h('input', { value: sp.name, maxlength: 40, placeholder: t('venue.sponsorName'), 'aria-label': t('venue.sponsorName'), oninput: e => { sp.name = e.target.value; } }),
+        h('input', { value: sp.line, maxlength: 80, placeholder: t('venue.sponsorLine'), 'aria-label': t('venue.sponsorLine'), oninput: e => { sp.line = e.target.value; } })),
+      h('button', { class: 'mini remove', type: 'button', title: t('builder.delete'), onclick: () => { draft.sponsors.splice(i, 1); drawVenue(); } }, '×'))));
+    $('#sponsor-add').hidden = draft.sponsors.length >= 8;
+  }
+  $('#venue-tile').addEventListener('click', () => {
+    draft = JSON.parse(JSON.stringify(brand));
+    $('#venue-name').value = draft.venue;
+    $('#venue-error').textContent = '';
+    drawVenue();
+    $('#venue-modal').showModal();
+  });
+  $('#venue-name').addEventListener('input', e => { draft.venue = e.target.value; });
+  $('#sponsor-add').addEventListener('click', () => { draft.sponsors.push({ name: '', line: '', logo: '' }); drawVenue(); });
+  $('#venue-modal [data-close]').addEventListener('click', () => $('#venue-modal').close());
+  $('#venue-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/host/brand', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) });
+      if (!res.ok) throw new Error('save');
+      brand = await res.json();
+      $('#venue-modal').close();
+    } catch { $('#venue-error').textContent = t('error.generic'); }
+  });
+
+  $('#autopilot').addEventListener('click', () => socket.emit('autopilot', !auto.on));
   $('#resume-go').addEventListener('click', () => socket.emit('resume', res => { if (res && res.error) alert(t(res.error)); }));
   $('#resume-no').addEventListener('click', () => { if (confirm(t('host.resumeNoSure'))) socket.emit('discard'); });
   $('#stop').addEventListener('click', () => {

@@ -1,0 +1,83 @@
+{
+  "title": "Pack noche de quiz 1",
+  "language": "es",
+  "jokers": true,
+  "tiebreak": true,
+  "rounds": [
+    {
+      "type": "classic",
+      "title": "Calentamiento",
+      "questions": [
+        {"question": "¿Cuál es el planeta más pequeño del sistema solar?", "answers": ["Mercurio", "Marte", "Venus", "Plutón"], "correct": 0, "time": 20, "fact": "Mercurio es solo un poco más grande que nuestra Luna."},
+        {"question": "¿Cuántos minutos tiene un día?", "answers": ["1240", "1440", "1640", "1040"], "correct": 1, "time": 20, "fact": "Son 86 400 segundos, cada día."},
+        {"question": "¿Qué gas toman las plantas del aire?", "answers": ["Oxígeno", "Dióxido de carbono", "Nitrógeno", "Helio"], "correct": 1, "time": 20, "fact": "A cambio, desprenden el oxígeno que respiramos."},
+        {"question": "¿Quién pintó la Mona Lisa?", "answers": ["Miguel Ángel", "Leonardo da Vinci", "Rafael", "Rembrandt"], "correct": 1, "time": 20, "fact": "El cuadro es sorprendentemente pequeño: unos 77 por 53 cm."},
+        {"question": "¿Cuál es el animal terrestre más rápido?", "answers": ["León", "Guepardo", "Caballo", "Galgo"], "correct": 1, "time": 20, "fact": "El guepardo esprinta a unos 100 km/h, pero solo durante un tramo corto."},
+        {"question": "¿Cuántos jugadores tiene un equipo de fútbol en el campo?", "answers": ["9", "10", "11", "12"], "correct": 2, "time": 15, "fact": "Incluido el portero, el único que puede tocar el balón con las manos."}
+      ]
+    },
+    {
+      "type": "trueFalse",
+      "title": "Verdad o farol",
+      "questions": [
+        {"question": "Los plátanos son bayas.", "correct": true, "time": 12, "fact": "Botánicamente sí, y las fresas en cambio no."},
+        {"question": "La Gran Muralla China se ve desde la Luna a simple vista.", "correct": false, "time": 12, "fact": "Es demasiado estrecha. Ni siquiera desde una órbita baja se distingue bien."},
+        {"question": "La miel puede seguir siendo comestible durante miles de años.", "correct": true, "time": 12, "fact": "Se encontraron tarros de miel en tumbas del antiguo Egipto."},
+        {"question": "Un rayo nunca cae dos veces en el mismo sitio.", "correct": false, "time": 12, "fact": "Las torres altas reciben muchos rayos cada año."},
+        {"question": "Los pulpos tienen la sangre azul.", "correct": true, "time": 12, "fact": "Su sangre transporta el oxígeno con cobre en lugar de hierro."},
+        {"question": "Los humanos solo usamos el 10 % del cerebro.", "correct": false, "time": 12, "fact": "Los escáneres muestran actividad en casi todo el cerebro a lo largo del día."}
+      ]
+    },
+    {
+      "type": "closest",
+      "title": "El más cercano gana",
+      "questions": [
+        {"question": "¿Cuántos países son miembros de las Naciones Unidas?", "answer": 193, "time": 25},
+        {"question": "¿En qué año se celebraron los primeros Juegos Olímpicos modernos?", "answer": 1896, "time": 25, "fact": "Se celebraron en Atenas."},
+        {"question": "¿Cuánto mide el Everest, en metros?", "answer": 8849, "unit": "m", "time": 25},
+        {"question": "¿Cuántas casillas tiene un tablero de ajedrez?", "answer": 64, "time": 20}
+      ]
+    },
+    {
+      "type": "speed",
+      "title": "Ronda rápida",
+      "questions": [
+        {"question": "¿Cuánto es 7 × 8?", "answers": ["54", "56", "64", "48"], "correct": 1, "time": 10},
+        {"question": "¿Qué color está en el borde exterior del arcoíris?", "answers": ["Rojo", "Violeta", "Azul", "Amarillo"], "correct": 0, "time": 10},
+        {"question": "¿Cuál es el planeta más grande?", "answers": ["Saturno", "Júpiter", "Neptuno", "Tierra"], "correct": 1, "time": 10},
+        {"question": "¿Qué figura tiene tres lados?", "answers": ["Cuadrado", "Triángulo", "Pentágono", "Círculo"], "correct": 1, "time": 10},
+        {"question": "¿Qué fabrican las abejas?", "answers": ["Leche", "Miel", "Seda", "Algodón"], "correct": 1, "time": 10},
+        {"question": "¿Cuántas horas tiene una semana?", "answers": ["148", "168", "178", "158"], "correct": 1, "time": 10}
+      ]
+    },
+    {
+      "type": "commonThread",
+      "title": "El hilo común",
+      "questions": [
+        {"clues": ["Trompa", "Marfil", "Sabana", "El animal terrestre más grande"], "answer": "Elefante", "accept": ["Elefantes"], "time": 40},
+        {"clues": ["Támesis", "Big Ben", "Tower Bridge", "Capital del Reino Unido"], "answer": "Londres", "accept": ["London"], "time": 40},
+        {"clues": ["Espinas", "Pétalos", "San Valentín", "Flor roja"], "answer": "Rosa", "accept": ["Rosas"], "time": 40},
+        {"clues": ["Cáscara", "Yema", "Tortilla", "La gallina lo pone"], "answer": "Huevo", "accept": ["Huevos"], "time": 40}
+      ]
+    },
+    {
+      "type": "classic",
+      "title": "La vuelta al mundo",
+      "questions": [
+        {"question": "¿Qué país tiene más habitantes?", "answers": ["India", "China", "Estados Unidos", "Indonesia"], "correct": 0, "time": 20, "fact": "India superó a China en 2023."},
+        {"question": "¿Qué río atraviesa París?", "answers": ["Sena", "Loira", "Rin", "Ródano"], "correct": 0, "time": 20, "fact": "Más de 30 puentes cruzan el Sena en París."},
+        {"question": "¿En qué país está Machu Picchu?", "answers": ["México", "Perú", "Chile", "Bolivia"], "correct": 1, "time": 20, "fact": "La antigua ciudad inca está a unos 2400 metros sobre el nivel del mar."},
+        {"question": "¿Cuál es el río más largo de África?", "answers": ["Congo", "Níger", "Nilo", "Zambeze"], "correct": 2, "time": 20, "fact": "El Nilo atraviesa 11 países."},
+        {"question": "¿Qué país tiene forma de bota?", "answers": ["Grecia", "España", "Italia", "Portugal"], "correct": 2, "time": 15, "fact": "La punta de la bota casi toca Sicilia."},
+        {"question": "¿Cuál es la moneda de Japón?", "answers": ["Yuan", "Won", "Yen", "Ringgit"], "correct": 2, "time": 15, "fact": "Yen significa «redondo» o «círculo» en japonés."}
+      ]
+    },
+    {
+      "type": "jackpot",
+      "title": "El bote",
+      "questions": [
+        {"category": "Ciencia", "question": "¿Cuál es el material natural más duro de la Tierra?", "answer": "Diamante", "accept": ["Diamantes"], "points": 5, "time": 30, "fact": "El diamante es carbono puro, igual que la mina de un lápiz."}
+      ]
+    }
+  ]
+}

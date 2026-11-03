@@ -1,0 +1,83 @@
+{
+  "title": "Quiz Night Pack 1",
+  "language": "en",
+  "jokers": true,
+  "tiebreak": true,
+  "rounds": [
+    {
+      "type": "classic",
+      "title": "Warm-up",
+      "questions": [
+        {"question": "Which is the smallest planet in our solar system?", "answers": ["Mercury", "Mars", "Venus", "Pluto"], "correct": 0, "time": 20, "fact": "Mercury is only a little bigger than our Moon."},
+        {"question": "How many minutes are there in a day?", "answers": ["1,240", "1,440", "1,640", "1,040"], "correct": 1, "time": 20, "fact": "That is 86,400 seconds, every single day."},
+        {"question": "Which gas do plants take in from the air?", "answers": ["Oxygen", "Carbon dioxide", "Nitrogen", "Helium"], "correct": 1, "time": 20, "fact": "In return they give off the oxygen we breathe."},
+        {"question": "Who painted the Mona Lisa?", "answers": ["Michelangelo", "Leonardo da Vinci", "Raphael", "Rembrandt"], "correct": 1, "time": 20, "fact": "The painting is surprisingly small: about 77 by 53 cm."},
+        {"question": "Which animal is the fastest on land?", "answers": ["Lion", "Cheetah", "Horse", "Greyhound"], "correct": 1, "time": 20, "fact": "A cheetah can sprint at around 100 km/h, but only for a short stretch."},
+        {"question": "How many players does a football team have on the pitch?", "answers": ["9", "10", "11", "12"], "correct": 2, "time": 15, "fact": "That includes the goalkeeper, the only one allowed to handle the ball."}
+      ]
+    },
+    {
+      "type": "trueFalse",
+      "title": "True or Bluff",
+      "questions": [
+        {"question": "Bananas are berries.", "correct": true, "time": 12, "fact": "Botanically yes, while strawberries are not."},
+        {"question": "You can see the Great Wall of China from the Moon with the naked eye.", "correct": false, "time": 12, "fact": "It is far too narrow. Astronauts cannot even pick it out easily from low orbit."},
+        {"question": "Honey can stay edible for thousands of years.", "correct": true, "time": 12, "fact": "Pots of honey were found in ancient Egyptian tombs."},
+        {"question": "Lightning never strikes the same place twice.", "correct": false, "time": 12, "fact": "Tall towers are hit many times every year."},
+        {"question": "Octopuses have blue blood.", "correct": true, "time": 12, "fact": "Their blood carries oxygen with copper instead of iron."},
+        {"question": "Humans only use 10% of their brain.", "correct": false, "time": 12, "fact": "Brain scans show activity almost everywhere over a day."}
+      ]
+    },
+    {
+      "type": "closest",
+      "title": "Closest Wins",
+      "questions": [
+        {"question": "How many countries are members of the United Nations?", "answer": 193, "time": 25},
+        {"question": "In which year were the first modern Olympic Games held?", "answer": 1896, "time": 25, "fact": "They were held in Athens."},
+        {"question": "How high is Mount Everest, in metres?", "answer": 8849, "unit": "m", "time": 25},
+        {"question": "How many squares are there on a chessboard?", "answer": 64, "time": 20}
+      ]
+    },
+    {
+      "type": "speed",
+      "title": "Speed Round",
+      "questions": [
+        {"question": "What is 7 × 8?", "answers": ["54", "56", "64", "48"], "correct": 1, "time": 10},
+        {"question": "Which colour is on the outside of a rainbow?", "answers": ["Red", "Violet", "Blue", "Yellow"], "correct": 0, "time": 10},
+        {"question": "Which is the largest planet?", "answers": ["Saturn", "Jupiter", "Neptune", "Earth"], "correct": 1, "time": 10},
+        {"question": "Which shape has three sides?", "answers": ["Square", "Triangle", "Pentagon", "Circle"], "correct": 1, "time": 10},
+        {"question": "What do bees make?", "answers": ["Milk", "Honey", "Silk", "Cotton"], "correct": 1, "time": 10},
+        {"question": "How many hours are there in a week?", "answers": ["148", "168", "178", "158"], "correct": 1, "time": 10}
+      ]
+    },
+    {
+      "type": "commonThread",
+      "title": "Common Thread",
+      "questions": [
+        {"clues": ["Trunk", "Ivory", "Savannah", "Biggest land animal"], "answer": "Elephant", "accept": ["Elephants"], "time": 40},
+        {"clues": ["Thames", "Big Ben", "Tower Bridge", "Capital of the United Kingdom"], "answer": "London", "accept": [], "time": 40},
+        {"clues": ["Thorns", "Petals", "Valentine", "Red flower"], "answer": "Rose", "accept": ["Roses"], "time": 40},
+        {"clues": ["Shell", "Yolk", "Omelette", "A hen lays it"], "answer": "Egg", "accept": ["Eggs"], "time": 40}
+      ]
+    },
+    {
+      "type": "classic",
+      "title": "Around the World",
+      "questions": [
+        {"question": "Which country has the most inhabitants?", "answers": ["India", "China", "United States", "Indonesia"], "correct": 0, "time": 20, "fact": "India passed China in 2023."},
+        {"question": "Which river flows through Paris?", "answers": ["Seine", "Loire", "Rhine", "Rhône"], "correct": 0, "time": 20, "fact": "More than 30 bridges cross the Seine in Paris."},
+        {"question": "In which country is Machu Picchu?", "answers": ["Mexico", "Peru", "Chile", "Bolivia"], "correct": 1, "time": 20, "fact": "The old Inca city lies about 2,400 metres above sea level."},
+        {"question": "Which is the longest river in Africa?", "answers": ["Congo", "Niger", "Nile", "Zambezi"], "correct": 2, "time": 20, "fact": "The Nile flows through 11 countries."},
+        {"question": "Which country is shaped like a boot?", "answers": ["Greece", "Spain", "Italy", "Portugal"], "correct": 2, "time": 15, "fact": "The toe of the boot almost touches Sicily."},
+        {"question": "What is the currency of Japan?", "answers": ["Yuan", "Won", "Yen", "Ringgit"], "correct": 2, "time": 15, "fact": "Yen means \"round\" or \"circle\" in Japanese."}
+      ]
+    },
+    {
+      "type": "jackpot",
+      "title": "The Jackpot",
+      "questions": [
+        {"category": "Science", "question": "What is the hardest natural material on Earth?", "answer": "Diamond", "accept": ["Diamonds"], "points": 5, "time": 30, "fact": "A diamond is pure carbon, the same element as the lead in a pencil."}
+      ]
+    }
+  ]
+}

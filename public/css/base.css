@@ -292,3 +292,4 @@ h1, h2, .display { font-family: var(--display); font-weight: 400; font-synthesis
 .letter[data-shape="1"]::after { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
 .letter[data-shape="2"]::after { border-radius: 50%; }
 .letter[data-shape="3"]::after { width: .3em; height: .3em; right: .17em; bottom: .17em; }
+a.ghost-btn { color: var(--cream); text-decoration: none; }

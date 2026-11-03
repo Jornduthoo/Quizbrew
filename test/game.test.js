@@ -303,6 +303,17 @@ test('bundled quizzes are valid', () => {
   assert.ok(list.length > 0);
   for (const q of list) assert.ok(quizzes.load(q.file));
   assert.throws(() => quizzes.load('../package.json'), /Invalid quiz file name/);
+  // The quiz pack: one file per language, the quizmaster sees only theirs.
+  for (const lang of ['en', 'nl', 'fr', 'de', 'es']) {
+    const packs = quizzes.list(lang).filter(q => q.file.startsWith('night-pack-1.'));
+    assert.deepEqual(packs.map(q => q.file), [`night-pack-1.${lang}.json`]);
+    assert.equal(packs[0].language, lang);
+  }
+  assert.deepEqual(quizzes.list('xx').filter(q => q.file.startsWith('night-pack-1.')).map(q => q.file), ['night-pack-1.en.json']);
+  // Every language has the same rounds and questions.
+  const shape = f => quizzes.load(f).rounds.map(r => `${r.type}:${r.questions.length}:${r.questions.map(q => q.correct ?? q.answer ?? '').join(',')}`);
+  const en = shape('night-pack-1.en.json');
+  for (const lang of ['nl', 'fr', 'de', 'es']) assert.deepEqual(shape(`night-pack-1.${lang}.json`).map(x => x.split(':').slice(0, 2).join(':')), en.map(x => x.split(':').slice(0, 2).join(':')));
 });
 
 test('the quizmaster can step back, add time and overrule a choice after the reveal', () => {
@@ -399,4 +410,35 @@ test('a break shows a countdown and the standings, and the next press ends it', 
   assert.equal(game.phase, 'reveal', 'the press that ends the break does not move on');
   game.next();
   assert.equal(game.questionIndex, 1);
+});
+
+test('a paper team plays along: points per round typed in, never blocks a question', () => {
+  const { game, clock } = setup();
+  assert.equal(new Game().addPaperTeam('Pens').error, 'error.noQuiz');
+  game.join('team1aaaa', 'Owls', 'amber', 's1');
+  const p = game.addPaperTeam('  The Pens ');
+  assert.ok(p.ok);
+  assert.equal(p.name, 'The Pens');
+  assert.notEqual(p.color, 'amber');
+  assert.equal(game.addPaperTeam('the pens').error, 'error.nameTaken');
+  assert.equal(game.addPaperTeam(' ').error, 'error.nameEmpty');
+  game.next(); // round intro
+  game.next(); // question 1
+  game.answer('team1aaaa', 1);
+  assert.equal(game.phase, 'reveal', 'only the phone team had to answer');
+  assert.ok(game.setPaperPoints(p.id, 0, 3));
+  assert.ok(game.setPaperPoints(p.id, 0, 2), 'typing again replaces');
+  assert.equal(game.teams.get(p.id).score, 2);
+  assert.equal(game.setPaperPoints('team1aaaa', 0, 5), false, 'phone teams are scored by the app');
+  assert.equal(game.setPaperPoints(p.id, 9, 5), false);
+  const host = game.hostState();
+  assert.deepEqual(host.paperTeams, [{ id: p.id, name: 'The Pens', color: p.color, points: 2 }]);
+  assert.equal(game.screenState().teams.find(x => x.name === 'The Pens').paper, true);
+  // Undo and a restart keep the paper points.
+  const snap = JSON.parse(JSON.stringify(game.snapshot()));
+  game.setPaperPoints(p.id, 0, 7);
+  game.restore(snap);
+  assert.equal(game.teams.get(p.id).score, 2);
+  assert.deepEqual(game.teams.get(p.id).paper, { 0: 2 });
+  clock.advance(0);
 });

@@ -24,6 +24,16 @@
   socket.on('language', lang => { if (!deviceLang) I18n.load(lang).then(() => state && render(state, true)); });
   socket.on('state', s => { state = s; if (I18n.dict['app.name']) render(s); });
   let mode = 'screen';
+  // The venue of tonight, above the join form.
+  let brand = null;
+  function renderBrand() {
+    if (!brand) return;
+    $('#join-venue').hidden = !brand.venue && !brand.logo;
+    $('#join-venue-logo').hidden = !brand.logo;
+    if (brand.logo) $('#join-venue-logo').src = brand.logo;
+    $('#join-venue-name').textContent = brand.venue ? t('screen.tonightAt', { venue: brand.venue }) : '';
+  }
+  socket.on('brand', b => { brand = b; if (I18n.dict['app.name']) renderBrand(); });
   socket.on('mode', m => { mode = m; if (state) renderStage(state); });
   socket.on('kicked', () => {
     store.del('qb.teamId');
@@ -39,6 +49,7 @@
   }).then(() => state && render(state, true));
 
   function render(s, force) {
+    renderBrand();
     const key = [s.phase, s.round && s.round.index, s.questionIndex, s.team ? 1 : 0, s.answer, s.blocked, s.wager, s.voted, s.lifelineUsed].join(':');
     document.body.classList.toggle('silent', !!(s.round && s.round.twists.includes('silentRound')));
     const fresh = force || key !== lastKey;

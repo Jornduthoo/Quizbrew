@@ -128,6 +128,44 @@ class Game {
     return { ok: true, name: clean, color };
   }
 
+  // A team that plays on paper: no phone, the quizmaster types in its points per round from the answer sheet.
+  addPaperTeam(name) {
+    if (this.phase === 'idle' || this.phase === 'end') return { error: 'error.noQuiz' };
+    const clean = String(name || '').trim().replace(/\s+/g, ' ').slice(0, MAX_NAME);
+    if (!clean) return { error: 'error.nameEmpty' };
+    const teams = [...this.teams.values()];
+    if (teams.some(t => t.name.toLowerCase() === clean.toLowerCase())) return { error: 'error.nameTaken' };
+    const color = TEAM_COLORS.find(c => !teams.some(t => t.color === c)) || TEAM_COLORS[teams.length % TEAM_COLORS.length];
+    let id;
+    do id = `paper-${Math.random().toString(36).slice(2, 10)}`; while (this.teams.has(id));
+    this.teams.set(id, {
+      name: clean, color, score: 0, phones: new Set(), connected: false, paper: {},
+      answer: null, answeredAt: 0, correct: false, lastPoints: 0, away: false, blocked: false, wager: null,
+      jokerRound: -1, mem: freshMem(), memNext: null, bank: false, buzzOut: false,
+      id, lifelineRound: -1, fifty: null, vote: null,
+    });
+    this.broadcast();
+    return { ok: true, id, name: clean, color };
+  }
+
+  // The round whose paper points the quizmaster types in now (the last regular round during the tie-break).
+  paperRound() {
+    if (!this.round || this.roundIndex < 0) return -1;
+    return this.round.tiebreak ? this.regularRounds() - 1 : this.roundIndex;
+  }
+
+  // The points of a paper team for one round; typing them again replaces the earlier number.
+  setPaperPoints(teamId, round, points) {
+    const t = this.teams.get(teamId);
+    const r = Math.trunc(Number(round));
+    const p = Math.max(-999, Math.min(999, Math.trunc(Number(points)) || 0));
+    if (!t || !t.paper || !this.quiz || !(r >= 0 && r < this.quiz.rounds.length)) return false;
+    t.score += p - (t.paper[r] || 0);
+    t.paper = { ...t.paper, [r]: p };
+    this.broadcast();
+    return true;
+  }
+
   disconnect(socketId) {
     for (const t of this.teams.values()) {
       t.phones.delete(socketId);
@@ -961,7 +999,7 @@ class Game {
     const state = {
       ...this.common(),
       teams: teams.map(t => ({
-        name: t.name, color: t.color, photo: t.photo || null, answered: t.answer !== null, connected: t.connected, phones: t.phones.size, away: t.away, blocked: t.blocked,
+        name: t.name, color: t.color, photo: t.photo || null, answered: t.answer !== null, connected: t.connected, phones: t.phones.size, away: t.away, blocked: t.blocked, paper: !!t.paper,
         wagered: t.wager !== null, joker: t.jokerRound === this.roundIndex, jokerLeft: t.jokerRound === -1,
         out: this.sitsOut(t), pot: t.mem.pot, streak: t.mem.streak, banked: t.bank || t.mem.banked, buzzOut: t.buzzOut,
         level: this.type && this.type.wager === 'level' ? t.wager : null,
@@ -1001,6 +1039,8 @@ class Game {
       judgeList: this.phase === 'reveal' && this.canJudge() && ['choice', 'trueFalse'].includes(this.kind)
         ? [...this.teams.entries()].map(([id, t]) => ({ id, name: t.name, color: t.color, answer: t.answer, correct: t.correct, points: t.lastPoints }))
         : null,
+      paperRound: this.paperRound(),
+      paperTeams: [...this.teams.entries()].filter(([, t]) => t.paper).map(([id, t]) => ({ id, name: t.name, color: t.color, points: t.paper[this.paperRound()] ?? null })),
       canBack: this.history.length > 0 && !this.breakUntil,
       canBreak: !!this.breakUntil || BREAK_PHASES.includes(this.phase) && !!this.quiz,
       canAddTime: (this.phase === 'question' && !!this.type && !this.type.turns && !this.buzz) || this.phase === 'vote',

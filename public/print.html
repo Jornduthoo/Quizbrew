@@ -12,8 +12,12 @@
   <!-- Only on screen: print, with or without answers -->
   <nav class="sheet-bar">
     <img class="logo" src="/img/logo.webp" alt="Quizbrew">
-    <label class="toggle"><input type="checkbox" id="show-answers" checked> <span data-i18n="print.withAnswers"></span></label>
-    <label class="toggle"><input type="checkbox" id="show-scores" checked> <span data-i18n="print.withScoreSheet"></span></label>
+    <div class="sheet-mode" id="sheet-mode">
+      <button type="button" data-mode="run" data-i18n="print.runSheet"></button>
+      <button type="button" data-mode="answers" data-i18n="print.answerSheet"></button>
+    </div>
+    <label class="toggle run-only"><input type="checkbox" id="show-answers" checked> <span data-i18n="print.withAnswers"></span></label>
+    <label class="toggle run-only"><input type="checkbox" id="show-scores" checked> <span data-i18n="print.withScoreSheet"></span></label>
     <button class="brass-btn" id="print-now" type="button" data-i18n="print.print"></button>
   </nav>
 

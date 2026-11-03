@@ -126,6 +126,12 @@
         <span data-i18n="host.remoteTileHint"></span>
         <em data-i18n="host.tagRemote"></em>
       </button>
+      <button class="tile" type="button" id="venue-tile">
+        <img src="/img/icons/special.webp" alt="">
+        <strong data-i18n="venue.title"></strong>
+        <span data-i18n="venue.tileHint"></span>
+        <em data-i18n="venue.tag"></em>
+      </button>
     </div>
     <h1 class="section-title" data-i18n="host.pickQuiz"></h1>
     <p class="hint" data-i18n="host.pickQuizHint"></p>
@@ -137,6 +143,7 @@
     <section class="stage panel">
       <p class="phase-kicker" id="phase-kicker"></p>
       <h1 class="phase-title" id="phase-title"></h1>
+      <p class="coach" id="coach"></p>
       <div class="preview" id="preview"></div>
       <!-- Phones-only mode: what the phones show, with the sound for the room. -->
       <div class="screen-copy" id="screen-copy" hidden>
@@ -147,6 +154,7 @@
         <button class="ghost-btn" id="add-time" type="button" data-i18n="host.addTime" hidden></button>
         <button class="ghost-btn" id="back" type="button" data-i18n="host.back" hidden></button>
         <button class="ghost-btn" id="break" type="button" hidden></button>
+        <button class="ghost-btn autopilot-btn" id="autopilot" type="button" aria-pressed="false" data-i18n-attr="title:host.autopilotHint,aria-label:host.autopilot"><span class="auto-dot"></span><span data-i18n="host.autopilot"></span></button>
         <span class="key-hint" data-i18n="host.keyHint"></span>
         <button class="ghost-btn danger" id="stop" data-i18n="host.stop"></button>
       </div>
@@ -155,8 +163,41 @@
       <h2><span data-i18n="host.teams"></span> <span class="count" id="team-total"></span></h2>
       <ul id="team-list"></ul>
       <p class="hint" id="no-teams" data-i18n="host.noTeams"></p>
+      <!-- Teams without a phone play on paper; their points per round are typed in here. -->
+      <div class="paper-box">
+        <form class="paper-form" id="paper-form" autocomplete="off">
+          <input id="paper-name" maxlength="20" data-i18n-attr="placeholder:host.paperName,aria-label:host.paperName">
+          <button class="ghost-btn small" type="submit" data-i18n="host.paperAdd"></button>
+        </form>
+        <p class="error" id="paper-error" role="alert"></p>
+        <p class="hint paper-hint" id="paper-hint" hidden data-i18n="host.paperHint"></p>
+        <a class="ghost-btn small" id="paper-sheet" href="/print?live=1&amp;mode=answers" target="_blank" data-i18n="host.paperSheet"></a>
+      </div>
     </aside>
   </main>
+
+  <!-- The venue and its sponsors: on the big screen and the phones -->
+  <dialog class="modal venue-modal" id="venue-modal">
+    <header class="modal-head">
+      <h2 data-i18n="venue.title"></h2>
+      <button class="mini close" type="button" data-close data-i18n-attr="aria-label:builder.close"></button>
+    </header>
+    <form class="venue-form" id="venue-form">
+      <p class="hint" data-i18n="venue.intro"></p>
+      <div class="venue-row">
+        <div class="logo-slot" id="venue-logo"></div>
+        <label class="field"><span data-i18n="venue.name"></span><input id="venue-name" maxlength="60" data-i18n-attr="placeholder:venue.namePh"></label>
+      </div>
+      <h3 data-i18n="venue.sponsors"></h3>
+      <p class="hint" data-i18n="venue.sponsorsHint"></p>
+      <ul class="sponsor-list" id="sponsor-list"></ul>
+      <button type="button" class="ghost-btn small" id="sponsor-add" data-i18n="venue.addSponsor"></button>
+      <p class="error" id="venue-error" role="alert"></p>
+      <div class="venue-actions">
+        <button class="brass-btn" type="submit" data-i18n="venue.save"></button>
+      </div>
+    </form>
+  </dialog>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/i18n.js"></script>
