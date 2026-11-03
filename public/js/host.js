@@ -165,23 +165,103 @@
   let rating = null;
   socket.on('rating', r => { rating = r; if (state) render(state); });
 
+  // ---------- my quizzes: open, edit, copy, rename, export, delete ----------
+
+  const manage = async (url, body) => {
+    const res = await fetch('/api/host' + url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'error.generic');
+    return data;
+  };
+  const manageDelete = path => fetch('/api/host/library/item?path=' + encodeURIComponent(path), { method: 'DELETE' });
+
+  // A small menu under the ⋯ button; one open at a time, closes on a click elsewhere or Escape.
+  let openMenu = null;
+  const closeMenu = () => { if (openMenu) { openMenu.remove(); openMenu = null; } };
+  document.addEventListener('click', e => { if (openMenu && !openMenu.contains(e.target) && !e.target.closest('.more-btn')) closeMenu(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+  function menu(anchor, items) {
+    const was = openMenu && openMenu.dataset.for === anchor.dataset.menuId;
+    closeMenu();
+    if (was) return;
+    anchor.dataset.menuId = anchor.dataset.menuId || Math.random().toString(36).slice(2);
+    openMenu = h('div', { class: 'card-menu', role: 'menu' }, items.filter(Boolean).map(it => it.href
+      ? h('a', { class: 'menu-item', href: it.href, target: it.target || null, role: 'menuitem', onclick: closeMenu }, it.label)
+      : h('button', { class: 'menu-item' + (it.danger ? ' danger' : ''), type: 'button', role: 'menuitem', onclick: () => { closeMenu(); it.run(); } }, it.label)));
+    // On the page itself (cards clip what sticks out), right under the button.
+    openMenu.dataset.for = anchor.dataset.menuId;
+    document.body.append(openMenu);
+    const r = anchor.getBoundingClientRect();
+    const m = openMenu.getBoundingClientRect();
+    const below = r.bottom + 6 + m.height < innerHeight;
+    openMenu.style.left = Math.max(8, Math.min(innerWidth - m.width - 8, r.right - m.width)) + 'px';
+    openMenu.style.top = (below ? r.bottom + 6 : Math.max(8, r.top - 6 - m.height)) + 'px';
+  }
+  addEventListener('scroll', closeMenu, true);
+  addEventListener('resize', closeMenu);
+
+  async function act(job) {
+    try { await job(); } catch (err) { alert(t(err.message && /\./.test(err.message) ? err.message : 'error.generic')); }
+    loadQuizzes();
+  }
+
+  let allQuizzes = { samples: [], library: [], ratings: {} };
   function loadQuizzes() {
-    socket.emit('quizzes', ({ samples, library, ratings = {} }) => {
-      const card = (q, ref, edit) => h('li', { class: 'quiz-card panel' },
+    socket.emit('quizzes', data => {
+      allQuizzes = { ratings: {}, ...data };
+      renderQuizzes();
+    });
+  }
+
+  function renderQuizzes() {
+    const { samples, library, ratings } = allQuizzes;
+    const search = $('#quiz-search');
+    search.hidden = library.length + samples.length < 7;
+    const want = search.hidden ? '' : search.value.trim().toLowerCase();
+    const match = q => !want || String(q.title || q.name).toLowerCase().includes(want) || String(q.path || '').toLowerCase().includes(want);
+    const folderOf = p => (p && p.includes('/') ? p.split('/').slice(0, -1).join(' / ') : '');
+
+    const card = (q, ref, edit) => {
+      const exportUrl = '/api/host/export?' + (edit ? 'path=' + encodeURIComponent(edit) : 'sample=' + encodeURIComponent(ref));
+      const printUrl = '/print?' + (edit ? 'open=' + encodeURIComponent(edit) : 'sample=' + encodeURIComponent(ref));
+      const more = remote ? null : h('button', {
+        class: 'ghost-btn more-btn', type: 'button', title: t('manage.more'), 'aria-label': t('manage.more'),
+        onclick: e => menu(e.currentTarget, edit ? [
+          { label: t('host.print'), href: printUrl, target: '_blank' },
+          { label: t('manage.duplicate'), run: () => act(() => manage('/library/duplicate', { path: edit, copyWord: t('manage.copyWord') })) },
+          { label: t('manage.rename'), run: () => {
+            const title = prompt(t('builder.newName'), q.title || '');
+            if (title && title.trim() && title.trim() !== q.title) act(() => manage('/library/retitle', { path: edit, title: title.trim() }));
+          } },
+          { label: t('manage.export'), href: exportUrl },
+          { label: t('builder.delete'), danger: true, run: () => {
+            if (confirm(t('manage.confirmDelete', { title: q.title || q.name }))) act(() => manageDelete(edit));
+          } },
+        ] : [
+          { label: t('host.print'), href: printUrl, target: '_blank' },
+          { label: t('manage.export'), href: exportUrl },
+        ]),
+      }, '⋯');
+      return h('li', { class: 'quiz-card panel' },
         h('img', { class: 'quiz-icon', src: '/img/icons/quiz.webp', alt: '' }),
         h('div', { class: 'quiz-info' },
           h('h3', {}, q.title || q.name),
-          h('p', {}, t('host.quizMeta', { rounds: q.rounds, questions: q.questions }),
+          h('p', {}, folderOf(edit) ? h('span', { class: 'quiz-folder' }, folderOf(edit)) : null,
+            edit ? null : h('span', { class: 'quiz-folder sample' }, t('manage.sample')),
+            t('host.quizMeta', { rounds: q.rounds, questions: q.questions }),
             ratings[q.title] && ratings[q.title].count ? h('span', { class: 'quiz-rating' }, ` · ★ ${Number(ratings[q.title].avg).toFixed(1)}`) : null)),
         h('div', { class: 'card-actions' },
           h('button', { class: 'brass-btn', onclick: () => socket.emit('load', ref, res => { if (res && res.error) alert(t('error.quizInvalid') + '\n' + (res.detail || '')); }) }, t('host.open')),
-          edit && !remote ? h('a', { class: 'ghost-btn', href: '/builder?open=' + encodeURIComponent(edit) }, t('host.edit')) : null,
-          remote ? null : h('a', { class: 'ghost-btn', href: '/print?' + (edit ? 'open=' + encodeURIComponent(edit) : 'sample=' + encodeURIComponent(ref)), target: '_blank' }, t('host.print'))));
-      $('#quiz-list').replaceChildren(
-        ...library.map(q => card(q, { library: q.path }, q.path)),
-        ...samples.map(q => card(q, q.file, null)));
-    });
+          remote ? null : edit ? h('a', { class: 'ghost-btn', href: '/builder?open=' + encodeURIComponent(edit) }, t('host.edit'))
+            : h('button', { class: 'ghost-btn', type: 'button', onclick: async () => {
+              try { const copy = await manage('/library/duplicate', { sample: ref }); location.href = '/builder?open=' + encodeURIComponent(copy.path); } catch { alert(t('error.generic')); }
+            } }, t('manage.editCopy')),
+          more));
+    };
+    const cards = [...library.filter(match).map(q => card(q, { library: q.path }, q.path)), ...samples.filter(match).map(q => card(q, q.file, null))];
+    $('#quiz-list').replaceChildren(...(cards.length ? cards : [h('li', { class: 'hint quiz-none' }, t('manage.none'))]));
   }
+  $('#quiz-search').addEventListener('input', renderQuizzes);
 
   const NEXT_LABEL = {
     lobby: () => 'host.startQuiz',

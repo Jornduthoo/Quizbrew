@@ -101,6 +101,29 @@ function create(dataDir = path.join(__dirname, '..', 'data')) {
     fs.renameSync(src, dst);
   }
 
+  // A copy next to the original (or in a folder), with "(2)" style names so nothing is overwritten.
+  function duplicate(quiz, { folder = '', title } = {}) {
+    const copy = JSON.parse(JSON.stringify(quiz));
+    copy.title = String(title || copy.title || 'Quiz').slice(0, 120);
+    delete copy.modified;
+    return save(null, copy, { folder });
+  }
+
+  // A new title: changed inside the quiz and in the file name, in the same folder.
+  function retitle(rel, title) {
+    const clean = String(title || '').trim().slice(0, 120);
+    if (!clean) throw new Error('Invalid title');
+    const quiz = read(rel);
+    quiz.title = clean;
+    const folder = rel.split('/').slice(0, -1).join('/');
+    const fileName = String(clean).replace(/[\\/:*?"<>|\x00-\x1f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'Quiz';
+    const same = (folder ? folder + '/' : '') + fileName + '.json';
+    const target = same.toLowerCase() === rel.toLowerCase() ? rel : freeName(folder, clean);
+    const out = save(target, quiz);
+    if (target !== rel) remove(rel);
+    return out;
+  }
+
   // Store an uploaded file; same content gives the same name. Returns "/media/<hash>.<ext>".
   function addMedia(buffer, mime) {
     const ext = MEDIA_TYPES[mime] || ALIASES[mime];
@@ -156,7 +179,7 @@ function create(dataDir = path.join(__dirname, '..', 'data')) {
     return copy;
   }
 
-  return { root, dataDir, tree, read, save, remove, mkdir, move, addMedia, mediaFile, inlineMedia, storeInlineMedia, freeName, MEDIA_TYPES };
+  return { root, dataDir, tree, duplicate, retitle, read, save, remove, mkdir, move, addMedia, mediaFile, inlineMedia, storeInlineMedia, freeName, MEDIA_TYPES };
 }
 
 module.exports = { create, MEDIA_TYPES };
