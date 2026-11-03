@@ -5,6 +5,7 @@ const express = require('express');
 const { Server } = require('socket.io');
 const QRCode = require('qrcode');
 const crypto = require('crypto');
+const { execFile } = require('child_process');
 const { Game, validateQuiz } = require('./game');
 const { TEAM_COLORS } = require('./teams');
 const i18n = require('./i18n');
@@ -12,6 +13,7 @@ const quizzes = require('./quizzes');
 const network = require('./network');
 const Settings = require('./settings');
 const Library = require('./library');
+const Cloud = require('./cloud');
 const Ai = require('./ai');
 const csv = require('./csv');
 const rounds = require('./rounds');
@@ -20,7 +22,7 @@ const TEAM_ID = /^[a-z0-9]{8,40}$/;
 
 const LOOKS = ['pub', 'space', 'jungle', 'spooky', 'arcade'];
 
-function createServer({ port = 3000, settings = Settings.create(), library = Library.create(), lanAddresses = network.lanAddresses, hostFromAnywhere = false } = {}) {
+function createServer({ port = 3000, settings = Settings.create(), library = Library.create(), lanAddresses = network.lanAddresses, hostFromAnywhere = false, cloudEvery = 60000 } = {}) {
   const app = express();
   const server = http.createServer(app);
   const io = new Server(server, { serveClient: true, pingInterval: 10000, pingTimeout: 8000, maxHttpBufferSize: 3e6 });
@@ -43,6 +45,19 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     emit: (target, event, payload) => io.to(target).emit(event, payload),
   });
   const ai = Ai.create(settings);
+
+  // My quiz folder in OneDrive or Google Drive: at start, every minute, and a few seconds after every change here.
+  const cloud = Cloud.create({ dataDir: library.dataDir, settings });
+  let cloudSoon = null;
+  const cloudLater = () => {
+    if (!cloud.folder()) return;
+    clearTimeout(cloudSoon);
+    cloudSoon = setTimeout(() => cloud.sync(), 3000);
+    cloudSoon.unref();
+  };
+  const cloudTimer = setInterval(() => cloud.sync(), cloudEvery);
+  cloudTimer.unref();
+  cloud.sync();
 
   // A quiz to play: a bundled sample by file name, or { library: 'folder/quiz.json' }.
   const quizFor = ref => (ref && typeof ref === 'object' && ref.library ? library.read(String(ref.library)) : quizzes.load(String(ref)));
@@ -89,8 +104,11 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   api.use(express.json({ limit: '250mb' }));
   const handle = fn => async (req, res) => {
     try {
-      res.json(await fn(req, res));
+      const out = await fn(req, res);
+      if (req.method !== 'GET' && !req.path.startsWith('/cloud') && !req.path.startsWith('/ai')) cloudLater();
+      res.json(out);
     } catch (err) {
+      if (/^cloud\./.test(err.message)) return res.status(400).json({ error: err.message });
       if (err instanceof Ai.AiError || /^ai\./.test(err.message)) return res.status(400).json({ error: err.key || err.message, detail: err.detail || '' });
       res.status(400).json({ error: 'error.generic', detail: err.message });
     }
@@ -130,6 +148,18 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     }
   });
   api.post('/media', express.raw({ type: () => true, limit: '40mb' }), handle(req => ({ url: library.addMedia(req.body, String(req.headers['content-type'] || '').split(';')[0]) })));
+  api.get('/cloud', handle(() => ({ ...cloud.view(), suggestions: cloud.suggestions(), canPick: process.platform === 'win32' })));
+  api.post('/cloud/choose', handle(async req => { cloud.choose(req.body.folder); if (cloud.folder()) await cloud.sync(); return cloud.view(); }));
+  api.post('/cloud/sync', handle(async () => { await cloud.sync(); return cloud.view(); }));
+  api.post('/cloud/pick', handle(req => new Promise(resolve => {
+    if (process.platform !== 'win32' || !network.isLocal(req.socket.remoteAddress)) return resolve({ error: 'cloud.typeIt' });
+    const ps = 'Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.FolderBrowserDialog; '
+      + '$d.Description = \'Quizbrew\'; $d.ShowNewFolderButton = $true; '
+      + '$w = New-Object System.Windows.Forms.Form -Property @{TopMost=$true}; '
+      + 'if ($d.ShowDialog($w) -eq \'OK\') { [Console]::OutputEncoding = [Text.Encoding]::UTF8; $d.SelectedPath }';
+    execFile('powershell', ['-NoProfile', '-STA', '-Command', ps], { windowsHide: true }, (err, out) => resolve(err ? { error: 'cloud.typeIt' } : { path: String(out).trim() }));
+  })));
+  api.post('/cloud/open', handle(() => { if (cloud.folder() && process.platform === 'win32') execFile('explorer', [cloud.folder()]); return { ok: true }; }));
   api.get('/ai/settings', handle(() => ai.publicSettings()));
   api.put('/ai/settings', handle(req => ai.update(req.body)));
   api.post('/ai/prompt', handle(req => ({ prompt: req.body.whole ? Ai.quizPrompt(req.body) : Ai.roundPrompt(req.body) })));
@@ -246,9 +276,9 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   });
 
   return {
-    app, io, server, game, remoteKey,
+    app, io, server, game, remoteKey, cloud,
     listen: () => new Promise(resolve => server.listen(port, () => resolve(server.address().port))),
-    close: () => new Promise(resolve => { game.reset(); io.close(); server.close(() => resolve()); }),
+    close: () => new Promise(resolve => { clearInterval(cloudTimer); clearTimeout(cloudSoon); game.reset(); io.close(); server.close(() => resolve()); }),
   };
 }
 
