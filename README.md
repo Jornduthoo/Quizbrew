@@ -40,6 +40,15 @@ Open http://localhost:3000/builder (or "Open quiz builder" on the quizmaster scr
 - Import and export: `.quizbrew.json` (pictures inside the file) and spreadsheets (`.csv`, comma or semicolon).
 - AI help per round or for the whole evening: with your own Gemini, Claude or ChatGPT key (kept in `data/settings.json`), or by copying the prompt into any AI chat and pasting the answer back.
 
+## Pictures
+
+Every picture field offers three ways besides a file:
+- **Suggestions** appear by themselves under an empty picture field: free photos from Wikimedia Commons, found with the AI's search term (or the answer). Click one to use it, or ignore them. **Find a picture** searches yourself.
+- **Make with AI** turns the AI's image prompt into a picture with Gemini (needs a Gemini key under AI keys).
+- Drag a picture from any website onto the field, or paste its link. Quizbrew fetches it through the laptop and makes it a small webp.
+
+The maker and licence of a Commons picture stay with the question and are listed on the run sheet.
+
 ## My quiz folder (OneDrive or Google Drive)
 
 Build at home, play on the quiz laptop. In the builder, click **Quiz folder** and pick a folder in OneDrive or Google Drive (Quizbrew finds them on Windows and offers them with one click), or type the path. Pick the same folder on every computer that runs Quizbrew.

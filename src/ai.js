@@ -63,7 +63,7 @@ function quizPrompt({ rounds: roundCount = 6, perRound = 8, minutes = 90, types 
     '',
     'Rules:',
     ...RULES.map(r => `- ${r}`),
-    '- Round types with pictures get an "imagePrompt" per question; the quizmaster makes the pictures later.',
+    '- Round types with pictures get an "imagePrompt" and an "imageSearch" per question; the quizmaster finds or makes the pictures later.',
     '',
     'Return exactly this JSON:',
     '{"title": "a catchy title for the evening", "rounds": [ {"type": "<id>", "title": "round title", "questions": [ ... ]}, ... ]}',
@@ -281,6 +281,29 @@ async function gemini(prompt, key, model, settings) {
   }
 }
 
+// A picture from a prompt, made by Gemini's image model with the Gemini key (whatever AI writes the questions).
+const IMAGE_MODELS = ['gemini-2.5-flash-image', 'gemini-3-pro-image-preview'];
+async function geminiImage(prompt, key) {
+  const base = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: `${String(prompt).slice(0, 1200)}\n\nA clear photo-like picture for a pub quiz, 4:3, no text, letters or watermarks in the image.` }] }],
+    generationConfig: { responseModalities: ['TEXT', 'IMAGE'], imageConfig: { aspectRatio: '4:3' } },
+  };
+  let last;
+  for (const model of (process.env.GEMINI_IMAGE_MODEL ? [process.env.GEMINI_IMAGE_MODEL] : IMAGE_MODELS)) {
+    try {
+      const data = await post(`${base}/v1beta/models/${encodeURIComponent(model)}:generateContent`, { 'x-goog-api-key': key }, body);
+      const part = (data.candidates?.[0]?.content?.parts || []).find(p => p.inlineData && /^image\//.test(p.inlineData.mimeType || ''));
+      if (!part) throw new AiError(data.candidates?.[0]?.finishReason === 'SAFETY' || data.promptFeedback?.blockReason ? 'ai.refused' : 'ai.empty');
+      return { type: part.inlineData.mimeType, buffer: Buffer.from(part.inlineData.data, 'base64') };
+    } catch (err) {
+      last = err;
+      if (err.key !== 'ai.badModel') throw err;
+    }
+  }
+  throw last;
+}
+
 function create(settings) {
   const active = () => {
     const id = PROVIDERS[settings.get('aiProvider')] ? settings.get('aiProvider') : 'gemini';
@@ -296,7 +319,7 @@ function create(settings) {
       providers[id] = { name: p.name, hasKey: !!k, keyHint: k ? `…${k.slice(-4)}` : '', model: settings.get(p.model) || p.defaultModel };
     }
     const a = active();
-    return { provider: a.id, hasKey: !!a.apiKey, providers };
+    return { provider: a.id, hasKey: !!a.apiKey, canDraw: !!settings.get(PROVIDERS.gemini.key), providers };
   }
 
   function update({ provider, key, model } = {}) {
@@ -322,6 +345,12 @@ function create(settings) {
     update,
     generateRound: async opts => parseRound(await ask(roundPrompt(opts)), opts.type),
     generateQuiz: async opts => parseQuiz(await ask(quizPrompt(opts))),
+    makeImage: async prompt => {
+      const key = settings.get(PROVIDERS.gemini.key);
+      if (!key) throw new AiError('ai.noImageKey');
+      if (!String(prompt || '').trim()) throw new AiError('ai.empty');
+      return geminiImage(prompt, key);
+    },
   };
 }
 

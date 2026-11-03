@@ -846,5 +846,22 @@
   "play.audience.leave": "Salir del público",
   "screen.audienceCount": "+ {n} juegan desde el público",
   "screen.audienceRight": "Público: {pct} % de aciertos",
-  "screen.audienceBest": "Mejor del público: {name} ({n})"
+  "screen.audienceBest": "Mejor del público: {name} ({n})",
+  "pictures.find": "Buscar una imagen",
+  "pictures.title": "Buscar una imagen",
+  "pictures.searchFor": "¿Qué debe salir en la imagen?",
+  "pictures.search": "Buscar",
+  "pictures.hint": "Imágenes gratuitas de Wikimedia Commons. Haz clic en una para usarla; el autor y la licencia se guardan con la pregunta. También puedes arrastrar una imagen de cualquier web a un campo de imagen, o pegar su enlace.",
+  "pictures.searching": "Buscando…",
+  "pictures.none": "No se encontró nada. Prueba otras palabras, en inglés funciona mejor.",
+  "pictures.paste": "o pega un enlace",
+  "pictures.offline": "La búsqueda no ha funcionado. ¿Está este ordenador conectado?",
+  "pictures.badLink": "Eso no es un enlace a una imagen en internet.",
+  "pictures.noPicture": "No hay ninguna imagen detrás de ese enlace. Prueba clic derecho en la imagen, «Copiar dirección de imagen».",
+  "pictures.tooBig": "Esa imagen es demasiado grande (más de 15 MB).",
+  "print.credits": "Imágenes",
+  "pictures.suggested": "Sugerencias:",
+  "pictures.draw": "Crear con IA",
+  "pictures.madeByAi": "Creada con IA",
+  "ai.noImageKey": "Para crear imágenes hace falta una clave de Gemini. Añádela en Claves de IA."
 }

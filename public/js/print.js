@@ -123,7 +123,15 @@
         h('thead', {}, h('tr', {}, h('th', { class: 'team' }, t('print.team')), quiz.rounds.map((r, i) => h('th', { title: r.title || t(`round.${r.type}`) }, i + 1)), h('th', { class: 'total' }, t('print.total')))),
         h('tbody', {}, Array.from({ length: 12 }, () => h('tr', {}, h('td', { class: 'team' }), quiz.rounds.map(() => h('td')), h('td', { class: 'total' }))))));
 
-    $('#paper').replaceChildren(cover, ...rounds, sheet);
+    // Who made the pictures (free pictures ask for a name and licence).
+    const credits = [];
+    quiz.rounds.forEach((r, ri) => r.questions.forEach((q, qi) => {
+      const here = [q.imageCredit, ...(q.imageCredits || [])].filter(Boolean);
+      if (here.length) credits.push(h('li', {}, h('b', {}, `${ri + 1}.${qi + 1}`), ' ', [...new Set(here)].join(' / ')));
+    }));
+    const creditList = credits.length ? h('section', { class: 'credits' }, h('h3', {}, t('print.credits')), h('ul', {}, credits)) : '';
+
+    $('#paper').replaceChildren(cover, ...rounds, creditList, sheet);
     applyToggles();
   }
 

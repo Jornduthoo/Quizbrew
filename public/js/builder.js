@@ -546,34 +546,175 @@
 
   function mediaField(q, set) {
     const wrap = h('div', { class: 'field media-field' });
+    const after = () => (q.spot !== undefined || typeOf(current.quiz.rounds[roundIndex].type).fields.includes('spot') ? renderRound() : draw());
+    // One way in for every kind of picture: a file, a link from a website, or a find on Wikimedia Commons.
+    const take = async (job, credit = '') => {
+      wrap.classList.add('busy');
+      try {
+        const url = await job;
+        if (url) { set('image', url); set('imageCredit', credit); }
+      } catch (err) { pictureFailed(err); }
+      wrap.classList.remove('busy');
+      after();
+    };
     const draw = () => {
-      const fileInput = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: async e => {
-        const f = e.target.files[0];
-        if (!f) return;
-        wrap.classList.add('busy');
-        try { set('image', await upload(f)); } catch { alert(t('builder.uploadFailed')); }
-        wrap.classList.remove('busy');
-        if (q.spot !== undefined || typeOf(current.quiz.rounds[roundIndex].type).fields.includes('spot')) renderRound(); else draw();
-      } });
+      const fileInput = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: e => e.target.files[0] && take(upload(e.target.files[0])) });
       fill(wrap, h('span', {}, t('builder.f.image')),
-        q.image ? h('div', { class: 'thumb' }, h('img', { src: q.image, alt: '' }), h('button', { class: 'mini kick', type: 'button', title: t('builder.f.removeImage'), onclick: () => { set('image', ''); draw(); } }, '×'))
+        q.image ? h('div', { class: 'thumb' }, h('img', { src: q.image, alt: '' }), h('button', { class: 'mini kick', type: 'button', title: t('builder.f.removeImage'), onclick: () => { set('image', ''); set('imageCredit', ''); draw(); } }, '×'))
           : h('label', { class: 'drop-zone' }, fileInput, h('span', {}, t('builder.f.addImage'))),
+        q.image && q.imageCredit ? h('p', { class: 'pic-credit' }, q.imageCredit) : null,
+        q.image ? null : suggestions(q.imageSearch || q.answer || '', pick => take(fromLink(pick.url), pick.credit)),
+        q.image ? null : h('div', { class: 'pic-ways' },
+          h('button', { class: 'ghost-btn small pic-find', type: 'button', onclick: async () => {
+            const pick = await findPicture(q.imageSearch || q.answer || '');
+            if (pick) take(Promise.resolve(pick.url), pick.credit);
+          } }, t('pictures.find')),
+          q.imagePrompt && canDraw ? h('button', { class: 'ghost-btn small ai-btn pic-draw', type: 'button', onclick: () => take(drawPicture(q.imagePrompt), t('pictures.madeByAi')) }, t('pictures.draw')) : null,
+          pasteBox(link => take(fromLink(link)), file => take(upload(file)))),
         q.imagePrompt ? h('div', { class: 'img-prompt' }, h('p', { class: 'hint small' }, t('builder.f.imagePrompt')), h('code', {}, q.imagePrompt),
           h('button', { class: 'ghost-btn small', type: 'button', onclick: () => copy(q.imagePrompt) }, t('ai.copy'))) : null);
       wrap.ondragover = e => { e.preventDefault(); wrap.classList.add('drop'); };
       wrap.ondragleave = () => wrap.classList.remove('drop');
-      wrap.ondrop = async e => {
+      wrap.ondrop = e => {
         e.preventDefault();
         wrap.classList.remove('drop');
-        const f = e.dataTransfer.files[0];
-        if (!f || !f.type.startsWith('image/')) return;
-        try { set('image', await upload(f)); } catch { alert(t('builder.uploadFailed')); }
-        draw();
+        take(takePicture(e.dataTransfer));
       };
     };
     draw();
     return wrap;
   }
+
+  // ---------- pictures from the internet ----------
+
+  // A link out of a drag or a paste: the picture itself when a website gives it (also when it sits inside a link).
+  function linkIn(dt) {
+    const ok = l => /^(https?:\/\/|data:image\/)/i.test(l || '');
+    const html = dt.getData('text/html') || '';
+    const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+    const fromHtml = m && m[1].replace(/&amp;/g, '&');
+    const uri = (dt.getData('text/uri-list') || '').split(/\r?\n/).find(l => l && !l.startsWith('#'));
+    const text = (dt.getData('text/plain') || '').trim();
+    return [fromHtml, uri, text].find(ok) || '';
+  }
+
+  // The picture behind a link goes through the laptop (websites do not hand pictures to other pages), then gets small like any upload.
+  async function fromLink(link) {
+    let blob;
+    if (/^data:image\//i.test(link)) blob = await (await fetch(link)).blob();
+    else {
+      const res = await fetch('/api/host/pictures/get?url=' + encodeURIComponent(link));
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'pictures.noPicture');
+      blob = await res.blob();
+    }
+    if (!blob.type.startsWith('image/')) throw new Error('pictures.noPicture');
+    return upload(new File([blob], 'picture', { type: blob.type }));
+  }
+
+  // A dropped file, or a picture dragged straight from another browser tab.
+  function takePicture(dt) {
+    const file = [...(dt.files || [])].find(f => f.type.startsWith('image/'));
+    if (file) return upload(file);
+    const link = linkIn(dt);
+    return link ? fromLink(link) : Promise.resolve('');
+  }
+
+  const pictureFailed = err => alert(t(/^(pictures|ai)\./.test(err && err.message) ? err.message : 'builder.uploadFailed'));
+
+  // A small box to paste a picture link (or a copied picture) into.
+  function pasteBox(onLink, onFile) {
+    const input = h('input', { class: 'pic-link', type: 'url', placeholder: t('pictures.paste'), autocomplete: 'off', spellcheck: 'false' });
+    input.addEventListener('paste', e => {
+      const file = [...(e.clipboardData.files || [])].find(f => f.type.startsWith('image/'));
+      const link = file ? '' : linkIn(e.clipboardData);
+      if (!file && !link) return;
+      e.preventDefault();
+      if (file) onFile(file); else onLink(link);
+    });
+    input.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      if (input.value.trim()) onLink(input.value.trim());
+    });
+    return input;
+  }
+
+  // Proposals that show up by themselves under an empty picture field: click one to use it, or just ignore them.
+  const suggestCache = new Map();
+  function suggestions(term, onPick) {
+    const q = String(term || '').trim();
+    if (!q) return null;
+    const strip = h('div', { class: 'pic-suggest' }, h('span', { class: 'pic-suggest-label' }, t('pictures.suggested')));
+    if (!suggestCache.has(q)) suggestCache.set(q, api('GET', '/pictures?q=' + encodeURIComponent(q)).then(r => r.results.slice(0, 4)).catch(() => []));
+    suggestCache.get(q).then(list => {
+      if (!list.length) { strip.remove(); return; }
+      strip.append(...list.map(r => h('button', {
+        type: 'button', class: 'pic-mini', title: r.credit,
+        onclick: () => onPick(r),
+      }, h('img', { src: r.thumb, alt: '', loading: 'lazy' }))));
+      strip.classList.add('ready');
+    });
+    return strip;
+  }
+
+  // Let the image AI make the picture from its prompt (needs a Gemini key under AI keys).
+  let canDraw = false;
+  api('GET', '/ai/settings').then(s => { canDraw = !!s.canDraw; }).catch(() => {});
+  async function drawPicture(prompt) {
+    const res = await fetch('/api/host/ai/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error(d.error || 'ai.failed');
+    }
+    const blob = await res.blob();
+    return upload(new File([blob], 'drawn', { type: blob.type }));
+  }
+
+  // Search free pictures on Wikimedia Commons; resolves to { url, credit } or null.
+  let picDone = null;
+  function findPicture(term) {
+    return new Promise(resolve => {
+      if (picDone) picDone(null);
+      picDone = resolve;
+      $('#pic-q').value = term || '';
+      $('#pic-results').replaceChildren();
+      $('#pic-state').textContent = '';
+      $('#pic-modal').showModal();
+      if (term) searchPictures(); else $('#pic-q').focus();
+    });
+  }
+  const pictureChosen = pick => {
+    const done = picDone;
+    picDone = null;
+    $('#pic-modal').close();
+    if (done) done(pick);
+  };
+  $('#pic-modal').addEventListener('close', () => { if (picDone) { const done = picDone; picDone = null; done(null); } });
+
+  let picSearch = 0;
+  async function searchPictures() {
+    const q = $('#pic-q').value.trim();
+    if (!q) return;
+    const mine = ++picSearch;
+    $('#pic-state').textContent = t('pictures.searching');
+    $('#pic-results').replaceChildren();
+    let results;
+    try { ({ results } = await api('GET', '/pictures?q=' + encodeURIComponent(q))); } catch (err) {
+      if (mine === picSearch) $('#pic-state').textContent = t(/^pictures\./.test(err.message) ? err.message : 'pictures.offline');
+      return;
+    }
+    if (mine !== picSearch) return;
+    $('#pic-state').textContent = results.length ? '' : t('pictures.none');
+    $('#pic-results').replaceChildren(...results.map(r => h('button', {
+      type: 'button', class: 'pic-card', title: r.title,
+      onclick: async e => {
+        const card = e.currentTarget;
+        card.classList.add('busy');
+        try { pictureChosen({ url: await fromLink(r.url), credit: r.credit }); } catch (err) { card.classList.remove('busy'); pictureFailed(err); }
+      },
+    }, h('img', { src: r.thumb, alt: '', loading: 'lazy' }), h('span', { class: 'pic-by' }, r.credit))));
+  }
+  $('#pic-form').addEventListener('submit', e => { e.preventDefault(); searchPictures(); });
 
   // A short video clip for the big screen.
   function videoField(q, set) {
@@ -649,18 +790,27 @@
       q.captions = q.captions || imgs.map(() => '');
       fill(wrap, h('span', {}, t('builder.f.images')),
         h('div', { class: 'image-grid' }, imgs.map((src, i) => {
-          const fileInput = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: async e => {
-            const f = e.target.files[0];
-            if (!f) return;
-            try { imgs[i] = await upload(f); changed(); } catch { alert(t('builder.uploadFailed')); }
+          const fileInput = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: e => e.target.files[0] && take(upload(e.target.files[0])) });
+          const credits = q.imageCredits || (q.imageCredits = imgs.map(() => ''));
+          const take = async (job, credit = '') => {
+            slot.classList.add('busy');
+            try { const url = await job; if (url) { imgs[i] = url; credits[i] = credit; changed(); } } catch (err) { pictureFailed(err); }
             draw();
-          } });
-          return h('div', { class: 'image-slot' + (q.correct === i ? ' right' : '') },
-            src ? h('img', { src, alt: '' }) : h('label', { class: 'drop-zone' }, fileInput, h('span', {}, LETTERS[i] + ' +')),
+          };
+          const slot = h('div', { class: 'image-slot' + (q.correct === i ? ' right' : ''),
+            ondragover: e => { e.preventDefault(); slot.classList.add('drop'); },
+            ondragleave: () => slot.classList.remove('drop'),
+            ondrop: e => { e.preventDefault(); slot.classList.remove('drop'); take(takePicture(e.dataTransfer)); } },
+            src ? h('img', { src, alt: '', title: credits[i] || '' }) : h('label', { class: 'drop-zone' }, fileInput, h('span', {}, LETTERS[i] + ' +')),
+            src ? null : h('button', { class: 'mini pic-find-mini', type: 'button', title: t('pictures.find'), onclick: async () => {
+              const pick = await findPicture(q.captions[i] || '');
+              if (pick) take(Promise.resolve(pick.url), pick.credit);
+            } }, '🔍'),
             h('label', { class: 'slot-row' },
               h('input', { type: 'radio', name, checked: q.correct === i ? 'checked' : null, onchange: () => { set('correct', i); draw(); } }),
               h('input', { value: q.captions[i] || '', maxlength: 40, placeholder: t('builder.f.caption'), oninput: e => { q.captions[i] = e.target.value; changed(); } }),
-              src ? h('button', { class: 'mini kick', type: 'button', onclick: () => { imgs[i] = ''; changed(); draw(); } }, '×') : null));
+              src ? h('button', { class: 'mini kick', type: 'button', onclick: () => { imgs[i] = ''; credits[i] = ''; changed(); draw(); } }, '×') : null));
+          return slot;
         })),
         h('p', { class: 'hint small' }, t('builder.f.oddHint')));
     };
@@ -938,6 +1088,7 @@
     const body = { provider: settingsProvider, model: $('#set-model').value };
     if ($('#set-key').value.trim()) body.key = $('#set-key').value.trim();
     aiSettings = await api('PUT', '/ai/settings', body);
+    canDraw = !!aiSettings.canDraw;
     $('#settings-modal').close();
   });
 

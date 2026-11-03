@@ -166,8 +166,8 @@ const choiceOrText = {
   isCorrect: (a, q) => (choiceOrText.kindOf(q) === 'choice' ? a === q.correct : textMatches(a, q)),
   publicQ: q => (choiceOrText.kindOf(q) === 'choice' ? { answers: q.answers } : {}),
   revealQ: q => (choiceOrText.kindOf(q) === 'choice' ? choiceType.revealQ(q) : { answerText: q.answer }),
-  aiShape: '{"question": "What is shown?", "answer": "short answer", "accept": ["..."], "imagePrompt": "a prompt for an image AI that shows the subject without any text in the image"}',
-  fromAI: it => ({ question: str(it.question) || '', answer: str(it.answer), accept: list(it.accept), imagePrompt: str(it.imagePrompt) }),
+  aiShape: '{"question": "What is shown?", "answer": "short answer", "accept": ["..."], "imagePrompt": "a prompt for an image AI that shows the subject without any text in the image", "imageSearch": "2 to 4 English words to find a real photo of the subject on Wikimedia Commons"}',
+  fromAI: it => ({ question: str(it.question) || '', answer: str(it.answer), accept: list(it.accept), imagePrompt: str(it.imagePrompt), imageSearch: str(it.imageSearch) }),
 };
 
 // Drawings and photos arrive as a media url (the server stores the picture first).
@@ -388,7 +388,7 @@ const TYPES = [
     id: 'silhouette', family: 'visual', ...choiceOrText, effect: 'silhouette',
     defaults: { time: 20, points: 1, scoring: 'points' },
     fields: ['image', 'question', 'answerOrChoices', 'time', 'points'],
-    aiShape: '{"question": "Whose shadow is this?", "answer": "short answer", "accept": ["..."], "imagePrompt": "a prompt for an image AI: the subject alone on a plain white background, clear outline"}',
+    aiShape: '{"question": "Whose shadow is this?", "answer": "short answer", "accept": ["..."], "imagePrompt": "a prompt for an image AI: the subject alone on a plain white background, clear outline", "imageSearch": "2 to 4 English words to find a real photo of the subject on Wikimedia Commons"}',
   },
   {
     id: 'oddOneOut', family: 'visual', kind: 'choice',
