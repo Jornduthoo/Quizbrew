@@ -156,7 +156,7 @@ function create(dataDir = path.join(__dirname, '..', 'data')) {
     return copy;
   }
 
-  return { root, tree, read, save, remove, mkdir, move, addMedia, mediaFile, inlineMedia, storeInlineMedia, freeName, MEDIA_TYPES };
+  return { root, dataDir, tree, read, save, remove, mkdir, move, addMedia, mediaFile, inlineMedia, storeInlineMedia, freeName, MEDIA_TYPES };
 }
 
 module.exports = { create, MEDIA_TYPES };

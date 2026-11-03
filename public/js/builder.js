@@ -781,7 +781,7 @@
     const r = !whole && current && current.quiz.rounds[roundIndex];
     $('#ai-title').textContent = whole ? t('builder.aiWhole') : t('ai.forRound', { type: typeName(r.type) });
     $('#ai-audience').replaceChildren(...['mixed', 'kids', 'family', 'company', 'experts'].map(a => h('option', { value: a }, t(`ai.audience.${a}`))));
-    $('#ai-language').replaceChildren(...['en', 'nl', 'fr'].map(l => h('option', { value: l, selected: l === I18n.lang ? 'selected' : null }, t(`ai.lang.${l}`))));
+    $('#ai-language').replaceChildren(...['en', 'nl', 'fr', 'de', 'es'].map(l => h('option', { value: l, selected: l === I18n.lang ? 'selected' : null }, t(`ai.lang.${l}`))));
     $('#ai-difficulty-out').textContent = t(`ai.level.${$('#ai-difficulty').value}`);
     $('#ai-error').textContent = '';
     $('#ai-result').replaceChildren();
@@ -906,6 +906,87 @@
     aiSettings = await api('PUT', '/ai/settings', body);
     $('#settings-modal').close();
   });
+
+  // ---------- my quiz folder (OneDrive / Google Drive) ----------
+
+  let cloud = null;
+  let cloudSeen = 0;
+  const cloudLabel = kind => t(`cloud.kind.${kind}`);
+
+  async function loadCloud() {
+    try { cloud = await api('GET', '/cloud'); } catch { return; }
+    $('#cloud-dot').className = 'cloud-dot' + (cloud.folder ? (cloud.error ? ' bad' : ' on') : '');
+    $('#cloud-btn').title = cloud.folder || '';
+    // Something came in from the other computer: show it in the list.
+    if (cloud.at && cloud.at !== cloudSeen) {
+      if (cloudSeen && (cloud.pulled || cloud.removed)) refreshLibrary();
+      cloudSeen = cloud.at;
+    }
+    if ($('#cloud-modal').open) renderCloud();
+  }
+
+  function cloudTime(at) {
+    return new Date(at).toLocaleTimeString(I18n.lang || undefined, { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function renderCloud(problem) {
+    const status = $('#cloud-status');
+    const err = problem || cloud.error;
+    status.className = 'cloud-status' + (err ? ' bad' : cloud.folder ? ' on' : '');
+    if (err) status.textContent = t(err, { detail: cloud.detail || '' });
+    else if (!cloud.folder) status.textContent = t('cloud.none');
+    else status.replaceChildren(t('cloud.linked'), ' ', h('strong', {}, cloud.folder), h('br'),
+      cloud.at ? t('cloud.lastSync', { time: cloudTime(cloud.at), pulled: cloud.pulled, pushed: cloud.pushed }) : t('cloud.waiting'));
+    $('#cloud-linked').hidden = !cloud.folder;
+    $('#cloud-open').hidden = !cloud.canPick;
+    $('#cloud-browse').hidden = !cloud.canPick;
+    $('#cloud-sugg-label').hidden = !cloud.suggestions.length;
+    $('#cloud-sugg').replaceChildren(...cloud.suggestions.map(sg => h('button', {
+      type: 'button', class: 'chip' + (sg.path === cloud.folder ? ' on' : ''), title: sg.path,
+      onclick: () => { $('#cloud-path').value = sg.path; useCloud(); },
+    }, cloudLabel(sg.kind))));
+    if (!$('#cloud-path').value) $('#cloud-path').value = cloud.folder || '';
+  }
+
+  async function cloudCall(btn, url, body) {
+    btn.classList.add('busy');
+    try {
+      const view = await api('POST', url, body);
+      cloud = { ...cloud, ...view };
+      renderCloud();
+      if (view.at) { cloudSeen = view.at; await refreshLibrary(); }
+    } catch (err) {
+      renderCloud(err.message);
+    } finally {
+      btn.classList.remove('busy');
+      loadCloud();
+    }
+  }
+  const useCloud = () => cloudCall($('#cloud-use'), '/cloud/choose', { folder: $('#cloud-path').value });
+
+  $('#cloud-btn').addEventListener('click', async () => {
+    await loadCloud();
+    if (!cloud) return;
+    $('#cloud-path').value = cloud.folder || '';
+    renderCloud();
+    $('#cloud-modal').showModal();
+  });
+  $('#cloud-use').addEventListener('click', useCloud);
+  $('#cloud-path').addEventListener('keydown', e => { if (e.key === 'Enter') useCloud(); });
+  $('#cloud-sync').addEventListener('click', () => cloudCall($('#cloud-sync'), '/cloud/sync'));
+  $('#cloud-open').addEventListener('click', () => api('POST', '/cloud/open').catch(() => {}));
+  $('#cloud-off').addEventListener('click', () => {
+    if (!confirm(t('cloud.disconnectSure'))) return;
+    $('#cloud-path').value = '';
+    cloudCall($('#cloud-off'), '/cloud/choose', { folder: '' });
+  });
+  $('#cloud-browse').addEventListener('click', async () => {
+    const res = await api('POST', '/cloud/pick').catch(err => ({ error: err.message }));
+    if (res.error) return renderCloud(res.error);
+    if (res.path) { $('#cloud-path').value = res.path; useCloud(); }
+  });
+  loadCloud();
+  setInterval(loadCloud, 30000);
 
   start().catch(err => { console.error(err); setSaveState('error.generic'); });
 })();
