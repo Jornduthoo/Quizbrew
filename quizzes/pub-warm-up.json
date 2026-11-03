@@ -1,0 +1,28 @@
+{
+  "title": "Pub Warm-up",
+  "language": "en",
+  "rounds": [
+    {
+      "type": "classic",
+      "title": "General Knowledge",
+      "questions": [
+        { "question": "Which planet is known as the Red Planet?", "answers": ["Venus", "Mars", "Jupiter", "Mercury"], "correct": 1, "time": 20 },
+        { "question": "How many legs does a spider have?", "answers": ["6", "8", "10", "12"], "correct": 1, "time": 15 },
+        { "question": "What is the main ingredient of guacamole?", "answers": ["Avocado", "Pea", "Cucumber", "Lime"], "correct": 0, "time": 15 },
+        { "question": "Which ocean is the largest?", "answers": ["Atlantic", "Indian", "Arctic", "Pacific"], "correct": 3, "time": 20 },
+        { "question": "In which country did the beer style 'pilsner' originate?", "answers": ["Germany", "Belgium", "Czech Republic", "Netherlands"], "correct": 2, "time": 20 },
+        { "question": "What is the chemical symbol for gold?", "answers": ["Go", "Gd", "Au", "Ag"], "correct": 2, "time": 15 }
+      ]
+    },
+    {
+      "type": "classic",
+      "title": "Around the World",
+      "questions": [
+        { "question": "What is the capital of Canada?", "answers": ["Toronto", "Ottawa", "Vancouver", "Montreal"], "correct": 1, "time": 20 },
+        { "question": "Which river flows through Paris?", "answers": ["Rhine", "Loire", "Seine", "Danube"], "correct": 2, "time": 15 },
+        { "question": "How many countries share a land border with Belgium?", "answers": ["3", "4", "5", "6"], "correct": 1, "time": 20 },
+        { "question": "On which continent is the Sahara desert?", "answers": ["Asia", "Africa", "Australia"], "correct": 1, "time": 15 }
+      ]
+    }
+  ]
+}
