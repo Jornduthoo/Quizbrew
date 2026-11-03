@@ -30,6 +30,7 @@
   <section id="v-lobby" class="view lobby" hidden>
     <div class="lobby-left">
       <img class="logo" src="/img/logo.webp" alt="Quizbrew">
+      <div class="venue-badge" id="lobby-venue" hidden><img id="lobby-venue-logo" alt=""><span id="lobby-venue-name"></span></div>
       <h1 class="quiz-title" id="lobby-title"></h1>
       <div class="qr-card">
         <div class="qr" id="qr"></div>
@@ -56,6 +57,11 @@
     <h1 class="round-title neon" id="round-title"></h1>
     <p class="ri-type"><svg class="ri-icon" id="ri-icon" viewBox="0 0 24 24" aria-hidden="true"></svg><span id="ri-type"></span></p>
     <p class="round-meta" id="round-meta"></p>
+    <div class="sponsor-tag" id="ri-sponsor" hidden>
+      <span class="sp-by" data-i18n="screen.sponsoredBy"></span>
+      <img id="ri-sponsor-logo" alt="">
+      <span class="sp-text"><strong id="ri-sponsor-name"></strong><span id="ri-sponsor-line"></span></span>
+    </div>
   </section>
 
   <!-- Question + reveal -->
@@ -132,6 +138,7 @@
     <div class="podium" id="podium"></div>
     <ol class="rest" id="rest"></ol>
     <p class="end-quip" id="end-quip"></p>
+    <div class="sponsor-strip end-sponsors" id="end-sponsors" hidden><p class="sp-thanks" data-i18n="screen.thanksSponsors"></p><ul></ul></div>
     <p class="made-with"><span data-i18n="brand.madeWith"></span><img src="/img/logo.webp" alt="Quizbrew" width="720" height="326"><span class="made-own" data-i18n="brand.yourOwn"></span></p>
   </section>
 
@@ -153,6 +160,7 @@
       <p class="break-sub" id="break-sub"></p>
       <div class="break-clock" id="break-clock"></div>
       <ol class="break-board" id="break-board"></ol>
+      <div class="sponsor-strip" id="break-sponsors" hidden><p class="sp-thanks" data-i18n="screen.thanksSponsors"></p><ul></ul></div>
     </div>
   </div>
   <div class="reactions" id="reactions" aria-hidden="true"></div>

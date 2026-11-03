@@ -423,8 +423,10 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .end .made-with img { height: 3em; width: auto; filter: drop-shadow(0 0 8px rgb(0 0 0 / .8)); }
 .end .made-own { color: var(--brass-light); }
 @keyframes made-in { to { opacity: .85; } }
-/* Long team names stay on one line on the podium, so the whole end screen fits. */
-.step .who .name { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Long team names get smaller and may wrap between words on the podium, so tied teams never overlap. */
+.step .who { max-width: 100%; }
+.step .who .name { max-width: 100%; line-height: 1.05; overflow-wrap: break-word; }
+.step .who .name.long { font-size: .72em; }
 .place1 .who .team-dot.photo { width: 2.3em; height: 2.3em; }
 .end { gap: 1.6vh; }
 .end-title { font-size: 3.7em; }
@@ -518,3 +520,25 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .br-score { color: #fff; font-weight: 800; font-variant-numeric: tabular-nums; }
 @keyframes break-in { from { opacity: 0; } }
 @keyframes break-pulse { to { transform: scale(1.04); } }
+
+/* The venue and its sponsors */
+.venue-badge { display: flex; align-items: center; gap: .7em; padding: .45em 1.1em .45em .5em; border-radius: 999px; background: rgb(0 0 0 / .38); box-shadow: inset 0 0 0 1.5px rgb(var(--k-brass-l) / .45), 0 0 24px rgb(var(--k-pink) / .18); font-size: 1.15em; font-weight: 700; color: var(--brass-light); }
+.venue-badge img { height: 2.4em; max-width: 6em; object-fit: contain; border-radius: .4em; }
+.venue-badge img[hidden] + span { padding-left: .5em; }
+.sponsor-tag { display: grid; grid-template-columns: auto auto; justify-content: center; align-items: center; gap: .45em 1em; margin-top: 2.6vh; padding: .8em 1.8em .9em; border-radius: 1.2em; background: rgb(0 0 0 / .42); box-shadow: inset 0 0 0 1.5px rgb(var(--k-brass-l) / .35), 0 10px 40px rgb(0 0 0 / .5); text-align: left; }
+.sponsor-tag img { height: 3.4em; max-width: 8em; object-fit: contain; }
+.sp-by { grid-column: 1 / -1; text-align: center; font-size: .72em; font-weight: 800; letter-spacing: .25em; text-transform: uppercase; color: var(--neon-cyan); text-shadow: 0 0 10px rgb(var(--k-cyan) / .6); }
+.sponsor-tag img[hidden] + .sp-text { grid-column: 1 / -1; align-items: center; }
+.sp-text { display: flex; flex-direction: column; gap: .1em; }
+.sp-text strong { font-size: 1.35em; color: var(--cream); }
+.sp-text span { color: var(--muted); }
+.round-intro.play .sponsor-tag { animation: rise .7s ease both 2.8s; }
+.sponsor-strip { display: flex; flex-direction: column; align-items: center; gap: .6em; margin-top: 1vh; }
+.sponsor-strip .sp-thanks { margin: 0; font-size: .8em; font-weight: 800; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); }
+.sponsor-strip ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1.2em 2.2em; }
+.sp-item { display: flex; align-items: center; }
+.sp-item img { height: 3em; max-width: 9em; object-fit: contain; filter: drop-shadow(0 2px 6px rgb(0 0 0 / .7)); }
+.sp-item span { font-size: 1.15em; font-weight: 800; color: var(--brass-light); }
+.end .end-sponsors { position: absolute; left: 2.5vw; bottom: 2.5vh; align-items: flex-start; max-width: 40vw; margin: 0; font-size: .9em; opacity: 0; animation: made-in 1s ease forwards 5s; }
+.end .end-sponsors ul { justify-content: flex-start; }
+.end .end-sponsors .sp-item img { height: 2.4em; }

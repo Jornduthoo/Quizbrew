@@ -5,10 +5,26 @@ const { validateQuiz } = require('./game');
 
 const DIR = path.join(__dirname, '..', 'quizzes');
 
-function list() {
-  return fs.readdirSync(DIR).filter(f => f.endsWith('.json')).sort().map(file => {
+// Quiz packs come in one file per language (name.<language>.json); the quizmaster sees the one in their language
+// (English when there is none). Quizzes without a language in the name are always shown.
+const PACK = /\.([a-z]{2})\.json$/;
+
+function list(language) {
+  const files = fs.readdirSync(DIR).filter(f => f.endsWith('.json')).sort();
+  const base = f => f.replace(PACK, '');
+  const langs = new Map();
+  for (const f of files) {
+    const m = PACK.exec(f);
+    if (m) langs.set(base(f), [...(langs.get(base(f)) || []), m[1]]);
+  }
+  return files.filter(f => {
+    const m = PACK.exec(f);
+    if (!m || !language) return true;
+    const have = langs.get(base(f));
+    return m[1] === (have.includes(language) ? language : have.includes('en') ? 'en' : have[0]);
+  }).map(file => {
     const quiz = load(file);
-    return { file, title: quiz.title, rounds: quiz.rounds.length, questions: quiz.rounds.reduce((n, r) => n + r.questions.length, 0) };
+    return { file, title: quiz.title, language: quiz.language || null, rounds: quiz.rounds.length, questions: quiz.rounds.reduce((n, r) => n + r.questions.length, 0) };
   });
 }
 

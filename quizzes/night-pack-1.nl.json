@@ -1,0 +1,83 @@
+{
+  "title": "Quizavondpakket 1",
+  "language": "nl",
+  "jokers": true,
+  "tiebreak": true,
+  "rounds": [
+    {
+      "type": "classic",
+      "title": "Opwarmer",
+      "questions": [
+        {"question": "Wat is de kleinste planeet van ons zonnestelsel?", "answers": ["Mercurius", "Mars", "Venus", "Pluto"], "correct": 0, "time": 20, "fact": "Mercurius is maar een klein beetje groter dan onze maan."},
+        {"question": "Hoeveel minuten telt een dag?", "answers": ["1.240", "1.440", "1.640", "1.040"], "correct": 1, "time": 20, "fact": "Dat zijn 86.400 seconden, elke dag opnieuw."},
+        {"question": "Welk gas halen planten uit de lucht?", "answers": ["Zuurstof", "Koolstofdioxide", "Stikstof", "Helium"], "correct": 1, "time": 20, "fact": "In ruil geven ze de zuurstof af die wij inademen."},
+        {"question": "Wie schilderde de Mona Lisa?", "answers": ["Michelangelo", "Leonardo da Vinci", "Rafaël", "Rembrandt"], "correct": 1, "time": 20, "fact": "Het schilderij is verrassend klein: ongeveer 77 bij 53 cm."},
+        {"question": "Welk dier is het snelst op het land?", "answers": ["Leeuw", "Jachtluipaard", "Paard", "Windhond"], "correct": 1, "time": 20, "fact": "Een jachtluipaard sprint zo'n 100 km/u, maar houdt dat maar even vol."},
+        {"question": "Hoeveel spelers staan er van een voetbalploeg op het veld?", "answers": ["9", "10", "11", "12"], "correct": 2, "time": 15, "fact": "De keeper telt mee: de enige die de bal met de handen mag spelen."}
+      ]
+    },
+    {
+      "type": "trueFalse",
+      "title": "Waar of bluf",
+      "questions": [
+        {"question": "Bananen zijn bessen.", "correct": true, "time": 12, "fact": "Botanisch gezien wel, aardbeien dan weer niet."},
+        {"question": "Je kunt de Chinese Muur met het blote oog vanaf de maan zien.", "correct": false, "time": 12, "fact": "Daarvoor is ze veel te smal. Zelfs vanuit een lage baan zie je ze amper."},
+        {"question": "Honing kan duizenden jaren eetbaar blijven.", "correct": true, "time": 12, "fact": "In oude Egyptische graven vond men potten honing."},
+        {"question": "De bliksem slaat nooit twee keer op dezelfde plek in.", "correct": false, "time": 12, "fact": "Hoge torens worden elk jaar vele keren getroffen."},
+        {"question": "Octopussen hebben blauw bloed.", "correct": true, "time": 12, "fact": "Hun bloed vervoert zuurstof met koper in plaats van ijzer."},
+        {"question": "Mensen gebruiken maar 10% van hun hersenen.", "correct": false, "time": 12, "fact": "Hersenscans tonen over een dag bijna overal activiteit."}
+      ]
+    },
+    {
+      "type": "closest",
+      "title": "Wie zit het dichtst?",
+      "questions": [
+        {"question": "Hoeveel landen zijn lid van de Verenigde Naties?", "answer": 193, "time": 25},
+        {"question": "In welk jaar vonden de eerste moderne Olympische Spelen plaats?", "answer": 1896, "time": 25, "fact": "Ze vonden plaats in Athene."},
+        {"question": "Hoe hoog is de Mount Everest, in meter?", "answer": 8849, "unit": "m", "time": 25},
+        {"question": "Hoeveel vakjes telt een schaakbord?", "answer": 64, "time": 20}
+      ]
+    },
+    {
+      "type": "speed",
+      "title": "Snelle ronde",
+      "questions": [
+        {"question": "Hoeveel is 7 × 8?", "answers": ["54", "56", "64", "48"], "correct": 1, "time": 10},
+        {"question": "Welke kleur zit aan de buitenkant van een regenboog?", "answers": ["Rood", "Violet", "Blauw", "Geel"], "correct": 0, "time": 10},
+        {"question": "Wat is de grootste planeet?", "answers": ["Saturnus", "Jupiter", "Neptunus", "Aarde"], "correct": 1, "time": 10},
+        {"question": "Welke vorm heeft drie zijden?", "answers": ["Vierkant", "Driehoek", "Vijfhoek", "Cirkel"], "correct": 1, "time": 10},
+        {"question": "Wat maken bijen?", "answers": ["Melk", "Honing", "Zijde", "Katoen"], "correct": 1, "time": 10},
+        {"question": "Hoeveel uren telt een week?", "answers": ["148", "168", "178", "158"], "correct": 1, "time": 10}
+      ]
+    },
+    {
+      "type": "commonThread",
+      "title": "De rode draad",
+      "questions": [
+        {"clues": ["Slurf", "Ivoor", "Savanne", "Grootste landdier"], "answer": "Olifant", "accept": ["Olifanten"], "time": 40},
+        {"clues": ["Theems", "Big Ben", "Tower Bridge", "Hoofdstad van het Verenigd Koninkrijk"], "answer": "Londen", "accept": ["London"], "time": 40},
+        {"clues": ["Doornen", "Bloemblaadjes", "Valentijn", "Rode bloem"], "answer": "Roos", "accept": ["Rozen"], "time": 40},
+        {"clues": ["Schaal", "Dooier", "Omelet", "Een kip legt het"], "answer": "Ei", "accept": ["Eieren"], "time": 40}
+      ]
+    },
+    {
+      "type": "classic",
+      "title": "De wereld rond",
+      "questions": [
+        {"question": "Welk land heeft de meeste inwoners?", "answers": ["India", "China", "Verenigde Staten", "Indonesië"], "correct": 0, "time": 20, "fact": "India haalde China in 2023 in."},
+        {"question": "Welke rivier stroomt door Parijs?", "answers": ["Seine", "Loire", "Rijn", "Rhône"], "correct": 0, "time": 20, "fact": "In Parijs liggen meer dan 30 bruggen over de Seine."},
+        {"question": "In welk land ligt Machu Picchu?", "answers": ["Mexico", "Peru", "Chili", "Bolivia"], "correct": 1, "time": 20, "fact": "De oude Incastad ligt zo'n 2.400 meter boven zeeniveau."},
+        {"question": "Wat is de langste rivier van Afrika?", "answers": ["Congo", "Niger", "Nijl", "Zambezi"], "correct": 2, "time": 20, "fact": "De Nijl stroomt door 11 landen."},
+        {"question": "Welk land heeft de vorm van een laars?", "answers": ["Griekenland", "Spanje", "Italië", "Portugal"], "correct": 2, "time": 15, "fact": "De punt van de laars raakt Sicilië bijna."},
+        {"question": "Wat is de munt van Japan?", "answers": ["Yuan", "Won", "Yen", "Ringgit"], "correct": 2, "time": 15, "fact": "Yen betekent \"rond\" of \"cirkel\" in het Japans."}
+      ]
+    },
+    {
+      "type": "jackpot",
+      "title": "De jackpot",
+      "questions": [
+        {"category": "Wetenschap", "question": "Wat is het hardste natuurlijke materiaal op aarde?", "answer": "Diamant", "accept": ["Diamanten"], "points": 5, "time": 30, "fact": "Een diamant is puur koolstof, net als het grafiet in je potlood."}
+      ]
+    }
+  ]
+}

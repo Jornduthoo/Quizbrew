@@ -74,6 +74,11 @@
   }
 
   function render() {
+    if (mode === 'answers') {
+      document.title = `${quiz.title} · ${t('print.answerSheet')}`;
+      $('#paper').replaceChildren(answerSheet());
+      return;
+    }
     const total = quiz.rounds.reduce((n, r) => n + r.questions.length, 0);
     document.title = `${quiz.title} · ${t('print.runSheet')}`;
     const cover = h('header', { class: 'cover' },
@@ -122,9 +127,47 @@
     applyToggles();
   }
 
+  // The answer sheet for a team that plays on paper: a line or boxes for every question, a total per round.
+  const box = label => h('span', { class: 'as-box' }, h('i'), label);
+  function lineFor(type, q) {
+    const kind = type ? type.kind : '';
+    if (type && (type.vote || type.turns || kind === 'draw' || kind === 'photo' || kind === 'buzz' || type.actor)) return h('span', { class: 'as-note' }, t('print.onScreen'));
+    if (q.options) return h('span', { class: 'as-boxes' }, q.options.map(o => box(o.category)));
+    if (Array.isArray(q.answers) && q.answers.length) return h('span', { class: 'as-boxes' }, q.answers.map((_, i) => box(LETTERS[i])));
+    if (q.images && q.images.length) return h('span', { class: 'as-boxes' }, q.images.map((_, i) => box(LETTERS[i])));
+    if (kind === 'trueFalse') return h('span', { class: 'as-boxes' }, box(t('play.true')), box(t('play.false')));
+    if (kind === 'list' && q.items) return h('span', { class: 'as-multi' }, Array.from({ length: Math.min(q.items.length, 10) }, () => h('i')));
+    if (kind === 'order' || kind === 'pairs') return h('span', { class: 'as-line tall' }, h('i'));
+    return h('span', { class: 'as-line' }, h('i'), q.unit ? h('em', {}, q.unit) : null);
+  }
+  function answerSheet() {
+    return h('section', { class: 'answer-sheet' },
+      h('header', { class: 'as-head' },
+        h('img', { class: 'cover-logo', src: '/img/logo.webp', alt: '' }),
+        h('div', {}, h('p', { class: 'kicker' }, t('print.answerSheet')), h('h1', {}, quiz.title)),
+        h('p', { class: 'as-team' }, h('span', {}, t('print.team')), h('i'))),
+      h('p', { class: 'as-how' }, t('print.answerSheetHow')),
+      h('div', { class: 'as-rounds' }, quiz.rounds.filter(r => !r.tiebreak).map((r, ri) => {
+        const type = typeOf(r.type);
+        return h('div', { class: 'as-round', style: `--g: ${roundTheme(r.type).glow}` },
+          h('h2', {}, h('b', {}, ri + 1), r.title || t(`round.${r.type}`)),
+          h('ol', { class: 'as-lines' }, r.questions.map((q, qi) => h('li', {}, h('span', { class: 'n' }, qi + 1), lineFor(type, q)))),
+          h('p', { class: 'as-total' }, t('print.roundPoints'), h('i')));
+      })));
+  }
+
+  let mode = params.get('mode') === 'answers' ? 'answers' : 'run';
+  function setMode(m) {
+    mode = m;
+    document.body.classList.toggle('mode-answers', mode === 'answers');
+    document.querySelectorAll('#sheet-mode button').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+    if (quiz) render();
+  }
+  document.querySelectorAll('#sheet-mode button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+
   function applyToggles() {
     document.body.classList.toggle('no-answers', !$('#show-answers').checked);
-    $('#score-sheet').hidden = !$('#show-scores').checked;
+    if ($('#score-sheet')) $('#score-sheet').hidden = !$('#show-scores').checked;
   }
   $('#show-answers').addEventListener('change', applyToggles);
   $('#show-scores').addEventListener('change', applyToggles);
@@ -135,9 +178,9 @@
     await I18n.load(info.language);
     catalog = await fetch('/api/host/catalog').then(r => r.json());
     const src = params.get('sample') ? 'sample=' + encodeURIComponent(params.get('sample')) : 'path=' + encodeURIComponent(params.get('open') || '');
-    const res = await fetch('/api/host/library/quiz?' + src);
+    const res = await fetch(params.get('live') ? '/api/host/live-quiz' : '/api/host/library/quiz?' + src);
     if (!res.ok) { $('#paper').replaceChildren(h('p', { class: 'loading' }, t('print.notFound'))); return; }
     quiz = await res.json();
-    render();
+    setMode(mode);
   })();
 })();

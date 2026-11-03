@@ -213,3 +213,35 @@ test('connection test, raffle and stars at the end', async t => {
   const list = await new Promise(r => host.emit('quizzes', r));
   assert.equal(list.ratings['Pub Warm-up'].avg, 4);
 });
+
+test('venue and sponsors reach every screen; autopilot is a host setting', async t => {
+  const settings = memorySettings();
+  const qb = createServer({ port: 0, settings, library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
+  const port = await qb.listen();
+  const url = `http://127.0.0.1:${port}`;
+  const sockets = [];
+  const open = query => { const s = connect(url, { query, transports: ['websocket'], forceNew: true }); sockets.push(s); return s; };
+  t.after(async () => { sockets.forEach(s => s.close()); await qb.close(); });
+
+  const screen = open({ role: 'screen' });
+  assert.deepEqual(await once(screen, 'brand'), { venue: '', logo: '', sponsors: [] });
+  const pushed = once(screen, 'brand', b => b.venue === 'The Lantern');
+  const res = await fetch(`${url}/api/host/brand`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+    venue: '  The   Lantern ', logo: 'javascript:alert(1)',
+    sponsors: [{ name: 'Bakery', line: 'Fresh bread', logo: '/media/abc.webp' }, { name: '', line: 'empty' }, ...Array(10).fill({ name: 'X' })],
+  }) });
+  const saved = await res.json();
+  assert.equal(saved.venue, 'The Lantern');
+  assert.equal(saved.logo, '');
+  assert.equal(saved.sponsors.length, 8);
+  assert.deepEqual(saved.sponsors[0], { name: 'Bakery', line: 'Fresh bread', logo: '/media/abc.webp' });
+  assert.deepEqual(await pushed, saved);
+  assert.equal((await (await fetch(`${url}/api/host/brand`)).json()).venue, 'The Lantern');
+
+  const host = open({ role: 'host' });
+  assert.equal((await once(host, 'auto')).on, false);
+  const on = once(host, 'auto', a => a.on);
+  host.emit('autopilot', true);
+  await on;
+  assert.equal(settings.get('autopilot'), true);
+});

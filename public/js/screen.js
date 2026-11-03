@@ -18,6 +18,7 @@
 
   socket.on('language', async lang => {
     await I18n.load(lang);
+    renderBrand();
     if (state) render(state, true);
   });
   // Reactions from the phones float up from the bottom edge, with a halo in the team colour.
@@ -135,6 +136,38 @@
       h('span', { class: 'br-rank' }, String(r.rank)), QB.dot(r), h('span', { class: 'br-name' }, r.name), h('span', { class: 'br-score' }, String(r.score)))));
   }
 
+  // The venue and its sponsors (set by the quizmaster under "Venue & sponsors").
+  let brand = { venue: '', logo: '', sponsors: [] };
+  socket.on('brand', b => { brand = b || brand; if (I18n.dict['app.name']) renderBrand(); });
+  function sponsorItem(sp) {
+    return h('li', { class: 'sp-item' }, sp.logo ? h('img', { src: sp.logo, alt: sp.name }) : null, sp.logo && sp.name ? null : h('span', {}, sp.name));
+  }
+  function renderBrand() {
+    const v = $('#lobby-venue');
+    v.hidden = !brand.venue && !brand.logo;
+    $('#lobby-venue-logo').hidden = !brand.logo;
+    if (brand.logo) $('#lobby-venue-logo').src = brand.logo;
+    $('#lobby-venue-name').textContent = brand.venue ? t('screen.tonightAt', { venue: brand.venue }) : '';
+    for (const id of ['#break-sponsors', '#end-sponsors']) {
+      const strip = $(id);
+      strip.hidden = !brand.sponsors.length;
+      $(id + ' ul').replaceChildren(...brand.sponsors.map(sponsorItem));
+    }
+    if (state && state.phase === 'roundIntro') renderSponsor(state);
+  }
+  function renderSponsor(s) {
+    const list = brand.sponsors;
+    const sp = list.length && s.round && !s.round.tiebreak ? list[s.round.index % list.length] : null;
+    const tag = $('#ri-sponsor');
+    tag.hidden = !sp;
+    if (!sp) return;
+    $('#ri-sponsor-logo').hidden = !sp.logo;
+    if (sp.logo) $('#ri-sponsor-logo').src = sp.logo;
+    $('#ri-sponsor-name').textContent = sp.name;
+    $('#ri-sponsor-line').textContent = sp.line;
+    $('#ri-sponsor-line').hidden = !sp.line;
+  }
+
   function setTheme(type) {
     document.body.style.setProperty('--theme', roundTheme(type).glow);
   }
@@ -180,6 +213,7 @@
     if (s.round.scoring && s.round.scoring !== 'points') rules.push(t(`scoring.${s.round.scoring}`));
     s.round.twists.forEach(tw => rules.push(t(`twist.${tw}`)));
     $('#round-meta').textContent = s.round.tiebreak ? t('screen.tiebreakRule') : rules.join(' · ');
+    renderSponsor(s);
     // Restart the CSS animations for this round.
     const v = $('#v-roundIntro');
     v.classList.remove('play'); void v.offsetWidth; v.classList.add('play');
@@ -195,7 +229,7 @@
     const silent = MUTE || s.round.twists.includes('silentRound');
     document.body.classList.toggle('silent', s.round.twists.includes('silentRound'));
     $('#q-count').textContent = t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
-    $('#q-answered').textContent = t('screen.answeredCount', { n: s.answered, total: s.teams.length });
+    $('#q-answered').textContent = t('screen.answeredCount', { n: s.answered, total: s.teams.filter(x => !x.paper).length });
     const wasRevealed = document.body.classList.contains('revealed');
     document.body.classList.toggle('revealed', reveal);
     document.body.dataset.kind = kind;
@@ -388,7 +422,8 @@
 
     // Answered dots: update in place so only the dot that changes animates.
     const dots = $('#answered-dots');
-    s.teams.forEach((team, i) => {
+    const phoneTeams = s.teams.filter(x => !x.paper);
+    phoneTeams.forEach((team, i) => {
       let d = dots.children[i];
       if (!d) dots.append(d = h('li', { class: 'dot' }));
       const was = d.classList.contains('on');
@@ -396,7 +431,7 @@
       d.style.cssText = teamVar(team.color);
       d.title = team.name;
     });
-    while (dots.children.length > s.teams.length) dots.lastChild.remove();
+    while (dots.children.length > phoneTeams.length) dots.lastChild.remove();
 
     if (kind === 'turn') return;
     if (stopTimer) stopTimer();
@@ -529,7 +564,7 @@
     document.body.classList.toggle('revealed', reveal);
     const mode = s.vote.mode;
     $('#vote-kicker').textContent = t(reveal ? 'screen.voteResult' : mode === 'truth' ? 'screen.findTruth' : mode === 'match' ? 'screen.matchTeams' : 'screen.voteBest');
-    $('#vote-count').textContent = reveal ? '' : t('screen.votedCount', { n: s.answered, total: s.teams.length });
+    $('#vote-count').textContent = reveal ? '' : t('screen.votedCount', { n: s.answered, total: s.teams.filter(x => !x.paper).length });
     if (fresh) split($('#vote-q'), s.question.text || t(`round.${s.round.type}`), 'word');
     const most = reveal ? Math.max(0, ...s.ballot.map(b => (b.votes || []).length)) : -1;
     const grid = $('#ballot-grid');
@@ -576,13 +611,13 @@
         i ? h('span', { class: 'vs' }, t('screen.vs')) : null,
         h('span', { class: 'finalist', style: teamVar(f.color) }, f.name)].filter(Boolean)));
       const names = new Set((s.finalists || []).map(f => f.name));
-      $('#wager-dots').replaceChildren(...s.teams.filter(team => !names.has(team.name)).map(team => h('li', { class: 'dot' + (team.wagered ? ' on' : ''), style: teamVar(team.color), title: team.name })));
+      $('#wager-dots').replaceChildren(...s.teams.filter(team => !names.has(team.name) && !team.paper).map(team => h('li', { class: 'dot' + (team.wagered ? ' on' : ''), style: teamVar(team.color), title: team.name })));
       return;
     }
     $('#wager-kicker').textContent = t(level ? 'screen.pickLevel' : 'screen.placeBets');
     $('#wager-hint').textContent = t(level ? 'screen.levelHint' : 'screen.betHint');
     split($('#wager-category'), s.category || t(level ? 'round.pickYourLevel' : `round.${s.round.type}`));
-    $('#wager-dots').replaceChildren(...s.teams.map(team => h('li', { class: 'dot' + (team.wagered ? ' on' : ''), style: teamVar(team.color), title: team.name })));
+    $('#wager-dots').replaceChildren(...s.teams.filter(team => !team.paper).map(team => h('li', { class: 'dot' + (team.wagered ? ' on' : ''), style: teamVar(team.color), title: team.name })));
   }
 
   function renderScoreboard(s) {
@@ -647,7 +682,7 @@
     const rows = s.ranking;
     const podium = [rows[1], rows[0], rows[2]].filter(Boolean);
     $('#podium').replaceChildren(...podium.map(r => h('div', { class: `step place${r.rank}`, style: teamVar(r.color) },
-      h('div', { class: 'who' }, r.rank === 1 ? h('span', { class: 'crown-wrap' }) : null, QB.dot(r), h('span', { class: 'name' }, r.name), h('span', { class: 'pts' }, t('screen.points', { n: r.score }))),
+      h('div', { class: 'who' }, r.rank === 1 ? h('span', { class: 'crown-wrap' }) : null, QB.dot(r), h('span', { class: 'name' + (r.name.length > 12 ? ' long' : '') }, r.name), h('span', { class: 'pts' }, t('screen.points', { n: r.score }))),
       h('div', { class: 'block' }, h('span', { class: 'medal' }, r.rank)))));
     const crown = $('#podium .crown-wrap');
     if (crown) crown.innerHTML = CROWN;

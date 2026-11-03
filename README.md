@@ -55,6 +55,13 @@ Build at home, play on the quiz laptop. In the builder, click **Quiz folder** an
 - **Run sheet**: *Run sheet* on a quiz card (or in the builder) opens a printable sheet with every round, question, answer, time and points, plus an empty score sheet. Untick *With answers* for a copy without answers.
 - **Remote**: *Remote* in the top bar shows a QR code. Scan it with your phone or tablet on the same wifi to get the big Next button, the answers and the judge buttons in your hand. The secret link changes every time Quizbrew starts.
 
+## Running the night
+
+- **Autopilot**: switch on *Autopilot* under the big button and Quizbrew presses *Next* for you after a short pause (a bar fills the button). It waits in the lobby, during a break, for a buzzer or a clock round, and at the end. A line under the title tells you what to say or do at every step.
+- **Venue & sponsors**: the tile on the start page. Your venue name and logo appear in the lobby and on the phones; up to eight sponsors take turns on the round intros ("This round is brought to you by...") and are thanked during the break and at the end.
+- **Quiz Night Pack 1**: a complete night of seven rounds, ready to play, in English, Dutch, French, German and Spanish. The start page shows the version in your language.
+- **Paper teams**: a team without a phone? Type its name under the team list (*+ Paper team*) and print the *Answer sheet* (boxes for the choices, lines for the rest). Collect the sheets after each round and type the points in next to the team; typing again replaces the number.
+
 ## Round types
 
 | Type | Phones | How it scores |
