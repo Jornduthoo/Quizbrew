@@ -599,5 +599,17 @@
   "print.jokers": "every team has one joker",
   "print.scoreSheet": "Score sheet",
   "print.team": "Team",
-  "print.total": "Total"
+  "print.total": "Total",
+  "host.look": "Look",
+  "look.pub": "🎤 Pub",
+  "look.space": "🪩 Space disco",
+  "look.jungle": "🌴 Jungle temple",
+  "look.spooky": "👻 Haunted manor",
+  "look.arcade": "🕹️ Retro arcade",
+  "host.tagline": "Quiz night on your own network",
+  "host.screenHint": "Drag it to the TV or projector. Teams scan the QR code.",
+  "host.remoteTileHint": "Drive the quiz from your phone or tablet while you walk around.",
+  "host.tagBuild": "Make",
+  "host.tagScreen": "Show",
+  "host.tagRemote": "Control"
 }

@@ -122,10 +122,12 @@ Bundled samples are JSON files in `quizzes/` (see `round-tour.json` for every ro
 - `public/` holds the screens: `host`, `screen`, `play` and `builder`. Plain HTML, CSS and JS, no build step.
 - Tests: `npm test` (node --test).
 
-## Look and effects
+## Looks and effects
 
-- Backgrounds per phase live in `public/img/` (webp, under 150 KB each) and cross-fade on the big screen.
-- `public/js/fx.js` draws ambient particles and bursts (`FX.confetti`, `FX.sparks`, `FX.rain`, `FX.ambient`). It turns itself down on weak devices and off with reduced motion. Force a level with `?fx=off`, `?fx=low` or `?fx=high` in the URL.
+- The quizmaster picks a look in the top bar: Pub (default), Space disco, Jungle temple, Haunted manor or Retro arcade. The big screen and the phones follow live.
+- Each look is one block in `public/css/base.css` (`:root[data-look="..."]`): colour channels, a display font and six painted backgrounds in `public/img/look/` (lobby, stage, play, board, finale, phone). Add a look by adding that block, its six images and a `look.<name>` label, and the name in `LOOKS` in `src/app.js`.
+- Painted icons for the round families and the home tiles live in `public/img/icons/`.
+- `public/js/fx.js` draws light effects only (sparks, glints, embers). It turns itself down on weak devices and off with reduced motion. Force a level with `?fx=off`, `?fx=low` or `?fx=high` in the URL.
 - Every round type has a neon colour and icon in `QB.ROUND_THEMES` (`public/js/common.js`) and a label `round.<type>` in the language files; the round intro uses both.
 
-The font is Bricolage Grotesque (SIL Open Font License, see `public/fonts/`).
+The fonts are Bricolage Grotesque, Alfa Slab One, Audiowide, Lilita One, Creepster and Bungee, all under the SIL Open Font License (see `public/fonts/`).

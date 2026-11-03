@@ -18,12 +18,16 @@ const rounds = require('./rounds');
 
 const TEAM_ID = /^[a-z0-9]{8,40}$/;
 
+const LOOKS = ['pub', 'space', 'jungle', 'spooky', 'arcade'];
+
 function createServer({ port = 3000, settings = Settings.create(), library = Library.create(), lanAddresses = network.lanAddresses, hostFromAnywhere = false } = {}) {
   const app = express();
   const server = http.createServer(app);
   const io = new Server(server, { serveClient: true, pingInterval: 10000, pingTimeout: 8000, maxHttpBufferSize: 3e6 });
   const pub = path.join(__dirname, '..', 'public');
 
+  // The look of the evening (backgrounds, colours, fonts) for every screen. Pub is the default.
+  const look = () => (LOOKS.includes(settings.get('look')) ? settings.get('look') : LOOKS[0]);
   const language = () => (i18n.isSupported(settings.get('language')) ? settings.get('language') : i18n.DEFAULT);
   const canHost = address => hostFromAnywhere || network.isLocal(address);
   // The quizmaster's remote: a phone or tablet on the wifi with the secret link (new on every start) may drive the quiz.
@@ -141,7 +145,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   app.get('/api/info', async (req, res) => {
     const url = joinUrl();
     const qr = await QRCode.toString(url, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#1b0f08', light: '#0000' } });
-    res.json({ url, qr, language: language(), languages: i18n.LANGUAGES, colors: TEAM_COLORS });
+    res.json({ url, qr, language: language(), languages: i18n.LANGUAGES, look: look(), looks: LOOKS, colors: TEAM_COLORS });
   });
 
   io.on('connection', socket => {
@@ -155,6 +159,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     });
 
     socket.emit('language', language());
+    socket.emit('look', look());
 
     if (role === 'host') {
       if (!canHost(socket.handshake.address) && !isRemote(socket.handshake.query.key)) return socket.disconnect(true);
@@ -180,6 +185,11 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       on('stop', () => game.stop());
       on('kick', teamId => game.kick(String(teamId)));
       on('score', ({ teamId, delta } = {}) => game.adjustScore(String(teamId), Number(delta)));
+      on('look', name => {
+        if (!LOOKS.includes(name)) return;
+        settings.set('look', name);
+        io.emit('look', name);
+      });
       on('language', code => {
         if (!i18n.isSupported(code)) return;
         settings.set('language', code);
@@ -242,4 +252,4 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   };
 }
 
-module.exports = { createServer };
+module.exports = { LOOKS, createServer };

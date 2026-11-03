@@ -1,7 +1,7 @@
 /* The run sheet: warm paper on the pub wall on screen, clean black on white when printed. */
 body.sheet {
   min-height: 100%;
-  background: linear-gradient(180deg, rgba(10, 5, 3, .6), rgba(10, 5, 3, .92)), url('/img/bg-screen.webp') center top / cover fixed, var(--wood-900);
+  background: linear-gradient(180deg, rgba(10, 5, 3, .6), rgba(10, 5, 3, .92)), var(--bg-play) center top / cover fixed, var(--wood-900);
   --ink: #23160d;
   --ink-soft: #6b5440;
   --paper: #fbf3e2;

@@ -17,6 +17,10 @@
       <span class="join-url" id="join-url" data-i18n-attr="title:host.joinAddress"></span>
       <a class="ghost-btn" href="/screen" target="quizbrew-screen" data-i18n="host.openScreen"></a>
       <button class="ghost-btn" id="remote-btn" type="button" data-i18n="host.remote"></button>
+      <label class="lang look-pick">
+        <span class="sr" data-i18n="host.look"></span>
+        <select id="look"></select>
+      </label>
       <label class="lang">
         <span class="sr" data-i18n="host.language"></span>
         <select id="lang"></select>
@@ -36,7 +40,31 @@
 
   <!-- Pick a quiz -->
   <main id="v-idle" class="view library" hidden>
-    <h1 class="neon" data-i18n="host.pickQuiz"></h1>
+    <div class="hero">
+      <img class="hero-logo" src="/img/logo.webp" alt="Quizbrew">
+      <p class="hero-tag" data-i18n="host.tagline"></p>
+    </div>
+    <div class="tiles">
+      <a class="tile" href="/builder">
+        <img src="/img/icons/builder.webp" alt="">
+        <strong data-i18n="builder.title"></strong>
+        <span data-i18n="host.builderHint"></span>
+        <em data-i18n="host.tagBuild"></em>
+      </a>
+      <a class="tile" href="/screen" target="quizbrew-screen">
+        <img src="/img/icons/screen.webp" alt="">
+        <strong data-i18n="host.openScreen"></strong>
+        <span data-i18n="host.screenHint"></span>
+        <em data-i18n="host.tagScreen"></em>
+      </a>
+      <button class="tile" type="button" id="remote-tile">
+        <img src="/img/icons/remote.webp" alt="">
+        <strong data-i18n="host.remote"></strong>
+        <span data-i18n="host.remoteTileHint"></span>
+        <em data-i18n="host.tagRemote"></em>
+      </button>
+    </div>
+    <h1 class="section-title" data-i18n="host.pickQuiz"></h1>
     <p class="hint" data-i18n="host.pickQuizHint"></p>
     <ul class="quiz-list" id="quiz-list"></ul>
   </main>

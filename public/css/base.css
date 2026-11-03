@@ -1,4 +1,9 @@
 /* Quizbrew base: warm pub wood, brass and neon. Shared by every screen. */
+@font-face { font-family: 'Alfa Slab One'; src: url('/fonts/alfa-slab-one.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'Audiowide'; src: url('/fonts/audiowide.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'Lilita One'; src: url('/fonts/lilita-one.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'Creepster'; src: url('/fonts/creepster.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'Bungee'; src: url('/fonts/bungee.woff2') format('woff2'); font-display: swap; }
 @font-face {
   font-family: 'Bricolage';
   src: url('/fonts/bricolage.woff2') format('woff2');
@@ -7,24 +12,48 @@
 }
 
 :root {
-  --wood-900: #0f0805;
-  --wood-800: #1a0e08;
-  --wood-700: #2a170c;
-  --wood-600: #3d2414;
-  --brass: #d9a54a;
-  --brass-light: #f6d48c;
-  --brass-dark: #8a5f22;
-  --cream: #f8ecd4;
+  /* Theme colours as r g b channels, so see-through tints follow the theme: rgb(var(--k-brass) / .3).
+     The pub look is the default; the other looks are at the bottom of this file. */
+  --k-wood-9: 15 8 5;
+  --k-wood-8: 26 14 8;
+  --k-wood-7: 42 23 12;
+  --k-wood-6: 61 36 20;
+  --k-brass: 217 165 74;
+  --k-brass-l: 246 212 140;
+  --k-brass-d: 138 95 34;
+  --k-amber: 255 180 60;
+  --k-pink: 255 79 163;
+  --k-cyan: 62 230 255;
+  --k-violet: 176 124 255;
+  --k-cream: 248 236 212;
+  --k-muted: 185 165 138;
+  --k-light: 255 230 190;
+
+  --wood-900: rgb(var(--k-wood-9));
+  --wood-800: rgb(var(--k-wood-8));
+  --wood-700: rgb(var(--k-wood-7));
+  --wood-600: rgb(var(--k-wood-6));
+  --brass: rgb(var(--k-brass));
+  --brass-light: rgb(var(--k-brass-l));
+  --brass-dark: rgb(var(--k-brass-d));
+  --cream: rgb(var(--k-cream));
   --chalk: #ece6da;
-  --muted: #b9a58a;
-  --neon-amber: #ffb43c;
-  --neon-pink: #ff4fa3;
-  --neon-cyan: #3ee6ff;
+  --muted: rgb(var(--k-muted));
+  --neon-amber: rgb(var(--k-amber));
+  --neon-pink: rgb(var(--k-pink));
+  --neon-cyan: rgb(var(--k-cyan));
   --neon-lime: #a8ff3e;
+  --ink: rgb(var(--k-wood-8));
   --good: #5dff9a;
   --bad: #ff5a5a;
-  --radius: 18px;
+  --radius: 14px;
+  --cut: 14px;
   --font: 'Bricolage', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --display: 'Alfa Slab One', 'Bricolage', Georgia, serif;
+  --display-case: none;
+  --display-track: .01em;
+  --qboard: url('/img/chalk.webp') center / cover, #1d1f1c;
+  --qboard-text: #ece6da;
 
   /* Team colours: keep in sync with src/teams.js */
   --team-amber: #ffb43c;
@@ -40,14 +69,13 @@
   --team-mint: #9dffd6;
   --team-rose: #ffa3c4;
 
-  /* Look: the pub theme. A future theme (company, party, retro...) only overrides these and the colours above,
-     for example under :root[data-look="party"]. */
-  --bg-lobby: url('/img/bg-lobby.webp');
-  --bg-stage: url('/img/bg-stage.webp');
-  --bg-play: url('/img/bg-screen.webp');
-  --bg-board: url('/img/bg-board.webp');
-  --bg-finale: url('/img/bg-finale.webp');
-  --bg-phone: url('/img/bg-phone.webp');
+  /* Backgrounds per phase, painted per look. */
+  --bg-lobby: url('/img/look/pub-lobby.webp');
+  --bg-stage: url('/img/look/pub-stage.webp');
+  --bg-play: url('/img/look/pub-play.webp');
+  --bg-board: url('/img/look/pub-board.webp');
+  --bg-finale: url('/img/look/pub-finale.webp');
+  --bg-phone: url('/img/look/pub-phone.webp');
 
   /* Answer colours A B C D */
   --ans-0: #ffb43c;
@@ -62,6 +90,7 @@ body {
   font-family: var(--font);
   color: var(--cream);
   background: var(--wood-900);
+  scrollbar-color: rgb(var(--k-brass) / .5) rgb(var(--k-wood-9));
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
@@ -82,47 +111,63 @@ button { cursor: pointer; }
 .neon.pink { --glow: var(--neon-pink); }
 .neon.cyan { --glow: var(--neon-cyan); }
 
-/* A brass-framed panel. */
+/* Display type: titles and big buttons use the look's display font. */
+h1, h2, .display { font-family: var(--display); font-weight: 400; font-synthesis: none; letter-spacing: var(--display-track); text-transform: var(--display-case); }
+/* Question text stays in the reading font. */
+#q-text, .vote-q, .phase-title, .teams-head { font-family: var(--font); font-synthesis: weight; letter-spacing: normal; text-transform: none; }
+.label { font-size: .78em; font-weight: 750; letter-spacing: .18em; text-transform: uppercase; color: var(--brass-light); }
+
+/* A plate: dark panel with a metal edge, cut corners and four rivets. */
 .panel {
   position: relative;
+  border: 1.5px solid transparent;
+  border-radius: 4px;
   background:
-    linear-gradient(180deg, rgba(255, 230, 190, .06), rgba(0, 0, 0, .25)),
-    var(--wood-800);
-  border-radius: var(--radius);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  box-shadow:
-    0 0 0 2px var(--brass-dark),
-    0 0 0 3px var(--brass),
-    0 0 0 5px rgba(0, 0, 0, .5),
-    0 18px 50px rgba(0, 0, 0, .55),
-    inset 0 1px 0 rgba(255, 240, 210, .12);
+    radial-gradient(circle at 10px 10px, rgb(var(--k-brass-l)) 0 2px, rgb(var(--k-brass-d)) 2.5px, transparent 3.5px),
+    radial-gradient(circle at calc(100% - 10px) 10px, rgb(var(--k-brass-l)) 0 2px, rgb(var(--k-brass-d)) 2.5px, transparent 3.5px),
+    radial-gradient(circle at 10px calc(100% - 10px), rgb(var(--k-brass-l)) 0 2px, rgb(var(--k-brass-d)) 2.5px, transparent 3.5px),
+    radial-gradient(circle at calc(100% - 10px) calc(100% - 10px), rgb(var(--k-brass-l)) 0 2px, rgb(var(--k-brass-d)) 2.5px, transparent 3.5px),
+    linear-gradient(180deg, rgb(var(--k-light) / .07), rgb(var(--k-wood-9) / .35) 70%) padding-box,
+    linear-gradient(rgb(var(--k-wood-8) / .9), rgb(var(--k-wood-8) / .9)) padding-box,
+    linear-gradient(160deg, rgb(var(--k-brass-l)), rgb(var(--k-brass-d)) 40%, rgb(var(--k-brass)) 70%, rgb(var(--k-brass-d))) border-box;
+  clip-path: polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 calc(100% - var(--cut)), 0 var(--cut));
+  box-shadow: inset 0 1px 0 rgb(var(--k-light) / .14), inset 0 0 40px rgb(0 0 0 / .35);
 }
+/* A soft glow behind a panel, outside its cut corners (put .glow-wrap around it). */
+.glow-wrap { filter: drop-shadow(0 14px 30px rgb(0 0 0 / .55)) drop-shadow(0 0 18px rgb(var(--k-amber) / .12)); }
 
+/* The main button: a metal plate with cut corners. */
 .brass-btn {
   border: 0;
-  border-radius: 999px;
-  padding: .8em 1.6em;
-  font-weight: 750;
-  letter-spacing: .01em;
-  color: #2a1606;
-  background: linear-gradient(180deg, var(--brass-light), var(--brass) 55%, var(--brass-dark));
-  box-shadow: 0 2px 0 #fff3 inset, 0 -2px 0 #0003 inset, 0 6px 18px rgba(217, 165, 74, .35), 0 2px 0 #4a3010;
-  transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+  border-radius: 3px;
+  padding: .8em 1.7em;
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: calc(var(--display-track) + .02em);
+  text-transform: var(--display-case);
+  color: var(--ink);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / .45), transparent 45%),
+    linear-gradient(180deg, var(--brass-light), var(--brass) 55%, var(--brass-dark));
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  box-shadow: inset 0 -3px 0 rgb(0 0 0 / .25), inset 0 2px 0 rgb(255 255 255 / .35);
+  text-shadow: 0 1px 0 rgb(255 255 255 / .3);
+  transition: transform .12s ease, filter .12s ease;
 }
-.brass-btn:hover { filter: brightness(1.08); }
-.brass-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #fff3 inset, 0 2px 8px rgba(217, 165, 74, .3); }
+.brass-btn:hover { filter: brightness(1.1) saturate(1.1); }
+.brass-btn:active { transform: translateY(2px); filter: brightness(.95); }
 .brass-btn:disabled { filter: grayscale(.8) brightness(.6); cursor: default; transform: none; }
 
 .ghost-btn {
-  border: 1.5px solid rgba(246, 212, 140, .45);
-  background: rgba(0, 0, 0, .25);
-  border-radius: 999px;
+  border: 1.5px solid rgb(var(--k-brass-l) / .5);
+  background: linear-gradient(180deg, rgb(var(--k-light) / .08), rgb(0 0 0 / .3));
+  border-radius: 3px;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
   padding: .55em 1.2em;
-  font-weight: 600;
-  transition: background .15s, border-color .15s;
+  font-weight: 700;
+  transition: background .15s, border-color .15s, color .15s;
 }
-.ghost-btn:hover { background: rgba(246, 212, 140, .12); border-color: var(--brass-light); }
+.ghost-btn:hover { background: rgb(var(--k-brass-l) / .16); border-color: var(--brass-light); color: #fff; }
 
 .team-dot {
   display: inline-block;
@@ -178,4 +223,51 @@ button { cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* ---------- Looks. Each one swaps the colour channels, the display font and the painted backgrounds. ---------- */
+:root[data-look="space"] {
+  --k-wood-9: 7 5 22; --k-wood-8: 16 12 42; --k-wood-7: 30 22 68; --k-wood-6: 48 34 98;
+  --k-brass: 120 214 255; --k-brass-l: 206 240 255; --k-brass-d: 60 98 170;
+  --k-amber: 255 196 80; --k-pink: 255 70 200; --k-cyan: 80 240 255; --k-violet: 190 130 255;
+  --k-cream: 238 240 255; --k-muted: 160 162 214; --k-light: 210 220 255;
+  --display: 'Audiowide', 'Bricolage', sans-serif; --display-track: .03em;
+  --qboard: radial-gradient(ellipse at 50% 0%, rgb(140 100 255 / .35), transparent 60%), linear-gradient(180deg, #1a1440, #0b0820);
+  --qboard-text: #f2f0ff;
+  --bg-lobby: url('/img/look/space-lobby.webp'); --bg-stage: url('/img/look/space-stage.webp'); --bg-play: url('/img/look/space-play.webp');
+  --bg-board: url('/img/look/space-board.webp'); --bg-finale: url('/img/look/space-finale.webp'); --bg-phone: url('/img/look/space-phone.webp');
+}
+:root[data-look="jungle"] {
+  --k-wood-9: 5 14 9; --k-wood-8: 12 28 18; --k-wood-7: 22 46 30; --k-wood-6: 38 66 42;
+  --k-brass: 232 176 74; --k-brass-l: 250 222 146; --k-brass-d: 128 86 30;
+  --k-amber: 255 152 52; --k-pink: 255 96 120; --k-cyan: 80 232 190; --k-violet: 170 220 90;
+  --k-cream: 240 246 222; --k-muted: 160 188 150; --k-light: 230 250 200;
+  --display: 'Lilita One', 'Bricolage', sans-serif; --display-track: .02em;
+  --qboard: linear-gradient(180deg, rgb(255 255 255 / .05), transparent), repeating-linear-gradient(95deg, #2a3a26 0 3px, #24331f 3px 9px), #253420;
+  --qboard-text: #f4f7e8;
+  --bg-lobby: url('/img/look/jungle-lobby.webp'); --bg-stage: url('/img/look/jungle-stage.webp'); --bg-play: url('/img/look/jungle-play.webp');
+  --bg-board: url('/img/look/jungle-board.webp'); --bg-finale: url('/img/look/jungle-finale.webp'); --bg-phone: url('/img/look/jungle-phone.webp');
+}
+:root[data-look="spooky"] {
+  --k-wood-9: 9 5 16; --k-wood-8: 20 12 32; --k-wood-7: 36 20 54; --k-wood-6: 56 32 78;
+  --k-brass: 255 140 40; --k-brass-l: 255 200 120; --k-brass-d: 150 68 18;
+  --k-amber: 255 150 40; --k-pink: 200 110 255; --k-cyan: 140 255 120; --k-violet: 200 110 255;
+  --k-cream: 240 232 255; --k-muted: 172 152 204; --k-light: 230 210 255;
+  --display: 'Creepster', 'Bricolage', sans-serif; --display-track: .05em;
+  --qboard: radial-gradient(ellipse at 50% 120%, rgb(140 255 120 / .18), transparent 60%), linear-gradient(180deg, #221634, #120a1e);
+  --qboard-text: #f1ecff;
+  --bg-lobby: url('/img/look/spooky-lobby.webp'); --bg-stage: url('/img/look/spooky-stage.webp'); --bg-play: url('/img/look/spooky-play.webp');
+  --bg-board: url('/img/look/spooky-board.webp'); --bg-finale: url('/img/look/spooky-finale.webp'); --bg-phone: url('/img/look/spooky-phone.webp');
+}
+:root[data-look="arcade"] {
+  --k-wood-9: 6 4 16; --k-wood-8: 14 8 32; --k-wood-7: 26 14 54; --k-wood-6: 42 22 82;
+  --k-brass: 255 60 200; --k-brass-l: 255 160 236; --k-brass-d: 130 20 110;
+  --k-amber: 255 228 60; --k-pink: 255 60 200; --k-cyan: 40 240 255; --k-violet: 160 100 255;
+  --k-cream: 240 240 255; --k-muted: 170 160 220; --k-light: 255 200 250;
+  --display: 'Bungee', 'Bricolage', sans-serif; --display-track: .02em;
+  --cut: 0px;
+  --qboard: linear-gradient(transparent 0 calc(100% - 1px), rgb(255 60 200 / .18) 0) 0 0 / 100% 28px, linear-gradient(90deg, transparent 0 calc(100% - 1px), rgb(40 240 255 / .14) 0) 0 0 / 28px 100%, linear-gradient(180deg, #160c34, #08051a);
+  --qboard-text: #ffffff;
+  --bg-lobby: url('/img/look/arcade-lobby.webp'); --bg-stage: url('/img/look/arcade-stage.webp'); --bg-play: url('/img/look/arcade-play.webp');
+  --bg-board: url('/img/look/arcade-board.webp'); --bg-finale: url('/img/look/arcade-finale.webp'); --bg-phone: url('/img/look/arcade-phone.webp');
 }

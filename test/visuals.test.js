@@ -22,7 +22,7 @@ test('images used by the CSS exist, are webp and stay light', () => {
 
 test('every round theme has an icon, a colour and a label in every language', () => {
   const window = { location: { search: '' } };
-  const document = { createElement: () => ({}), querySelectorAll: () => [] };
+  const document = { createElement: () => ({}), querySelectorAll: () => [], documentElement: { dataset: {} } };
   vm.runInNewContext(fs.readFileSync(path.join(PUB, 'js', 'common.js'), 'utf8'), { window, document });
   const themes = window.QB.ROUND_THEMES;
   assert.ok(themes.classic);
@@ -37,4 +37,18 @@ test('effects can be switched off', () => {
   const src = fs.readFileSync(path.join(PUB, 'js', 'fx.js'), 'utf8');
   assert.match(src, /prefers-reduced-motion/);
   assert.match(src, /fx=\(off\|low\|high\)/);
+});
+
+test('every look has its colours, painted backgrounds and a name in every language', () => {
+  const { LOOKS } = require('../src/app');
+  const css = fs.readFileSync(path.join(PUB, 'css', 'base.css'), 'utf8');
+  for (const look of LOOKS) {
+    if (look !== 'pub') assert.match(css, new RegExp(`:root\\[data-look="${look}"\\]`), look);
+    for (const scene of ['lobby', 'stage', 'play', 'board', 'finale', 'phone']) {
+      const file = path.join(PUB, 'img', 'look', `${look}-${scene}.webp`);
+      assert.ok(fs.existsSync(file), `${look}-${scene}.webp`);
+      assert.ok(fs.statSync(file).size < 150 * 1024, `${look}-${scene}.webp is over 150 KB`);
+    }
+    for (const { code } of i18n.LANGUAGES) assert.ok(i18n.read(code)['look.' + look], `${code}: look.${look}`);
+  }
 });

@@ -78,6 +78,7 @@
   function renderRoundIntro(s) {
     const theme = roundTheme(s.round.type);
     $('#ri-icon').innerHTML = theme.icon;
+    $('#ri-art').src = '/img/icons/' + (s.round.family || 'classic') + '.webp';
     $('#round-kicker').textContent = t('screen.roundOf', { n: s.round.index + 1, total: s.round.total });
     split($('#round-title'), s.round.title || t(`round.${s.round.type}`));
     $('#ri-type').textContent = t(`round.${s.round.type}`);
