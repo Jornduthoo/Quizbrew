@@ -876,5 +876,15 @@
   "screen.alertLeft": "{name} a quitté la page du quiz !",
   "play.leftTitle": "Vous avez quitté la page du quiz",
   "play.leftText": "Le quizmaster et le grand écran l'ont vu. Restez sur cette page pendant que vous répondez.",
-  "play.leftOk": "OK, compris"
+  "play.leftOk": "OK, compris",
+  "manage.search": "Chercher un quiz…",
+  "manage.more": "Plus",
+  "manage.duplicate": "Dupliquer",
+  "manage.rename": "Renommer",
+  "manage.export": "Exporter (fichier)",
+  "manage.confirmDelete": "Supprimer « {title} » ? C'est définitif (sauf si votre dossier de quiz l'a encore dans _trash).",
+  "manage.editCopy": "Modifier une copie",
+  "manage.sample": "Exemple",
+  "manage.copyWord": "copie",
+  "manage.none": "Aucun quiz avec ce nom."
 }

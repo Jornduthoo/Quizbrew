@@ -82,11 +82,16 @@
     if (open) {
       const inner = h('div', { class: 'folder-items' });
       node.folders.forEach(f => inner.append(folderNode(f, depth + 1)));
-      node.quizzes.forEach(q => inner.append(h('button', {
-        class: 'lib-item' + (current && current.path === q.path ? ' on' : ''), draggable: 'true',
-        ondragstart: e => e.dataTransfer.setData('text/qb-path', q.path),
-        onclick: () => openQuiz({ path: q.path }),
-      }, h('span', { class: 'lib-title' }, q.title || q.name), h('span', { class: 'lib-meta' }, t('host.quizMeta', { rounds: q.rounds, questions: q.questions })))));
+      node.quizzes.forEach(q => inner.append(h('div', { class: 'lib-row' },
+        h('button', {
+          class: 'lib-item' + (current && current.path === q.path ? ' on' : ''), draggable: 'true',
+          ondragstart: e => e.dataTransfer.setData('text/qb-path', q.path),
+          onclick: () => openQuiz({ path: q.path }),
+        }, h('span', { class: 'lib-title' }, q.title || q.name), h('span', { class: 'lib-meta' }, t('host.quizMeta', { rounds: q.rounds, questions: q.questions }))),
+        h('div', { class: 'lib-actions' },
+          h('button', { class: 'mini', type: 'button', title: t('manage.duplicate'), onclick: () => duplicateQuiz(q.path) }, '⧉'),
+          h('button', { class: 'mini', type: 'button', title: t('manage.rename'), onclick: () => retitleQuiz(q.path, q.title || '') }, '✎'),
+          h('button', { class: 'mini kick', type: 'button', title: t('builder.delete'), onclick: () => deleteItem(q.path, false, q.title) }, '×')))));
       if (isRoot && !node.folders.length && !node.quizzes.length) inner.append(h('p', { class: 'hint small' }, t('builder.emptyLibrary')));
       wrap.append(inner);
     }
@@ -118,8 +123,27 @@
     } catch { alert(t('builder.moveFailed')); }
   }
 
-  async function deleteItem(path, folder) {
-    if (!confirm(t(folder ? 'builder.confirmDeleteFolder' : 'builder.confirmDelete'))) return;
+  async function duplicateQuiz(path) {
+    try {
+      const copy = await api('POST', '/library/duplicate', { path, copyWord: t('manage.copyWord') });
+      await refreshLibrary();
+      openQuiz({ path: copy.path });
+    } catch { alert(t('error.generic')); }
+  }
+
+  // A new title, also for the file; an open quiz follows along.
+  async function retitleQuiz(path, title) {
+    const next = prompt(t('builder.newName'), title);
+    if (!next || !next.trim() || next.trim() === title) return;
+    try {
+      const out = await api('POST', '/library/retitle', { path, title: next.trim() });
+      if (current && current.path === path) { current.path = out.path; current.quiz.title = out.quiz.title; const input = $('#quiz-title'); if (input) input.value = out.quiz.title; }
+      await refreshLibrary();
+    } catch { alert(t('builder.moveFailed')); }
+  }
+
+  async function deleteItem(path, folder, title) {
+    if (!confirm(folder ? t('builder.confirmDeleteFolder') : title ? t('manage.confirmDelete', { title }) : t('builder.confirmDelete'))) return;
     await api('DELETE', '/library/item?path=' + encodeURIComponent(path));
     if (current && current.path && (current.path === path || current.path.startsWith(path + '/'))) { current = null; showWelcome(); }
     await refreshLibrary();

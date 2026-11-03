@@ -876,5 +876,15 @@
   "screen.alertLeft": "{name} hat die Quizseite verlassen!",
   "play.leftTitle": "Du hast die Quizseite verlassen",
   "play.leftText": "Der Quizmaster und der große Bildschirm haben es gesehen. Bleib beim Antworten auf dieser Seite.",
-  "play.leftOk": "OK, verstanden"
+  "play.leftOk": "OK, verstanden",
+  "manage.search": "Quiz suchen…",
+  "manage.more": "Mehr",
+  "manage.duplicate": "Duplizieren",
+  "manage.rename": "Umbenennen",
+  "manage.export": "Exportieren (Datei)",
+  "manage.confirmDelete": "„{title}“ löschen? Das lässt sich nicht rückgängig machen (außer dein Quizordner hat es noch in _trash).",
+  "manage.editCopy": "Kopie bearbeiten",
+  "manage.sample": "Beispiel",
+  "manage.copyWord": "Kopie",
+  "manage.none": "Kein Quiz mit diesem Namen."
 }

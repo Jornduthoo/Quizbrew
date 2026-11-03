@@ -22,6 +22,12 @@ body.builder { font-size: 15px; }
 .folder-row.target .folder-btn { color: var(--brass-light); }
 .folder-row .mini { opacity: 0; width: 22px; height: 22px; font-size: .8em; }
 .folder-row:hover .mini { opacity: 1; }
+.lib-row { position: relative; }
+.lib-row .lib-item { padding-right: 84px; }
+.lib-actions { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex; gap: 3px; opacity: 0; transition: opacity .15s; }
+.lib-row:hover .lib-actions, .lib-row:focus-within .lib-actions { opacity: 1; }
+.lib-actions .mini { width: 24px; height: 24px; font-size: .8em; }
+@media (hover: none) { .lib-actions { opacity: .8; } }
 .folder-btn { flex: 1; text-align: left; background: none; border: 0; padding: 6px 4px; font-weight: 700; color: var(--cream); }
 .chev { display: inline-block; width: 1.2em; color: var(--muted); }
 .lib-item {

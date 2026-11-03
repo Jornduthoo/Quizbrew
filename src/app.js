@@ -273,6 +273,12 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   api.put('/library/quiz', handle(req => library.save(req.body.path || null, req.body.quiz, { folder: req.body.folder || '' })));
   api.delete('/library/item', handle(req => { library.remove(String(req.query.path || '')); return { ok: true }; }));
   api.post('/library/folder', handle(req => { library.mkdir(String(req.body.path || '')); return { ok: true }; }));
+  api.post('/library/duplicate', handle(req => {
+    const quiz = req.body.sample ? quizzes.load(String(req.body.sample)) : library.read(String(req.body.path || ''));
+    const folder = req.body.sample ? '' : String(req.body.path || '').split('/').slice(0, -1).join('/');
+    return library.duplicate(quiz, { folder, title: req.body.title || (req.body.sample ? quiz.title : `${quiz.title || 'Quiz'} (${req.body.copyWord || 'copy'})`) });
+  }));
+  api.post('/library/retitle', handle(req => library.retitle(String(req.body.path || ''), req.body.title)));
   api.post('/library/move', handle(req => { library.move(String(req.body.from || ''), String(req.body.to || '')); return { ok: true }; }));
   api.post('/library/check', handle(req => {
     try { validateQuiz(req.body.quiz); return { ok: true }; } catch (err) { return { ok: false, problem: err.message.replace(/^Invalid quiz: /, '') }; }

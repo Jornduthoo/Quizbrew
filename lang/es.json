@@ -876,5 +876,15 @@
   "screen.alertLeft": "¡{name} salió de la página del quiz!",
   "play.leftTitle": "Saliste de la página del quiz",
   "play.leftText": "El quizmaster y la pantalla grande lo han visto. Quédate en esta página mientras respondes.",
-  "play.leftOk": "Vale, entendido"
+  "play.leftOk": "Vale, entendido",
+  "manage.search": "Buscar un quiz…",
+  "manage.more": "Más",
+  "manage.duplicate": "Duplicar",
+  "manage.rename": "Cambiar nombre",
+  "manage.export": "Exportar (archivo)",
+  "manage.confirmDelete": "¿Borrar «{title}»? No se puede deshacer (salvo que tu carpeta de quiz lo tenga aún en _trash).",
+  "manage.editCopy": "Editar una copia",
+  "manage.sample": "Ejemplo",
+  "manage.copyWord": "copia",
+  "manage.none": "Ningún quiz con ese nombre."
 }

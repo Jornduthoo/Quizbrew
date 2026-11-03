@@ -876,5 +876,15 @@
   "screen.alertLeft": "{name} verliet de quizpagina!",
   "play.leftTitle": "Je verliet de quizpagina",
   "play.leftText": "De quizmaster en het grote scherm hebben het gezien. Blijf op deze pagina terwijl je antwoordt.",
-  "play.leftOk": "Oké, begrepen"
+  "play.leftOk": "Oké, begrepen",
+  "manage.search": "Zoek een quiz…",
+  "manage.more": "Meer",
+  "manage.duplicate": "Dupliceren",
+  "manage.rename": "Naam wijzigen",
+  "manage.export": "Exporteren (bestand)",
+  "manage.confirmDelete": "\"{title}\" verwijderen? Dit kan niet ongedaan worden (behalve als je quizmap hem nog in _trash heeft).",
+  "manage.editCopy": "Kopie bewerken",
+  "manage.sample": "Voorbeeld",
+  "manage.copyWord": "kopie",
+  "manage.none": "Geen quiz met die naam."
 }
