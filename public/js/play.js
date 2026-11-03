@@ -675,10 +675,47 @@
     if (navigator.vibrate) navigator.vibrate(25);
   });
 
-  // Anti-cheat: leaving the page during a question (switching to a search app) is seen by the quizmaster.
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden && state && state.team && state.phase === 'question') socket.emit('leftPage');
-  });
+  // Anti-cheat: leaving the page while you can answer (another app, a browser tab, the notification shade)
+  // is reported to the quizmaster and the big screen. Back on the page, the phone says so too.
+  const ANSWER_PHASES = ['question', 'wager', 'vote'];
+  let leftAt = 0;
+  let blurTimer = null;
+  function leave() {
+    if (leftAt || !state || !state.team || !ANSWER_PHASES.includes(state.phase)) return;
+    leftAt = Date.now();
+    socket.emit('leftPage');
+  }
+  function comeBack() {
+    clearTimeout(blurTimer);
+    if (!leftAt) return;
+    socket.emit('backOnPage', Date.now() - leftAt);
+    leftAt = 0;
+    showLeftWarning();
+  }
+  document.addEventListener('visibilitychange', () => (document.hidden ? leave() : comeBack()));
+  addEventListener('pagehide', leave);
+  // A window blur without hiding the page: split screen, a floating app, another window on a laptop.
+  addEventListener('blur', () => { clearTimeout(blurTimer); blurTimer = setTimeout(() => { if (!document.hasFocus()) leave(); }, 1200); });
+  addEventListener('focus', comeBack);
+
+  function showLeftWarning() {
+    let box = $('#left-warning');
+    if (!box) {
+      box = h('div', { id: 'left-warning', class: 'left-warning', role: 'alertdialog' },
+        h('div', { class: 'card panel' },
+          h('div', { class: 'eye' }, '👀'),
+          h('h2', { id: 'lw-title' }),
+          h('p', { id: 'lw-text' }),
+          h('button', { class: 'brass-btn big', id: 'lw-ok', onclick: () => { box.hidden = true; } })));
+      document.body.append(box);
+    }
+    const blocked = state && state.team && state.blocked;
+    $('#lw-title').textContent = t('play.leftTitle');
+    $('#lw-text').textContent = t(blocked ? 'play.blocked' : 'play.leftText');
+    $('#lw-ok').textContent = t('play.leftOk');
+    box.hidden = false;
+    if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
+  }
 
   function wait(text, badge) {
     showView('wait');

@@ -21,6 +21,9 @@ const SHRINK_STEP = 5000; // shrinking options twist: one wrong answer disappear
 // What a round remembers about a team between questions (streak, pot, out of the round ...).
 const freshMem = () => ({ streak: 0, pot: 0, out: false, banked: false });
 
+// While the phone can answer, leaving the quiz page is reported to the quizmaster.
+const ANSWER_PHASES = new Set(['question', 'wager', 'vote']);
+
 class Game {
   // emit(target, event, payload): target is 'host', 'screen' or a team socket id.
   // clock: { now, setTimeout, clearTimeout } so tests can drive time.
@@ -586,17 +589,31 @@ class Game {
     return true;
   }
 
-  // The phone left the page (switched app, opened a browser tab) during a question.
-  // The quizmaster always sees it; with the lockdown twist the answer is blocked.
+  // The phone left the page (switched app, opened a browser tab, pulled down the notifications) while it could answer.
+  // The quizmaster and the big screen get a notice right away; with the lockdown twist the answer is blocked.
   leftPage(teamId) {
     const t = this.teams.get(teamId);
-    if (!t || this.phase !== 'question' || t.away) return;
+    if (!t || !ANSWER_PHASES.has(this.phase) || t.away) return false;
     t.away = true;
-    if (this.hasTwist('lockdown')) {
+    t.awayCount = (t.awayCount || 0) + 1;
+    if (this.phase === 'question' && this.hasTwist('lockdown')) {
       t.blocked = true;
       t.answer = null;
     }
+    const notice = { kind: 'left', name: t.name, color: t.color, count: t.awayCount, blocked: t.blocked };
+    this.emit('host', 'alert', notice);
+    this.emit('screen', 'alert', notice);
     this.broadcast();
+    return true;
+  }
+
+  // Back on the quiz page after leaving it: the quizmaster sees for how long.
+  backOnPage(teamId, ms) {
+    const t = this.teams.get(teamId);
+    if (!t || !t.away) return false;
+    const seconds = Math.max(1, Math.round(Math.min(Number(ms) || 0, 3600000) / 1000));
+    this.emit('host', 'alert', { kind: 'back', name: t.name, color: t.color, seconds });
+    return true;
   }
 
   // Points for every team on the current question. Pure: does not touch the scores.
@@ -1037,7 +1054,7 @@ class Game {
     const state = {
       ...this.common(),
       teams: teams.map(t => ({
-        name: t.name, color: t.color, photo: t.photo || null, answered: t.answer !== null, connected: t.connected, phones: t.phones.size, away: t.away, blocked: t.blocked, paper: !!t.paper,
+        name: t.name, color: t.color, photo: t.photo || null, answered: t.answer !== null, connected: t.connected, phones: t.phones.size, away: t.away, awayCount: t.awayCount || 0, blocked: t.blocked, paper: !!t.paper,
         wagered: t.wager !== null, joker: t.jokerRound === this.roundIndex, jokerLeft: t.jokerRound === -1,
         out: this.sitsOut(t), pot: t.mem.pot, streak: t.mem.streak, banked: t.bank || t.mem.banked, buzzOut: t.buzzOut,
         level: this.type && this.type.wager === 'level' ? t.wager : null,

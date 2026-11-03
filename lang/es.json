@@ -866,5 +866,13 @@
   "pictures.madeByAi": "Creada con IA",
   "ai.noImageKey": "Para crear imágenes hace falta una clave de Gemini. Añádela en Claves de IA.",
   "pictures.google": "Buscar en Google Imágenes",
-  "pictures.broader": "Nada para esas palabras exactas, estas son imágenes de «{term}»."
+  "pictures.broader": "Nada para esas palabras exactas, estas son imágenes de «{term}».",
+  "host.alertLeft": "{name} salió de la página del quiz",
+  "host.alertBlocked": "{name} salió de la página del quiz: respuesta bloqueada",
+  "host.alertTimes": "({n} vez)|({n} veces)",
+  "host.alertBack": "{name} volvió después de {n} s",
+  "screen.alertLeft": "¡{name} salió de la página del quiz!",
+  "play.leftTitle": "Saliste de la página del quiz",
+  "play.leftText": "El quizmaster y la pantalla grande lo han visto. Quédate en esta página mientras respondes.",
+  "play.leftOk": "Vale, entendido"
 }

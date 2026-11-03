@@ -47,6 +47,18 @@
     Media.replay();
   });
   socket.on('state', s => { state = s; if (I18n.dict['app.name']) render(s); });
+
+  // Anti-cheat: the whole room sees which team left the quiz page during a question.
+  socket.on('alert', n => {
+    if (!n || n.kind !== 'left' || !I18n.dict['app.name']) return;
+    let stack = $('#alerts');
+    if (!stack) { stack = h('div', { id: 'alerts', class: 'screen-alerts' }); document.body.append(stack); }
+    const toast = h('div', { class: 'screen-alert', style: teamVar(n.color) }, h('span', { class: 'icon' }, '👀'), h('span', {}, t('screen.alertLeft', { name: n.name })));
+    stack.append(toast);
+    setTimeout(() => toast.classList.add('out'), 6000);
+    setTimeout(() => toast.remove(), 6700);
+    while (stack.children.length > 3) stack.firstChild.remove();
+  });
   socket.on('raffle', r => showRaffle(r));
 
   // Raffle: the reel runs fast, slows down and stops on the winner.

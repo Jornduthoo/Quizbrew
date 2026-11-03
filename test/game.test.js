@@ -498,3 +498,22 @@ test('power-ups: shield, spy and 50/50, each once per evening', () => {
   assert.equal(plain.teamState('team1aaaa').powers, null);
   assert.equal(plain.usePower('team1aaaa', 'shield'), false);
 });
+
+test('leaving the quiz page warns the quizmaster and the big screen, once per question', () => {
+  const { game, sent } = setup();
+  game.join('team1aaaa', 'Owls', 'amber', 's1');
+  assert.equal(game.leftPage('team1aaaa'), false, 'not while the teams are still joining');
+  game.next();
+  game.next();
+  assert.equal(game.phase, 'question');
+  sent.length = 0;
+  assert.equal(game.leftPage('team1aaaa'), true);
+  const notices = sent.filter(m => m.ev === 'alert');
+  assert.deepEqual(notices.map(m => m.to).sort(), ['host', 'screen']);
+  assert.deepEqual(notices[0].p, { kind: 'left', name: 'Owls', color: 'amber', count: 1, blocked: false });
+  assert.equal(game.leftPage('team1aaaa'), false, 'one notice per question');
+  sent.length = 0;
+  assert.equal(game.backOnPage('team1aaaa', 7400), true);
+  assert.deepEqual(sent.filter(m => m.ev === 'alert').map(m => [m.to, m.p.kind, m.p.seconds]), [['host', 'back', 7]]);
+  assert.equal(game.hostState().teams[0].awayCount, 1);
+});

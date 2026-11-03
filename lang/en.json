@@ -866,5 +866,13 @@
   "pictures.madeByAi": "Made with AI",
   "ai.noImageKey": "Making pictures needs a Gemini key. Add one under AI keys.",
   "pictures.google": "Search Google Images",
-  "pictures.broader": "Nothing for those exact words, so these are for \"{term}\"."
+  "pictures.broader": "Nothing for those exact words, so these are for \"{term}\".",
+  "host.alertLeft": "{name} left the quiz page",
+  "host.alertBlocked": "{name} left the quiz page: answer blocked",
+  "host.alertTimes": "({n} time)|({n} times)",
+  "host.alertBack": "{name} is back after {n} s",
+  "screen.alertLeft": "{name} left the quiz page!",
+  "play.leftTitle": "You left the quiz page",
+  "play.leftText": "The quizmaster and the big screen saw it. Stay on this page while you answer.",
+  "play.leftOk": "OK, got it"
 }

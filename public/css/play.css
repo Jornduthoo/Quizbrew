@@ -354,3 +354,11 @@ body.big-text .choice .letter { width: 60px; height: 60px; }
 #aud-choices .choice:disabled { cursor: default; }
 .aud-say { text-align: center; }
 .aud-leave { font-size: .85em; opacity: .75; }
+
+/* Warning after leaving the quiz page. */
+.left-warning { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 18px; background: rgba(10, 5, 3, .82); backdrop-filter: blur(3px); animation: rise .3s ease both; }
+.left-warning .card { max-width: 380px; text-align: center; align-items: center; border-color: var(--neon-amber); }
+.left-warning .eye { font-size: 3.2em; animation: pop-in .5s cubic-bezier(.2, 1.5, .4, 1) both; }
+.left-warning h2 { margin: 0; font-size: 1.5em; color: var(--neon-amber); }
+.left-warning p { margin: 0 0 6px; font-size: 1.1em; line-height: 1.35; }
+.left-warning .brass-btn { width: 100%; }

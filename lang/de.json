@@ -866,5 +866,13 @@
   "pictures.madeByAi": "Mit KI erstellt",
   "ai.noImageKey": "Zum Erstellen von Bildern braucht es einen Gemini-Schlüssel. Trag ihn unter KI-Schlüssel ein.",
   "pictures.google": "Bei Google Bilder suchen",
-  "pictures.broader": "Nichts für genau diese Wörter, hier sind Bilder für „{term}“."
+  "pictures.broader": "Nichts für genau diese Wörter, hier sind Bilder für „{term}“.",
+  "host.alertLeft": "{name} hat die Quizseite verlassen",
+  "host.alertBlocked": "{name} hat die Quizseite verlassen: Antwort gesperrt",
+  "host.alertTimes": "({n}-mal)|({n}-mal)",
+  "host.alertBack": "{name} ist nach {n} s zurück",
+  "screen.alertLeft": "{name} hat die Quizseite verlassen!",
+  "play.leftTitle": "Du hast die Quizseite verlassen",
+  "play.leftText": "Der Quizmaster und der große Bildschirm haben es gesehen. Bleib beim Antworten auf dieser Seite.",
+  "play.leftOk": "OK, verstanden"
 }
