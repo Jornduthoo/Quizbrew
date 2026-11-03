@@ -330,6 +330,12 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     on('lifeline', () => teamId && game.useLifeline(teamId));
     on('joker', () => teamId && game.playJoker(teamId));
     on('leftPage', () => teamId && game.leftPage(teamId));
+    // Team photo: a small square picture from the phone (the phone makes it small first).
+    on('photo', data => {
+      const m = teamId && typeof data === 'string' && data.length < 1.5e6 && /^data:(image\/(?:webp|png|jpeg));base64,(.+)$/.exec(data);
+      if (!m) return;
+      try { game.setPhoto(teamId, library.addMedia(Buffer.from(m[2], 'base64'), m[1])); } catch { /* not a picture */ }
+    });
     socket.on('disconnect', () => teamId && game.disconnect(socket.id));
   });
 

@@ -687,5 +687,8 @@
   "host.resumeMeta": "Round {n} of {total} · {teams} teams. Every score is still there; phones join again by themselves.",
   "host.addTime": "+10 s",
   "host.back": "↶ Step back",
-  "host.judgeAfter": "Tap ✓ or ✗ to count an answer as right or wrong after all."
+  "host.judgeAfter": "Tap ✓ or ✗ to count an answer as right or wrong after all.",
+  "play.teamPhoto": "Team photo (optional): tap for a selfie",
+  "play.teamPhotoLater": "📷 Add a team photo",
+  "play.teamPhotoChange": "📷 New team photo"
 }

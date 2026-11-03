@@ -271,3 +271,12 @@ h1, h2, .display { font-family: var(--display); font-weight: 400; font-synthesis
   --bg-lobby: url('/img/look/arcade-lobby.webp'); --bg-stage: url('/img/look/arcade-stage.webp'); --bg-play: url('/img/look/arcade-play.webp');
   --bg-board: url('/img/look/arcade-board.webp'); --bg-finale: url('/img/look/arcade-finale.webp'); --bg-phone: url('/img/look/arcade-phone.webp');
 }
+
+/* A team photo instead of the dot: a round picture in a ring of the team colour. */
+.team-dot.photo {
+  width: 1.6em; height: 1.6em;
+  background: var(--c, var(--brass)) center / cover no-repeat;
+  border: .14em solid var(--c, var(--brass));
+  box-shadow: 0 0 .6em var(--c, var(--brass)), inset 0 0 0 1px rgb(0 0 0 / .35);
+  vertical-align: middle;
+}

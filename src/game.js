@@ -127,6 +127,15 @@ class Game {
     this.broadcast();
   }
 
+  // A team photo (a selfie on a phone), stored as a media url. Shown next to the team name everywhere.
+  setPhoto(teamId, url) {
+    const t = this.teams.get(teamId);
+    if (!t || typeof url !== 'string') return false;
+    t.photo = url;
+    this.broadcast();
+    return true;
+  }
+
   kick(teamId) {
     const t = this.teams.get(teamId);
     if (!t) return;
@@ -750,7 +759,7 @@ class Game {
   // Ties share a rank: 10, 8, 8, 5 -> 1, 2, 2, 4.
   ranking() {
     const sorted = [...this.teams.entries()]
-      .map(([id, t]) => ({ id, name: t.name, color: t.color, score: t.score, lastPoints: t.lastPoints }))
+      .map(([id, t]) => ({ id, name: t.name, color: t.color, photo: t.photo || null, score: t.score, lastPoints: t.lastPoints }))
       .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
     sorted.forEach((r, i) => {
       r.rank = i > 0 && sorted[i - 1].score === r.score ? sorted[i - 1].rank : i + 1;
@@ -863,7 +872,7 @@ class Game {
     const state = {
       ...this.common(),
       teams: teams.map(t => ({
-        name: t.name, color: t.color, answered: t.answer !== null, connected: t.connected, phones: t.phones.size, away: t.away, blocked: t.blocked,
+        name: t.name, color: t.color, photo: t.photo || null, answered: t.answer !== null, connected: t.connected, phones: t.phones.size, away: t.away, blocked: t.blocked,
         wagered: t.wager !== null, joker: t.jokerRound === this.roundIndex, jokerLeft: t.jokerRound === -1,
         out: this.sitsOut(t), pot: t.mem.pot, streak: t.mem.streak, banked: t.bank || t.mem.banked, buzzOut: t.buzzOut,
         level: this.type && this.type.wager === 'level' ? t.wager : null,
@@ -929,11 +938,11 @@ class Game {
     return {
       ...state,
       team: {
-        name: t.name, color: t.color, score: t.score, rank: r.rank, teams: this.teams.size,
+        name: t.name, color: t.color, photo: t.photo || null, score: t.score, rank: r.rank, teams: this.teams.size,
         jokerLeft: t.jokerRound === -1, jokerNow: t.jokerRound === this.roundIndex,
       },
       // Between rounds and at the end the phone shows the whole standings too.
-      standings: this.phase === 'scoreboard' || this.phase === 'end' ? this.ranking().map(r => ({ name: r.name, color: r.color, score: r.score, rank: r.rank, me: r.id === teamId })) : null,
+      standings: this.phase === 'scoreboard' || this.phase === 'end' ? this.ranking().map(r => ({ name: r.name, color: r.color, photo: r.photo, score: r.score, rank: r.rank, me: r.id === teamId })) : null,
       answer: t.answer,
       away: t.away,
       blocked: t.blocked,

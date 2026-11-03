@@ -687,5 +687,8 @@
   "host.resumeMeta": "Manche {n} sur {total} · {teams} équipes. Tous les scores sont là ; les téléphones reviennent tout seuls.",
   "host.addTime": "+10 s",
   "host.back": "↶ Retour",
-  "host.judgeAfter": "Touche ✓ ou ✗ pour compter une réponse juste ou fausse après coup."
+  "host.judgeAfter": "Touche ✓ ou ✗ pour compter une réponse juste ou fausse après coup.",
+  "play.teamPhoto": "Photo d'équipe (facultatif) : touche pour un selfie",
+  "play.teamPhotoLater": "📷 Ajouter une photo d'équipe",
+  "play.teamPhotoChange": "📷 Nouvelle photo d'équipe"
 }

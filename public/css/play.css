@@ -238,3 +238,25 @@ body.staged .view.center { min-height: calc(100dvh - 56.25vw - 80px); }
 .made-with[hidden] { display: none; }
 .made-with img { height: 32px; width: auto; }
 .made-own { flex-basis: 100%; color: var(--brass-light); }
+
+/* Team photo on the join form: a round face that fills with the selfie. */
+.team-photo { display: flex; align-items: center; gap: 14px; padding: 10px 12px; border-radius: 14px; border: 2px dashed rgb(var(--k-brass) / .55); cursor: pointer; }
+.tp-face { width: 58px; height: 58px; flex: none; border-radius: 50%; border: 3px solid var(--me); background: rgb(0 0 0 / .4) center / cover no-repeat; box-shadow: 0 0 14px var(--me); display: grid; place-items: center; }
+.tp-face::before { content: '📷'; font-size: 1.5em; }
+.team-photo.has { border-style: solid; }
+.team-photo.has .tp-face::before { content: none; }
+.tp-text { font-weight: 700; color: var(--cream); }
+.photo-later { margin-top: 10px; }
+.team-bar .team-dot.photo { width: 30px; height: 30px; }
+.st-name .team-dot.photo { width: 1.5em; height: 1.5em; margin-right: 4px; }
+
+/* Team photo on the join form: a round face that fills with the selfie. */
+.team-photo { display: flex; align-items: center; gap: 14px; padding: 10px 12px; border-radius: 14px; border: 2px dashed rgb(var(--k-brass) / .55); cursor: pointer; }
+.tp-face { width: 58px; height: 58px; flex: none; border-radius: 50%; border: 3px solid var(--me); background: rgb(0 0 0 / .4) center / cover no-repeat; box-shadow: 0 0 14px var(--me); display: grid; place-items: center; }
+.tp-face::before { content: '📷'; font-size: 1.5em; }
+.team-photo.has { border-style: solid; }
+.team-photo.has .tp-face::before { content: none; }
+.tp-text { font-weight: 700; color: var(--cream); }
+.photo-later { margin-top: 10px; }
+.team-bar .team-dot.photo { width: 30px; height: 30px; }
+.st-name .team-dot.photo { width: 1.5em; height: 1.5em; margin-right: 4px; }

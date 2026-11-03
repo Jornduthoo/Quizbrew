@@ -687,5 +687,8 @@
   "host.resumeMeta": "Ronda {n} de {total} · {teams} equipos. Todos los puntos siguen ahí; los móviles vuelven solos.",
   "host.addTime": "+10 s",
   "host.back": "↶ Atrás",
-  "host.judgeAfter": "Toca ✓ o ✗ para dar una respuesta por buena o mala a posteriori."
+  "host.judgeAfter": "Toca ✓ o ✗ para dar una respuesta por buena o mala a posteriori.",
+  "play.teamPhoto": "Foto del equipo (opcional): toca para un selfie",
+  "play.teamPhotoLater": "📷 Añadir foto del equipo",
+  "play.teamPhotoChange": "📷 Nueva foto del equipo"
 }

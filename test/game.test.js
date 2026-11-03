@@ -258,3 +258,13 @@ test('a saved game comes back after a restart with scores and the question time'
   assert.equal(later.phase, 'reveal');
   assert.equal(later.teams.get('team1aaaa').score, 2);
 });
+
+test('a team photo shows up for the screen, the standings and the phone', () => {
+  const { game } = setup();
+  game.join('team1aaaa', 'A', 'amber', 's1');
+  assert.equal(game.setPhoto('nobodyaaa', '/media/x.webp'), false);
+  assert.ok(game.setPhoto('team1aaaa', '/media/0123456789abcdef0123.webp'));
+  assert.equal(game.screenState().teams[0].photo, '/media/0123456789abcdef0123.webp');
+  assert.equal(game.ranking()[0].photo, '/media/0123456789abcdef0123.webp');
+  assert.equal(game.teamState('team1aaaa').team.photo, '/media/0123456789abcdef0123.webp');
+});

@@ -24,6 +24,12 @@
 
   const LETTERS = ['A', 'B', 'C', 'D'];
   const teamVar = color => `--c: var(--team-${color})`;
+  // The team's dot, or its photo in a ring of its colour when it took one.
+  function dot(team) {
+    const el = h('span', { class: 'team-dot' + (team && team.photo ? ' photo' : '') });
+    if (team && team.photo && /^\/media\/[\w.-]+$/.test(team.photo)) el.style.backgroundImage = `url("${team.photo}")`;
+    return el;
+  }
 
   // Countdown that follows the server: remaining ms at the moment the state arrived.
   function countdown(remainingMs, totalMs, onTick) {
@@ -153,5 +159,5 @@
     return keys.length ? t(keys[(Math.random() * keys.length) | 0], vars) : '';
   }
 
-  window.QB = { quip, applyLook, $, h, showView, LETTERS, teamVar, countdown, info, ROUND_THEMES, roundTheme, CROWN, split, countUp, later, clearLater };
+  window.QB = { quip, applyLook, $, h, showView, LETTERS, teamVar, dot, countdown, info, ROUND_THEMES, roundTheme, CROWN, split, countUp, later, clearLater };
 })();
