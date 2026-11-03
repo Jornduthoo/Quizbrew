@@ -71,6 +71,13 @@
     pairUp: { glow: '#9dffd6', icon: '<circle cx="5" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 6l10 12M7 18L17 6"/>' },
     mapDrop: { glow: '#ff4a4a', icon: '<path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>' },
     lastStanding: { glow: '#ff4a4a', icon: '<path d="M6 3h12M6 21h12M7 3c0 6 10 6 10 9s-10 3-10 9M17 3c0 6-10 6-10 9s10 3 10 9"/>' },
+    buzzer: { glow: '#ff3d6e', icon: '<path d="M5 17h14"/><path d="M7 17a5 5 0 0 1 10 0"/><path d="M12 9V5M7.5 10.5L5 8M16.5 10.5L19 8"/><path d="M4 20h16"/>' },
+    pushYourLuck: { glow: '#ffcf3c', icon: '<path d="M7 20h10l-1-9H8z"/><path d="M9 11V8a3 3 0 0 1 6 0v3"/><path d="M12 14v3"/>' },
+    steal: { glow: '#b07cff', icon: '<path d="M4 8c2-2 5-3 8-3s6 1 8 3"/><path d="M6 12h12l-1.5 7h-9z"/><path d="M10 15h4"/>' },
+    pickYourLevel: { glow: '#4f8bff', icon: '<path d="M4 20v-4h4v4M10 20v-9h4v9M16 20V5h4v15"/>' },
+    hotStreak: { glow: '#ff7a2e', icon: '<path d="M12 21c-4 0-7-3-7-7 0-3 2-5 3-7 1 2 2 3 3 3 0-3 1-5 4-7 0 4 4 6 4 11 0 4-3 7-7 7z"/>' },
+    listRush: { glow: '#a8ff3e', icon: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>' },
+    crowdMind: { glow: '#3ee6ff', icon: '<circle cx="12" cy="7" r="3"/><circle cx="5" cy="10" r="2.2"/><circle cx="19" cy="10" r="2.2"/><path d="M7 20c0-3 2-5 5-5s5 2 5 5M1.5 19c0-2.5 1.5-4 3.5-4M22.5 19c0-2.5-1.5-4-3.5-4"/>' },
   };
   const roundTheme = type => ROUND_THEMES[type] || ROUND_THEMES.classic;
   const CROWN = '<svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l1.5-11 5 5L12 4l2.5 8 5-5L21 18z"/><path d="M3.5 21h17"/></svg>';

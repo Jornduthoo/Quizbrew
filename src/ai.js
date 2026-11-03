@@ -93,6 +93,14 @@ const TYPE_HELP = {
   orderUp: 'teams put 4 items in the right order (by year, size, distance...)',
   pairUp: 'teams match 4 items on the left to 4 items on the right',
   mapDrop: 'teams tap a spot on a map; the closest pin wins',
+  buzzer: 'the first team to buzz answers out loud; short, quick questions with one clear answer',
+  lastStanding: 'a wrong answer and the team is out for the rest of the round; start easy, get harder',
+  pushYourLuck: 'every right answer doubles the pot, teams may bank it or risk it on the next question; get harder as you go',
+  steal: 'right teams take points from the leader; medium-hard questions',
+  pickYourLevel: 'per topic an easy, a medium and a hard question; each team picks a level before seeing it',
+  hotStreak: 'right answers in a row count up (1x, 2x, 3x); a steady mix of questions',
+  listRush: 'teams type as many items of a list as they can (countries, colours, players...)',
+  crowdMind: 'no right answer: teams score by giving the answer most other teams give',
 };
 
 // ---------- reading the AI's answer ----------

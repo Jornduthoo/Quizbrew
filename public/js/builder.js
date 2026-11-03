@@ -303,6 +303,8 @@
     if (type.fields.includes('pairs')) q.pairs = [['', ''], ['', ''], ['', ''], ['', '']];
     if (type.fields.includes('images')) { q.images = ['', '', '', '']; q.captions = ['', '', '', '']; q.correct = 0; }
     if (type.fields.includes('audio')) q.audio = '';
+    if (type.fields.includes('listItems')) q.items = [];
+    if (type.fields.includes('levels')) q.levels = [0, 1, 2].map(() => ({ question: '', answers: ['', '', '', ''], correct: 0 }));
     return q;
   }
 
@@ -375,6 +377,8 @@
       h('div', { class: 'q-fields' }, fields));
   }
 
+  // replaceChildren turns null into the text "null"; leave empty parts out.
+  const fill = (el, ...kids) => el.replaceChildren(...kids.flat().filter(k => k !== null && k !== undefined && k !== false));
   const input = (label, value, oninput, attrs = {}) => h('label', { class: 'field ' + (attrs.cls || '') }, h('span', {}, label),
     h(attrs.area ? 'textarea' : 'input', { value: attrs.area ? null : (value ?? ''), rows: attrs.area ? 2 : null, oninput: e => oninput(e.target.value), ...attrs.el }, attrs.area ? (value || '') : null));
 
@@ -397,7 +401,7 @@
       const wrap = h('div', { class: 'field wide' });
       const draw = () => {
         const isChoice = Array.isArray(q.answers) && q.answers.length > 0;
-        wrap.replaceChildren(
+        fill(wrap, 
           h('div', { class: 'seg' },
             h('button', { type: 'button', class: isChoice ? '' : 'on', onclick: () => { delete q.answers; delete q.correct; if (q.answer === undefined) q.answer = ''; changed(); draw(); } }, t('builder.f.typed')),
             h('button', { type: 'button', class: isChoice ? 'on' : '', onclick: () => { q.answers = q.answers && q.answers.length ? q.answers : ['', '', '', '']; q.correct = q.correct || 0; changed(); draw(); } }, t('builder.f.choices'))),
@@ -410,7 +414,7 @@
       const wrap = h('div', { class: 'field wide' });
       const draw = () => {
         const clues = q.clues || (q.clues = ['', '']);
-        wrap.replaceChildren(h('span', {}, t('builder.f.clues')),
+        fill(wrap, h('span', {}, t('builder.f.clues')),
           h('ol', { class: 'clue-list' }, clues.map((c, i) => h('li', {},
             h('input', { value: c, maxlength: 120, oninput: e => { clues[i] = e.target.value; changed(); } }),
             clues.length > 2 ? h('button', { class: 'mini kick', type: 'button', onclick: () => { clues.splice(i, 1); changed(); draw(); } }, '×') : null))),
@@ -426,6 +430,20 @@
     images: (q, set) => imagesField(q, set),
     items: (q, set) => listField(q, 'items', 3, 6, t('builder.f.items'), t('builder.f.itemsHint')),
     pairs: (q, set) => pairsField(q, set),
+    // A long list, one item per line ("/" for other spellings).
+    listItems: q => {
+      const area = h('textarea', { rows: 8, maxlength: 4000, oninput: e => { q.items = e.target.value.split('\n').map(x => x.trim()).filter(Boolean); changed(); } });
+      area.value = (q.items || []).join('\n');
+      return h('label', { class: 'field wide' }, h('span', {}, t('builder.f.listItems')), area, h('p', { class: 'hint small' }, t('builder.f.listItemsHint')));
+    },
+    // Easy, medium and hard: three small questions with buttons.
+    levels: q => {
+      const levels = q.levels || (q.levels = [0, 1, 2].map(() => ({ question: '', answers: ['', '', '', ''], correct: 0 })));
+      return h('div', { class: 'field wide level-edit' }, levels.map((lv, i) => h('div', { class: 'level-block', style: `--k: ${i}` },
+        h('span', { class: 'level-tag' }, `${t(`play.level${i}`)} · ${t('builder.f.levelPoints', { n: i + 1 })}`),
+        input(t('builder.f.question'), lv.question, v => { lv.question = v; changed(); }, { el: { maxlength: 200 } }),
+        answersEditor(lv, (k, v) => { lv[k] = v; changed(); }))));
+    },
     spot: (q, set) => spotField(q, set),
     time: (q, set, type) => input(t('builder.f.time'), q.time, v => set('time', Number(v) || undefined), { cls: 'small-field', el: { type: 'number', min: 3, max: 600, placeholder: type.defaults.time } }),
     points: (q, set, type) => input(t('builder.f.points'), q.points, v => set('points', Number(v) || undefined), { cls: 'small-field', el: { type: 'number', min: 1, max: 100, placeholder: type.defaults.points } }),
@@ -436,13 +454,13 @@
     const name = 'c' + Math.random().toString(36).slice(2);
     const draw = () => {
       const list = q.answers || (q.answers = ['', '']);
-      wrap.replaceChildren(h('span', {}, t('builder.f.answers')),
+      fill(wrap, h('span', {}, t('builder.f.answers')),
         h('div', { class: 'answer-grid' }, list.map((a, i) => h('label', { class: 'answer-edit' + (q.correct === i ? ' right' : ''), style: `--a: var(--ans-${i})` },
           h('input', { type: 'radio', name, checked: q.correct === i ? 'checked' : null, title: t('builder.f.markRight'), onchange: () => { set('correct', i); draw(); } }),
           h('span', { class: 'letter' }, LETTERS[i]),
           h('input', { value: a, maxlength: 80, oninput: e => { list[i] = e.target.value; changed(); } }),
           list.length > 2 ? h('button', { class: 'mini kick', type: 'button', onclick: e => { e.preventDefault(); list.splice(i, 1); if (q.correct >= list.length) q.correct = 0; changed(); draw(); } }, '×') : null))),
-        list.length < 4 ? h('button', { class: 'ghost-btn small', type: 'button', onclick: () => { list.push(''); changed(); draw(); } }, t('builder.f.addAnswer')) : null,
+        ...(list.length < 4 ? [h('button', { class: 'ghost-btn small', type: 'button', onclick: () => { list.push(''); changed(); draw(); } }, t('builder.f.addAnswer'))] : []),
         h('p', { class: 'hint small' }, t('builder.f.markRight')));
     };
     draw();
@@ -481,7 +499,7 @@
         wrap.classList.remove('busy');
         if (q.spot !== undefined || typeOf(current.quiz.rounds[roundIndex].type).fields.includes('spot')) renderRound(); else draw();
       } });
-      wrap.replaceChildren(h('span', {}, t('builder.f.image')),
+      fill(wrap, h('span', {}, t('builder.f.image')),
         q.image ? h('div', { class: 'thumb' }, h('img', { src: q.image, alt: '' }), h('button', { class: 'mini kick', type: 'button', title: t('builder.f.removeImage'), onclick: () => { set('image', ''); draw(); } }, '×'))
           : h('label', { class: 'drop-zone' }, fileInput, h('span', {}, t('builder.f.addImage'))),
         q.imagePrompt ? h('div', { class: 'img-prompt' }, h('p', { class: 'hint small' }, t('builder.f.imagePrompt')), h('code', {}, q.imagePrompt),
@@ -514,7 +532,7 @@
         draw();
       } });
       const player = q.audio ? h('audio', { src: q.audio, controls: true, preload: 'metadata' }) : null;
-      wrap.replaceChildren(h('span', {}, t('builder.f.audio')),
+      fill(wrap, h('span', {}, t('builder.f.audio')),
         q.audio ? h('div', { class: 'audio-row' }, player,
           h('button', { class: 'ghost-btn small', type: 'button', onclick: () => { set('start', Math.floor(player.currentTime)); draw(); } }, t('builder.f.startHere')),
           h('button', { class: 'mini kick', type: 'button', title: t('builder.f.removeAudio'), onclick: () => { set('audio', ''); draw(); } }, '×'))
@@ -547,7 +565,7 @@
     const draw = () => {
       const imgs = q.images || (q.images = ['', '', '', '']);
       q.captions = q.captions || imgs.map(() => '');
-      wrap.replaceChildren(h('span', {}, t('builder.f.images')),
+      fill(wrap, h('span', {}, t('builder.f.images')),
         h('div', { class: 'image-grid' }, imgs.map((src, i) => {
           const fileInput = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: async e => {
             const f = e.target.files[0];
@@ -574,7 +592,7 @@
     const wrap = h('div', { class: 'field wide' });
     const draw = () => {
       const items = q[key] || (q[key] = Array.from({ length: min + 1 }, () => ''));
-      wrap.replaceChildren(h('span', {}, label),
+      fill(wrap, h('span', {}, label),
         h('ol', { class: 'clue-list' }, items.map((c, i) => h('li', {},
           h('input', { value: c, maxlength: 80, oninput: e => { items[i] = e.target.value; changed(); } }),
           items.length > min ? h('button', { class: 'mini kick', type: 'button', onclick: () => { items.splice(i, 1); changed(); draw(); } }, '×') : null))),
@@ -589,7 +607,7 @@
     const wrap = h('div', { class: 'field wide' });
     const draw = () => {
       const pairs = q.pairs || (q.pairs = [['', ''], ['', ''], ['', ''], ['', '']]);
-      wrap.replaceChildren(h('span', {}, t('builder.f.pairs')),
+      fill(wrap, h('span', {}, t('builder.f.pairs')),
         h('div', { class: 'pair-list' }, pairs.map((p, i) => h('div', { class: 'pair-row' },
           h('input', { value: p[0], maxlength: 60, oninput: e => { p[0] = e.target.value; changed(); } }),
           h('span', { class: 'pair-eq' }, '='),
@@ -606,14 +624,14 @@
   function spotField(q, set) {
     const wrap = h('div', { class: 'field wide' });
     const draw = () => {
-      if (!q.image) { wrap.replaceChildren(h('span', {}, t('builder.f.spot')), h('p', { class: 'hint small' }, t('builder.f.spotNeedsMap'))); return; }
+      if (!q.image) { fill(wrap, h('span', {}, t('builder.f.spot')), h('p', { class: 'hint small' }, t('builder.f.spotNeedsMap'))); return; }
       const pin = q.spot ? h('span', { class: 'spot-pin', style: `left: ${q.spot.x * 100}%; top: ${q.spot.y * 100}%` }) : null;
       const map = h('div', { class: 'spot-map', onclick: e => {
         const b = e.currentTarget.getBoundingClientRect();
         set('spot', { x: Math.round(((e.clientX - b.left) / b.width) * 1000) / 1000, y: Math.round(((e.clientY - b.top) / b.height) * 1000) / 1000 });
         draw();
       } }, h('img', { src: q.image, alt: '' }), pin);
-      wrap.replaceChildren(h('span', {}, t('builder.f.spot')), map, input(t('builder.f.spotName'), q.answer, v => set('answer', v), { el: { maxlength: 60 } }), h('p', { class: 'hint small' }, t('builder.f.spotHint')));
+      fill(wrap, h('span', {}, t('builder.f.spot')), map, input(t('builder.f.spotName'), q.answer, v => set('answer', v), { el: { maxlength: 60 } }), h('p', { class: 'hint small' }, t('builder.f.spotHint')));
     };
     draw();
     wrap.redraw = draw;

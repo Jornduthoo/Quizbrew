@@ -101,6 +101,18 @@
           h('button', { class: 'ghost-btn small', type: 'button', onclick: () => socket.emit('media', 'stop') }, t('host.stopSound'))));
       }
       const kind = q.kind;
+      if (s.canJudgeBuzz && s.buzz) {
+        preview.append(h('div', { class: 'buzz-judge', style: teamVar(s.buzz.color) },
+          h('span', { class: 'team-dot' }), h('strong', {}, t('host.buzzing', { name: s.buzz.name })),
+          h('button', { class: 'brass-btn ok', type: 'button', onclick: () => socket.emit('buzzJudge', true) }, t('host.buzzRight')),
+          h('button', { class: 'ghost-btn no', type: 'button', onclick: () => socket.emit('buzzJudge', false) }, t('host.buzzWrong'))));
+      }
+      if (kind === 'level') {
+        const lv = (s.phase === 'reveal' ? s.reveal : s.answerKey).levels;
+        preview.append(h('ol', { class: 'mini-answers levels' }, lv.map((l, i) => h('li', { class: 'key' },
+          h('span', { class: 'letter' }, i + 1), `${l.question} → ${l.answer}`,
+          h('span', { class: 'n' }, s.teams.filter(tm => (tm.level || 0) === i).length)))));
+      }
       if (kind === 'choice' || kind === 'trueFalse') {
         const key = s.phase === 'reveal' ? s.correct : s.answerKey && s.answerKey.correct;
         const answers = kind === 'trueFalse' ? [t('play.true'), t('play.false')] : q.answers;
@@ -109,7 +121,7 @@
           s.phase === 'reveal' && s.counts ? h('span', { class: 'n' }, s.counts[i]) : null))));
       } else {
         const keyText = s.phase === 'reveal' ? s.reveal.answerText : s.answerKey && s.answerKey.answerText;
-        preview.append(h('p', { class: 'answer-key' }, t('host.answerKey', { text: keyText + (q.unit ? ' ' + q.unit : '') })));
+        if (keyText) preview.append(h('p', { class: 'answer-key' }, t('host.answerKey', { text: keyText + (q.unit ? ' ' + q.unit : '') })));
         const rows = s.phase === 'reveal' ? s.answers : s.liveAnswers;
         if (rows && rows.length) {
           preview.append(h('ul', { class: 'judge-list' }, rows.map(a => h('li', { class: 'judge-row' + (s.phase === 'reveal' ? (a.correct ? ' right' : ' wrong') : ''), style: teamVar(a.color) },
@@ -138,6 +150,9 @@
     if (a === null || a === undefined) return '—';
     if (kind === 'order') return key && key.order ? a.map(i => key.order[i]).join(' → ') : '✓';
     if (kind === 'pairs') return key && key.pairs ? t('host.pairsRight', { n: a.filter((v, i) => v === i).length, total: a.length }) : '✓';
+    if (kind === 'list') return t('host.items', { n: a.length });
+    if (kind === 'level') return `${t(`play.level${a.l}`)} · ${LETTERS[a.i]}`;
+    if (kind === 'buzz') return a === 'right' ? '✓' : '✗';
     if (kind === 'point') return key && key.spot ? t('screen.distance', { n: Math.round(Math.hypot(a.x - key.spot.x, a.y - key.spot.y) * 100) }) : '📍';
     return String(a);
   }

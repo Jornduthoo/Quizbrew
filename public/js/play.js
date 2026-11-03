@@ -67,6 +67,10 @@
       case 'wager': return renderWager(s, fresh);
       case 'question':
         if (s.blocked) return wait(t('play.blocked'), '!');
+        if (s.out) return wait(t(s.round.type === 'pushYourLuck' ? 'play.bankedWait' : 'play.outOfRound'), s.round.type === 'pushYourLuck' ? '★' : '✗');
+        if (s.banked) return wait(t('play.bankedNow', { n: s.pot }), '★');
+        if (s.question.kind === 'buzz') return renderBuzz(s, fresh);
+        if (s.question.kind === 'list') return renderList(s, fresh);
         if (s.answer !== null && s.answer !== undefined) return wait(t('play.locked'), lockedBadge(s));
         if (s.question.kind === 'text' || s.question.kind === 'number') return renderType(s, fresh);
         if (['order', 'pairs', 'point'].includes(s.question.kind)) return renderBuild(s, fresh);
@@ -93,6 +97,7 @@
     if (k === 'choice') return LETTERS[s.answer];
     if (k === 'trueFalse') return s.answer === 0 ? '✓' : '✗';
     if (k === 'order' || k === 'pairs' || k === 'point') return '✓';
+    if (k === 'level') return LETTERS[s.answer.i];
     return String(s.answer).slice(0, 14);
   }
 
@@ -110,6 +115,19 @@
 
   function renderWager(s, fresh) {
     showView('wager');
+    const level = s.wagerMode === 'level';
+    $('#wager-kicker').textContent = t(level ? 'screen.pickLevel' : 'play.wagerKicker');
+    $('#bet-box').hidden = level;
+    $('#level-picks').hidden = !level;
+    if (level) {
+      $('#wager-category').textContent = s.category || t('round.pickYourLevel');
+      $('#level-picks').replaceChildren(...[0, 1, 2].map(l => h('button', {
+        type: 'button', class: 'level-pick' + (s.wager === l ? ' on' : ''), style: `--k: ${l}`,
+        onclick: () => { socket.emit('wager', l); if (navigator.vibrate) navigator.vibrate(20); },
+      }, h('strong', {}, t(`play.level${l}`)), h('span', {}, t('play.levelPoints', { n: (l + 1) * (s.levelBase || 1) })))));
+      $('#wager-note').textContent = s.wager !== null && s.wager !== undefined ? t('play.levelPicked', { level: t(`play.level${s.wager}`) }) : t('play.pickLevel');
+      return;
+    }
     $('#wager-category').textContent = s.category || t('round.jackpot');
     const range = $('#wager-range');
     if (fresh) {
@@ -275,10 +293,61 @@
         },
       }, h('span', { class: 'letter' }, tf ? (i === 0 ? '✓' : '✗') : LETTERS[i]), h('span', { class: 'text' }, a))));
     }
+    const own = s.question.kind === 'level';
+    $('#phone-q').hidden = !own;
+    if (own) $('#phone-q').textContent = s.question.text;
+    $('#q-extra').textContent = s.round.type === 'pushYourLuck' ? t('play.pot', { n: s.pot }) : s.round.type === 'hotStreak' && s.streak ? t('play.streak', { n: s.streak + 1 }) : own ? t(`play.level${s.question.level}`) : '';
+    $('#bank-btn').hidden = !s.canBank;
+    if (s.canBank) $('#bank-btn').textContent = t('play.bank', { n: s.pot });
     stopTimer = countdown(s.remaining, s.question.time * 1000, left => {
       $('#q-time').textContent = Math.ceil(left / 1000);
     });
   }
+  $('#bank-btn').addEventListener('click', () => {
+    if (!confirm(t('play.bankConfirm', { n: state.pot }))) return;
+    socket.emit('bank');
+    if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
+  });
+
+  // Buzzer: whoever presses first gets the floor.
+  function renderBuzz(s, fresh) {
+    showView('buzz');
+    $('#z-num').textContent = t('play.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
+    const btn = $('#buzz-btn');
+    const mine = s.buzzMine;
+    btn.disabled = !!s.buzz || s.buzzOut;
+    btn.classList.toggle('mine', mine);
+    $('#buzz-text').textContent = mine ? t('play.buzzMine') : s.buzz ? t('play.buzzOther', { name: s.buzz.name }) : s.buzzOut ? t('play.buzzOut') : '';
+    if (mine && fresh && navigator.vibrate) navigator.vibrate([60, 40, 60]);
+    if (s.paused) { $('#z-time').textContent = Math.ceil(s.remaining / 1000); return; }
+    stopTimer = countdown(s.remaining, s.question.time * 1000, left => { $('#z-time').textContent = Math.ceil(left / 1000); });
+  }
+  $('#buzz-btn').addEventListener('click', e => {
+    e.currentTarget.classList.add('pressed');
+    socket.emit('answer', true);
+    if (navigator.vibrate) navigator.vibrate(40);
+    setTimeout(() => $('#buzz-btn').classList.remove('pressed'), 300);
+  });
+
+  // List rush: every line is sent at once and added to the team's list.
+  function renderList(s, fresh) {
+    showView('list');
+    $('#l-num').textContent = t('play.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
+    const sent = s.answer || [];
+    $('#l-count').textContent = t('play.itemsSent', { n: sent.length });
+    $('#list-sent').replaceChildren(...sent.slice().reverse().map((x, i) => h('li', { class: i === 0 && fresh ? 'new' : '' }, x)));
+    if (fresh) setTimeout(() => $('#list-input').focus(), 50);
+    stopTimer = countdown(s.remaining, s.question.time * 1000, left => { $('#l-time').textContent = Math.ceil(left / 1000); });
+  }
+  $('#list-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const input = $('#list-input');
+    const v = input.value.trim();
+    if (!v) return;
+    socket.emit('answer', v);
+    input.value = '';
+    if (navigator.vibrate) navigator.vibrate(15);
+  });
 
   // Brass sparks and gold light in the team colour from an element. Light only, nothing falls.
   function celebrate(el, power) {
@@ -302,7 +371,12 @@
     icon.textContent = right ? '✓' : answered ? '✗' : '–';
     $('#result-text').textContent = right ? t(['number', 'point'].includes(s.question.kind) ? 'play.closest' : 'play.correct') : answered ? t('play.wrong') : t('play.noAnswer');
     const k = s.question.kind;
-    const solution = k === 'choice' ? t('play.answerWas', { letter: LETTERS[s.correct], text: s.question.answers[s.correct] })
+    if (k === 'list') $('#result-text').textContent = t('play.found', { n: s.found || 0 });
+    const solution = k === 'list' ? ''
+      : s.round.type === 'crowdMind' ? t('play.crowdSaid', { text: s.reveal.answerText })
+        : k === 'level' ? t('play.solutionWas', { text: s.reveal.levels[s.question.level].answer })
+          : k === 'buzz' ? (s.reveal.answerText ? t('play.solutionWas', { text: s.reveal.answerText }) : '')
+            : k === 'choice' ? t('play.answerWas', { letter: LETTERS[s.correct], text: s.question.answers[s.correct] })
       : k === 'trueFalse' ? t('play.statementWas', { text: t(s.correct === 0 ? 'play.true' : 'play.false') })
         : t('play.solutionWas', { text: s.reveal.answerText + (s.reveal.unit ? ' ' + s.reveal.unit : '') });
     $('#result-sub').textContent = s.lastPoints > 0 ? t('play.pointsWon', { n: s.lastPoints })

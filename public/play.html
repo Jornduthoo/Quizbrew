@@ -39,8 +39,10 @@
 
   <!-- Answer buttons -->
   <section id="v-question" class="view answer-view" hidden>
-    <div class="mini-head"><span id="q-num"></span><span id="q-time"></span></div>
+    <div class="mini-head"><span id="q-num"></span><span class="q-extra" id="q-extra"></span><span id="q-time"></span></div>
+    <p class="phone-q" id="phone-q" hidden></p>
     <div class="choices" id="choices"></div>
+    <button class="brass-btn big bank-btn" id="bank-btn" type="button" hidden></button>
   </section>
 
   <!-- Type an answer (open, scramble, clues, closest number) -->
@@ -64,13 +66,33 @@
     </div>
   </section>
 
+  <!-- Buzzer: one big button -->
+  <section id="v-buzz" class="view center" hidden>
+    <div class="mini-head wide"><span id="z-num"></span><span id="z-time"></span></div>
+    <button class="buzz-btn" id="buzz-btn" type="button"><span data-i18n="play.buzz"></span></button>
+    <p class="say" id="buzz-text"></p>
+  </section>
+
+  <!-- List rush: type as many as you can -->
+  <section id="v-list" class="view answer-view" hidden>
+    <div class="mini-head"><span id="l-num"></span><span class="q-extra" id="l-count"></span><span id="l-time"></span></div>
+    <form id="list-form" class="type-row list-row" autocomplete="off">
+      <input id="list-input" maxlength="60" enterkeyhint="send" autocapitalize="off" autocorrect="off" spellcheck="false" data-i18n-attr="placeholder:play.typeItems">
+      <button class="brass-btn" type="submit" data-i18n="play.add"></button>
+    </form>
+    <ul class="list-sent" id="list-sent"></ul>
+  </section>
+
   <!-- Bet points before the question (jackpot) -->
   <section id="v-wager" class="view center" hidden>
-    <p class="label" data-i18n="play.wagerKicker"></p>
+    <p class="label" id="wager-kicker"></p>
     <p class="say big" id="wager-category"></p>
-    <output class="wager-amount" id="wager-amount"></output>
-    <input class="wager-range" type="range" id="wager-range" min="0" step="1" data-i18n-attr="aria-label:play.wagerKicker">
-    <button class="brass-btn big" id="wager-send" type="button" data-i18n="play.placeBet"></button>
+    <div class="bet-box" id="bet-box">
+      <output class="wager-amount" id="wager-amount"></output>
+      <input class="wager-range" type="range" id="wager-range" min="0" step="1" data-i18n-attr="aria-label:play.wagerKicker">
+      <button class="brass-btn big" id="wager-send" type="button" data-i18n="play.placeBet"></button>
+    </div>
+    <div class="level-picks" id="level-picks" hidden></div>
     <p class="sub" id="wager-note"></p>
   </section>
 
