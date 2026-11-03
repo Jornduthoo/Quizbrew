@@ -60,12 +60,14 @@
     <section class="stage panel">
       <p class="phase-kicker" id="phase-kicker"></p>
       <h1 class="phase-title" id="phase-title"></h1>
+      <p class="coach" id="coach"></p>
       <div class="preview" id="preview"></div>
       <div class="controls">
         <button class="brass-btn next" id="next"></button>
         <button class="ghost-btn" id="add-time" type="button" data-i18n="host.addTime" hidden></button>
         <button class="ghost-btn" id="back" type="button" data-i18n="host.back" hidden></button>
         <button class="ghost-btn" id="break" type="button" hidden></button>
+        <button class="ghost-btn autopilot-btn" id="autopilot" type="button" aria-pressed="false" data-i18n-attr="title:host.autopilotHint,aria-label:host.autopilot"><span class="auto-dot"></span><span data-i18n="host.autopilot"></span></button>
         <span class="key-hint" data-i18n="host.keyHint"></span>
         <button class="ghost-btn danger" id="stop" data-i18n="host.stop"></button>
       </div>
@@ -74,6 +76,15 @@
       <h2><span data-i18n="host.teams"></span> <span class="count" id="team-total"></span></h2>
       <ul id="team-list"></ul>
       <p class="hint" id="no-teams" data-i18n="host.noTeams"></p>
+      <!-- Teams without a phone play on paper; their points per round are typed in here. -->
+      <div class="paper-box">
+        <form class="paper-form" id="paper-form" autocomplete="off">
+          <input id="paper-name" maxlength="20" data-i18n-attr="placeholder:host.paperName,aria-label:host.paperName">
+          <button class="ghost-btn small" type="submit" data-i18n="host.paperAdd"></button>
+        </form>
+        <p class="error" id="paper-error" role="alert"></p>
+        <p class="hint paper-hint" id="paper-hint" hidden data-i18n="host.paperHint"></p>
+      </div>
     </aside>
   </main>
 
