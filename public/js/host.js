@@ -59,6 +59,11 @@
   addEventListener('resize', renderCopy);
   $('#mode').addEventListener('change', e => socket.emit('mode', e.target.value));
   socket.on('mode', m => renderModes(m));
+  // Sound effects on the big screen: on or off for the whole evening.
+  let sfxOn = true;
+  const renderSfx = () => { $('#sfx').textContent = sfxOn ? '🔊' : '🔇'; $('#sfx').classList.toggle('off', !sfxOn); };
+  socket.on('sfx', v => { sfxOn = !!v; renderSfx(); });
+  $('#sfx').addEventListener('click', () => socket.emit('sfx', !sfxOn));
   socket.on('look', l => { $('#look').value = l; });
   $('#lang').addEventListener('change', e => socket.emit('language', e.target.value));
   if (!remote) {

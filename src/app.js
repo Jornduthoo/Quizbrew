@@ -252,6 +252,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     socket.emit('language', language());
     socket.emit('look', look());
     socket.emit('mode', mode());
+    socket.emit('sfx', settings.get('sfx') !== false);
 
     if (role === 'host') {
       if (!canHost(socket.handshake.address) && !isRemote(socket.handshake.query.key)) return socket.disconnect(true);
@@ -302,6 +303,10 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
         if (!LOOKS.includes(name)) return;
         settings.set('look', name);
         io.emit('look', name);
+      });
+      on('sfx', value => {
+        settings.set('sfx', !!value);
+        io.emit('sfx', !!value);
       });
       on('mode', name => {
         if (!MODES.includes(name)) return;

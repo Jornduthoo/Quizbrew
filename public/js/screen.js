@@ -23,8 +23,13 @@
   socket.on('media', action => (action === 'replay' ? Media.replay() : Media.stop()));
   // Browsers only play sound after a click on the page: show a button for that once.
   Media.onBlocked(() => { $('#sound-gate').hidden = MUTE; });
+  // Sound effects: on unless the quizmaster turned them off; never on a muted copy (phones-only mode).
+  let sfxSetting = true;
+  socket.on('sfx', on => { sfxSetting = !!on; });
+  SFX.onBlocked(() => { if (!MUTE && sfxSetting) $('#sound-gate').hidden = false; });
   $('#sound-gate').addEventListener('click', async () => {
     $('#sound-gate').hidden = true;
+    await SFX.unlock();
     await Media.unlock();
     Media.replay();
   });
@@ -46,6 +51,7 @@
     document.body.classList.remove('urgent');
     if (s.phase !== 'lobby') lobbyShown = false;
     if (s.round) setTheme(s.round.type);
+    SFX.enabled = sfxSetting && !MUTE && !(s.round && s.round.twists.includes('silentRound'));
     if (s.phase === 'lobby') renderLobby(s);
     if (s.phase === 'roundIntro' && fresh) renderRoundIntro(s);
     if (s.vote) renderVote(s, fresh);
@@ -81,7 +87,7 @@
       const chip = h('li', { class: 'team-chip', style: teamVar(team.color), 'data-name': team.name, 'data-photo': team.photo || '' }, QB.dot(team), team.name);
       list.append(chip);
       // A new team arriving gets a little burst of sparks in its colour.
-      if (lobbyShown) setTimeout(() => FX.sparksAt(chip, { color: cssColor('--team-' + team.color), count: 34 }), 250);
+      if (lobbyShown) { setTimeout(() => FX.sparksAt(chip, { color: cssColor('--team-' + team.color), count: 34 }), 250); SFX.join(list.children.length - 1); }
     });
     lobbyShown = true;
     list.style.setProperty('--rows', Math.max(6, Math.ceil(s.teams.length / 2)));
@@ -293,6 +299,7 @@
     }
 
     if (reveal && (!wasRevealed || fresh)) {
+      if (!wasRevealed) SFX.reveal();
       const color = cssColor(s.correct !== null ? '--ans-' + s.correct : '--good');
       const flash = $('#flash');
       flash.style.setProperty('--f', color);
@@ -343,7 +350,10 @@
       Media.stop();
       return;
     }
+    let lastTick = Math.ceil(s.remaining / 1000);
     stopTimer = countdown(s.remaining, total, (left, frac) => {
+      const sec = Math.ceil(left / 1000);
+      if (sec !== lastTick) { lastTick = sec; if (sec > 0 && sec <= 5) SFX.tick(sec); }
       Media.tick(total - left);
       if (q.effect === 'pixel') pixelate(canvas, img, 1 - frac);
       ring.style.strokeDashoffset = C * (1 - frac);
@@ -507,6 +517,8 @@
     list.style.setProperty('--n', Math.max(1, n > 10 ? Math.ceil(n / 2) : n));
     // The reveal goes from last place to first: the bottom rows appear first, the leader last.
     const step = Math.min(0.7, 6 / Math.max(1, n));
+    // The drum roll ends with a cymbal just when the leader lands.
+    SFX.roll(0.6 + (n - 1) * step + 0.8 + 0.2);
     list.replaceChildren(...rows.map((r, i) => {
       const moved = r.previousRank ? r.previousRank - r.rank : 0;
       const delay = 0.6 + (n - 1 - i) * step + (i === 0 ? 0.8 : 0);
@@ -547,6 +559,7 @@
       const b = card.getBoundingClientRect();
       FX.glints({ x: b.left + b.width / 2, y: b.top, width: b.width, count: 40 });
       FX.sparksAt(card, { color: cssColor('--team-' + s.awards[i].team.color) || '#ffb43c', count: 50 });
+      SFX.award();
     }, (1.3 + i * 1.8) * 1000));
   }
 
@@ -573,6 +586,8 @@
       FX.glints({ x: m.left + m.width / 2, y: m.top, width: m.width * 4, count: 90 });
     }, 2300);
     later(() => FX.swarm({ seconds: 8 }), 2600);
+    SFX.roll(2.2);
+    later(() => SFX.fanfare(), 2350);
   }
 
 })();
