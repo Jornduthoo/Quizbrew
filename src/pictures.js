@@ -1,18 +1,17 @@
-// Free pictures for picture questions: search Wikimedia Commons, and fetch a picture from a link
+// Free pictures for picture questions: search Wikimedia Commons and Openverse (both free to use, also in a paid quiz night), and fetch a picture from a link
 // (dragged or pasted from any website) so the builder can make it small and keep it in the library.
 const net = require('net');
 
 const COMMONS = 'https://commons.wikimedia.org/w/api.php';
+const OPENVERSE = 'https://api.openverse.org/v1/images/';
 const AGENT = 'Quizbrew/1.0 (quiz builder; https://github.com/Jornduthoo/Quizbrew)';
 const MAX_BYTES = 15 * 1024 * 1024;
 const IMAGE_TYPES = /^image\/(jpeg|png|webp|gif|bmp|avif)$/;
 
 const plain = html => String(html || '').replace(/<[^>]*>/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
-// Up to 24 pictures for a search: a small one for the grid, a bigger one to use, and who made it under which licence.
-async function search(query, { fetch = globalThis.fetch } = {}) {
-  const q = String(query || '').trim().slice(0, 120);
-  if (!q) return [];
+// Pictures for a search: a small one for the grid, a bigger one to use, and who made it under which licence.
+async function commons(q, fetch) {
   const params = new URLSearchParams({
     action: 'query', format: 'json', origin: '*', generator: 'search', gsrnamespace: '6', gsrlimit: '24',
     gsrsearch: `${q} filetype:bitmap`, prop: 'imageinfo', iiprop: 'url|mime|extmetadata', iiurlwidth: '1280',
@@ -39,6 +38,60 @@ async function search(query, { fetch = globalThis.fetch } = {}) {
     });
   }
   return out;
+}
+
+const LICENSES = { cc0: 'CC0', pdm: 'Public domain' };
+const licenseName = (code, version) => LICENSES[code] || `CC ${String(code || '').toUpperCase()}${version ? ' ' + version : ''}`.trim();
+
+// Openverse: openly licensed pictures from Flickr, museums and more; only licences that allow use at a paid event.
+async function openverse(q, fetch) {
+  const params = new URLSearchParams({ q, page_size: '20', license_type: 'commercial', mature: 'false' });
+  let res;
+  try { res = await fetch(`${OPENVERSE}?${params}`, { headers: { 'User-Agent': AGENT, Accept: 'application/json' }, signal: AbortSignal.timeout(12000) }); } catch { throw new Error('pictures.offline'); }
+  if (!res.ok) throw new Error('pictures.offline');
+  const data = await res.json();
+  return (data.results || []).filter(r => r.url && r.thumbnail && !/svg/i.test(r.filetype || '')).map(r => ({
+    title: plain(r.title).slice(0, 80),
+    thumb: r.thumbnail,
+    url: r.url,
+    page: r.foreign_landing_url || '',
+    credit: [plain(r.creator).slice(0, 80), licenseName(r.license, r.license_version), `Openverse${r.source ? ` (${r.source})` : ''}`].filter(Boolean).join(' · '),
+  }));
+}
+
+// Ever broader searches: the whole term first, then fewer words, so a very precise term still finds something.
+function broader(query) {
+  const words = String(query || '').replace(/[^\p{L}\p{N}' -]+/gu, ' ').split(/\s+/).filter(Boolean).slice(0, 8);
+  const out = [];
+  for (let n = words.length; n >= 1; n--) out.push(words.slice(0, n).join(' '));
+  if (words.length > 1) out.push(words[words.length - 1]);
+  return [...new Set(out)];
+}
+
+// Search both sources, mixed, broadening until there is enough to choose from. Gives the pictures and the words that found them.
+async function search(query, { fetch = globalThis.fetch, enough = 8 } = {}) {
+  const terms = broader(String(query || '').slice(0, 120));
+  if (!terms.length) return { results: [], term: '' };
+  const found = [];
+  const seen = new Set();
+  let term = terms[0];
+  let reached = false;
+  for (const q of terms.slice(0, 4)) {
+    const [a, b] = await Promise.allSettled([commons(q, fetch), openverse(q, fetch)]);
+    if (a.status === 'fulfilled' || b.status === 'fulfilled') reached = true;
+    const lists = [a.value || [], b.value || []];
+    const before = found.length;
+    for (let i = 0; i < Math.max(...lists.map(l => l.length)); i++) {
+      for (const list of lists) {
+        const r = list[i];
+        if (r && !seen.has(r.url)) { seen.add(r.url); found.push(r); }
+      }
+    }
+    if (found.length > before && before === 0) term = q;
+    if (found.length >= enough || !reached) break;
+  }
+  if (!reached) throw new Error('pictures.offline');
+  return { results: found.slice(0, 30), term };
 }
 
 // Only pictures on the internet: no links to this laptop or the local network.
@@ -75,4 +128,4 @@ async function get(raw, { fetch = globalThis.fetch } = {}) {
   return { type, buffer: Buffer.concat(chunks) };
 }
 
-module.exports = { search, get, publicUrl };
+module.exports = { search, get, publicUrl, broader };

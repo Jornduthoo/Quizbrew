@@ -851,7 +851,7 @@
   "pictures.title": "Chercher une image",
   "pictures.searchFor": "Que doit montrer l'image ?",
   "pictures.search": "Chercher",
-  "pictures.hint": "Images gratuites de Wikimedia Commons. Cliquez sur une image pour l'utiliser ; l'auteur et la licence restent avec la question. Vous pouvez aussi glisser une image de n'importe quel site sur un champ d'image, ou coller son lien.",
+  "pictures.hint": "Images gratuites de Wikimedia Commons et Openverse, utilisables lors d'une soirée quiz. Cliquez sur une image pour l'utiliser ; l'auteur et la licence restent avec la question. Vous pouvez aussi glisser une image de n'importe quel site sur un champ d'image, ou coller son lien.",
   "pictures.searching": "Recherche…",
   "pictures.none": "Rien trouvé. Essayez d'autres mots, l'anglais marche le mieux.",
   "pictures.paste": "ou collez un lien",
@@ -863,5 +863,7 @@
   "pictures.suggested": "Suggestions :",
   "pictures.draw": "Créer avec l'IA",
   "pictures.madeByAi": "Créé avec l'IA",
-  "ai.noImageKey": "Pour créer des images, il faut une clé Gemini. Ajoutez-la dans Clés IA."
+  "ai.noImageKey": "Pour créer des images, il faut une clé Gemini. Ajoutez-la dans Clés IA.",
+  "pictures.google": "Chercher sur Google Images",
+  "pictures.broader": "Rien pour ces mots exacts, voici des images pour « {term} »."
 }

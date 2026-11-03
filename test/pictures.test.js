@@ -24,15 +24,47 @@ const picture = (bytes, type = 'image/png') => new Response(bytes, { headers: { 
 
 test('a Commons search gives pictures in order, with maker and licence, and leaves drawings out', async () => {
   let asked = '';
-  const results = await Pictures.search(' lighthouse ', { fetch: fakeFetch([['commons.wikimedia.org', u => { asked = u; return json(commonsAnswer); }]]) });
+  const { results, term } = await Pictures.search(' lighthouse ', { fetch: fakeFetch([['commons.wikimedia.org', u => { asked = u; return json(commonsAnswer); }]]) });
+  assert.equal(term, 'lighthouse');
   assert.match(asked, /gsrsearch=lighthouse\+filetype%3Abitmap/);
   assert.deepEqual(results.map(r => r.title), ['Eiffel Tower', 'Lighthouse at night']);
   assert.equal(results[1].credit, 'Jane & Co · CC BY-SA 4.0 · Wikimedia Commons');
   assert.equal(results[0].credit, 'Public domain · Wikimedia Commons');
   assert.match(results[0].thumb, /\/320px-Eiffel\.png$/);
   assert.match(results[0].url, /\/1280px-Eiffel\.png$/);
-  assert.deepEqual(await Pictures.search('   '), []);
+  assert.deepEqual((await Pictures.search('   ')).results, []);
   await assert.rejects(Pictures.search('x', { fetch: fakeFetch([]) }), /pictures\.offline/);
+});
+
+const openverseAnswer = { results: [
+  { title: 'Lion resting', url: 'https://live.staticflickr.com/1/lion.jpg', thumbnail: 'https://api.openverse.org/v1/images/a/thumb/', creator: 'Sam', license: 'by', license_version: '2.0', source: 'flickr', filetype: 'jpg' },
+  { title: 'Lion vector', url: 'https://x.org/lion.svg', thumbnail: 'https://api.openverse.org/v1/images/b/thumb/', license: 'cc0', filetype: 'svg' },
+  { title: 'Old lion print', url: 'https://museum.org/lion.png', thumbnail: 'https://api.openverse.org/v1/images/c/thumb/', license: 'pdm', source: 'smithsonian' },
+] };
+
+test('Openverse joins in, with licences fit for a paid quiz night, mixed with Commons', async () => {
+  let asked = '';
+  const { results } = await Pictures.search('lion', { fetch: fakeFetch([['commons.wikimedia.org', () => json(commonsAnswer)], ['api.openverse.org', u => { asked = u; return json(openverseAnswer); }]]) });
+  assert.match(asked, /license_type=commercial/);
+  assert.deepEqual(results.map(r => r.title), ['Eiffel Tower', 'Lion resting', 'Lighthouse at night', 'Old lion print']);
+  assert.equal(results[1].credit, 'Sam · CC BY 2.0 · Openverse (flickr)');
+  assert.equal(results[3].credit, 'Public domain · Openverse (smithsonian)');
+  // One source down: the other still gives pictures.
+  const half = await Pictures.search('lion', { fetch: fakeFetch([['api.openverse.org', () => json(openverseAnswer)]]) });
+  assert.equal(half.results.length, 2);
+});
+
+test('a too precise search is tried again with fewer words', async () => {
+  assert.deepEqual(Pictures.broader('Eiffel Tower at night, Paris!'), ['Eiffel Tower at night Paris', 'Eiffel Tower at night', 'Eiffel Tower at', 'Eiffel Tower', 'Eiffel', 'Paris']);
+  const asked = [];
+  const net = fakeFetch([
+    ['commons.wikimedia.org', u => { const q = new URL(u).searchParams.get('gsrsearch'); asked.push(q); return json(q.startsWith('Eiffel Tower filetype') ? commonsAnswer : { query: {} }); }],
+    ['api.openverse.org', () => json({ results: [] })],
+  ]);
+  const { results, term } = await Pictures.search('Eiffel Tower at dusk', { fetch: net, enough: 1 });
+  assert.equal(term, 'Eiffel Tower');
+  assert.equal(results.length, 2);
+  assert.deepEqual(asked, ['Eiffel Tower at dusk filetype:bitmap', 'Eiffel Tower at filetype:bitmap', 'Eiffel Tower filetype:bitmap']);
 });
 
 test('only pictures on the internet can be fetched', async () => {

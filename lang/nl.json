@@ -851,7 +851,7 @@
   "pictures.title": "Zoek een foto",
   "pictures.searchFor": "Wat moet er op de foto staan?",
   "pictures.search": "Zoeken",
-  "pictures.hint": "Gratis foto's van Wikimedia Commons. Klik er een aan om hem te gebruiken; de maker en de licentie blijven bij de vraag. Je kan ook een foto van eender welke website op een fotoveld slepen, of de link ervan plakken.",
+  "pictures.hint": "Gratis foto's van Wikimedia Commons en Openverse die je op een quizavond mag gebruiken. Klik er een aan om hem te gebruiken; de maker en de licentie blijven bij de vraag. Je kan ook een foto van eender welke website op een fotoveld slepen, of de link ervan plakken.",
   "pictures.searching": "Aan het zoeken…",
   "pictures.none": "Niets gevonden. Probeer andere woorden, Engels werkt het best.",
   "pictures.paste": "of plak een link",
@@ -863,5 +863,7 @@
   "pictures.suggested": "Voorstellen:",
   "pictures.draw": "Maak met AI",
   "pictures.madeByAi": "Gemaakt met AI",
-  "ai.noImageKey": "Foto's maken lukt met een Gemini-sleutel. Vul er een in bij AI-sleutels."
+  "ai.noImageKey": "Foto's maken lukt met een Gemini-sleutel. Vul er een in bij AI-sleutels.",
+  "pictures.google": "Zoek op Google Afbeeldingen",
+  "pictures.broader": "Niets voor precies die woorden, dit zijn foto's voor \"{term}\"."
 }

@@ -851,7 +851,7 @@
   "pictures.title": "Find a picture",
   "pictures.searchFor": "What should be in the picture?",
   "pictures.search": "Search",
-  "pictures.hint": "Free pictures from Wikimedia Commons. Click one to use it; the maker and licence are kept with the question. You can also drag a picture from any website onto a picture field, or paste its link.",
+  "pictures.hint": "Free pictures from Wikimedia Commons and Openverse that you may use at a quiz night. Click one to use it; the maker and licence stay with the question. You can also drag a picture from any website onto a picture field, or paste its link.",
   "pictures.searching": "Searching…",
   "pictures.none": "Nothing found. Try other words, in English works best.",
   "pictures.paste": "or paste a link",
@@ -863,5 +863,7 @@
   "pictures.suggested": "Suggestions:",
   "pictures.draw": "Make with AI",
   "pictures.madeByAi": "Made with AI",
-  "ai.noImageKey": "Making pictures needs a Gemini key. Add one under AI keys."
+  "ai.noImageKey": "Making pictures needs a Gemini key. Add one under AI keys.",
+  "pictures.google": "Search Google Images",
+  "pictures.broader": "Nothing for those exact words, so these are for \"{term}\"."
 }
