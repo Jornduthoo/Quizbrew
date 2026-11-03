@@ -639,6 +639,22 @@
     return input;
   }
 
+  // A preview that never shows a broken picture: try the bigger picture once, otherwise leave the choice out.
+  function thumbImg(r) {
+    const img = h('img', { src: r.thumb, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' });
+    img.addEventListener('error', () => {
+      if (img.dataset.retry || !r.url || r.url === r.thumb) { const card = img.closest('button');
+        const strip = card && card.closest('.pic-suggest');
+        if (card) card.remove();
+        if (strip && !strip.querySelector('.pic-mini')) strip.remove();
+        return;
+      }
+      img.dataset.retry = '1';
+      img.src = r.url;
+    });
+    return img;
+  }
+
   // Proposals that show up by themselves under an empty picture field: click one to use it, or just ignore them.
   const suggestCache = new Map();
   function suggestions(term, onPick) {
@@ -651,7 +667,7 @@
       strip.append(...list.map(r => h('button', {
         type: 'button', class: 'pic-mini', title: r.credit,
         onclick: () => onPick(r),
-      }, h('img', { src: r.thumb, alt: '', loading: 'lazy' }))));
+      }, thumbImg(r))));
       strip.classList.add('ready');
     });
     return strip;
@@ -713,7 +729,7 @@
         card.classList.add('busy');
         try { pictureChosen({ url: await fromLink(r.url), credit: r.credit }); } catch (err) { card.classList.remove('busy'); pictureFailed(err); }
       },
-    }, h('img', { src: r.thumb, alt: '', loading: 'lazy' }), h('span', { class: 'pic-by' }, r.credit))));
+    }, thumbImg(r), h('span', { class: 'pic-by' }, r.credit))));
   }
   $('#pic-form').addEventListener('submit', e => { e.preventDefault(); searchPictures(); });
   // Google Images in a new tab: look there, then drag a picture onto the picture field (mind the rights).

@@ -31,7 +31,7 @@ async function commons(q, fetch) {
     const license = plain(meta.LicenseShortName && meta.LicenseShortName.value).slice(0, 40);
     out.push({
       title: plain((meta.ObjectName && meta.ObjectName.value) || String(p.title || '').replace(/^File:/, '').replace(/\.\w+$/, '')).slice(0, 80),
-      thumb: info.thumburl.replace(/\/1280px-/, '/320px-'),
+      thumb: info.thumburl.replace(/\/1280px-/, '/330px-'), // Wikimedia only serves standard thumbnail widths (330 is one, 320 is not)
       url: info.thumburl,
       page: info.descriptionurl || '',
       credit: [author, license, 'Wikimedia Commons'].filter(Boolean).join(' · '),
