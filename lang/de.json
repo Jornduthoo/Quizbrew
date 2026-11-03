@@ -851,7 +851,7 @@
   "pictures.title": "Bild suchen",
   "pictures.searchFor": "Was soll auf dem Bild sein?",
   "pictures.search": "Suchen",
-  "pictures.hint": "Kostenlose Bilder von Wikimedia Commons. Klick auf ein Bild, um es zu verwenden; Urheber und Lizenz bleiben bei der Frage. Du kannst auch ein Bild von jeder Website auf ein Bildfeld ziehen oder seinen Link einfügen.",
+  "pictures.hint": "Kostenlose Bilder von Wikimedia Commons und Openverse, die du bei einem Quizabend verwenden darfst. Klick auf ein Bild, um es zu verwenden; Urheber und Lizenz bleiben bei der Frage. Du kannst auch ein Bild von jeder Website auf ein Bildfeld ziehen oder seinen Link einfügen.",
   "pictures.searching": "Suche läuft…",
   "pictures.none": "Nichts gefunden. Probier andere Wörter, Englisch klappt am besten.",
   "pictures.paste": "oder Link einfügen",
@@ -863,5 +863,7 @@
   "pictures.suggested": "Vorschläge:",
   "pictures.draw": "Mit KI erstellen",
   "pictures.madeByAi": "Mit KI erstellt",
-  "ai.noImageKey": "Zum Erstellen von Bildern braucht es einen Gemini-Schlüssel. Trag ihn unter KI-Schlüssel ein."
+  "ai.noImageKey": "Zum Erstellen von Bildern braucht es einen Gemini-Schlüssel. Trag ihn unter KI-Schlüssel ein.",
+  "pictures.google": "Bei Google Bilder suchen",
+  "pictures.broader": "Nichts für genau diese Wörter, hier sind Bilder für „{term}“."
 }

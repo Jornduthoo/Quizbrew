@@ -310,8 +310,8 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     execFile('powershell', ['-NoProfile', '-STA', '-Command', ps], { windowsHide: true }, (err, out) => resolve(err ? { error: 'cloud.typeIt' } : { path: String(out).trim() }));
   })));
   api.post('/cloud/open', handle(() => { if (cloud.folder() && process.platform === 'win32') execFile('explorer', [cloud.folder()]); return { ok: true }; }));
-  // Free pictures: search Wikimedia Commons, or fetch the picture behind a dragged or pasted link.
-  api.get('/pictures', handle(async req => ({ results: await Pictures.search(req.query.q, { fetch: webFetch }) })));
+  // Free pictures: search Wikimedia Commons and Openverse, or fetch the picture behind a dragged or pasted link.
+  api.get('/pictures', handle(req => Pictures.search(req.query.q, { fetch: webFetch })));
   api.get('/pictures/get', async (req, res) => {
     try {
       const { type, buffer } = await Pictures.get(req.query.url, { fetch: webFetch });

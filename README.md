@@ -43,7 +43,7 @@ Open http://localhost:3000/builder (or "Open quiz builder" on the quizmaster scr
 ## Pictures
 
 Every picture field offers three ways besides a file:
-- **Suggestions** appear by themselves under an empty picture field: free photos from Wikimedia Commons, found with the AI's search term (or the answer). Click one to use it, or ignore them. **Find a picture** searches yourself.
+- **Suggestions** appear by themselves under an empty picture field: free photos from Wikimedia Commons and Openverse (only licences that allow use at a paid event), found with the AI's search term or the answer. A search that finds nothing is retried with fewer words. Click one to use it, or ignore them. **Find a picture** searches yourself, and has a button to look on Google Images in a new tab (drag a picture from there onto the field; mind the rights).
 - **Make with AI** turns the AI's image prompt into a picture with Gemini (needs a Gemini key under AI keys).
 - Drag a picture from any website onto the field, or paste its link. Quizbrew fetches it through the laptop and makes it a small webp.
 

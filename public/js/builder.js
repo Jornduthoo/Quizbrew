@@ -699,12 +699,13 @@
     $('#pic-state').textContent = t('pictures.searching');
     $('#pic-results').replaceChildren();
     let results;
-    try { ({ results } = await api('GET', '/pictures?q=' + encodeURIComponent(q))); } catch (err) {
+    let term = q;
+    try { ({ results, term } = await api('GET', '/pictures?q=' + encodeURIComponent(q))); } catch (err) {
       if (mine === picSearch) $('#pic-state').textContent = t(/^pictures\./.test(err.message) ? err.message : 'pictures.offline');
       return;
     }
     if (mine !== picSearch) return;
-    $('#pic-state').textContent = results.length ? '' : t('pictures.none');
+    $('#pic-state').textContent = !results.length ? t('pictures.none') : term && term.toLowerCase() !== q.toLowerCase() ? t('pictures.broader', { term }) : '';
     $('#pic-results').replaceChildren(...results.map(r => h('button', {
       type: 'button', class: 'pic-card', title: r.title,
       onclick: async e => {
@@ -715,6 +716,11 @@
     }, h('img', { src: r.thumb, alt: '', loading: 'lazy' }), h('span', { class: 'pic-by' }, r.credit))));
   }
   $('#pic-form').addEventListener('submit', e => { e.preventDefault(); searchPictures(); });
+  // Google Images in a new tab: look there, then drag a picture onto the picture field (mind the rights).
+  $('#pic-google').addEventListener('click', () => {
+    const q = $('#pic-q').value.trim();
+    window.open('https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q), '_blank', 'noopener');
+  });
 
   // A short video clip for the big screen.
   function videoField(q, set) {
