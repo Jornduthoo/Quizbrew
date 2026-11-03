@@ -199,3 +199,62 @@ test('bundled quizzes are valid', () => {
   for (const q of list) assert.ok(quizzes.load(q.file));
   assert.throws(() => quizzes.load('../package.json'), /Invalid quiz file name/);
 });
+
+test('the quizmaster can step back, add time and overrule a choice after the reveal', () => {
+  const { game, clock } = setup();
+  game.join('team1aaaa', 'A', 'amber', 's1');
+  game.join('team2aaaa', 'B', 'pink', 's2');
+  game.next();
+  game.next();
+  assert.equal(game.phase, 'question');
+  clock.advance(8000);
+  assert.ok(game.addTime());
+  assert.equal(game.remaining(), 10000);
+  clock.advance(9000);
+  assert.equal(game.phase, 'question');
+  game.answer('team1aaaa', 1);
+  game.answer('team2aaaa', 0);
+  assert.equal(game.phase, 'reveal');
+  assert.equal(game.teams.get('team1aaaa').score, 1);
+  // Overrule: B counts as right after all.
+  assert.ok(game.hostState().judgeList);
+  assert.ok(game.judge('team2aaaa', true));
+  assert.equal(game.teams.get('team2aaaa').score, 1);
+  // Step back from the next question to the reveal, then from the reveal to the intro.
+  game.next();
+  assert.equal(game.questionIndex, 1);
+  assert.ok(game.back());
+  assert.equal(game.phase, 'reveal');
+  assert.equal(game.questionIndex, 0);
+  assert.equal(game.teams.get('team2aaaa').score, 1);
+  // The question revealed itself (every team answered), so the step before the reveal is the intro.
+  game.back();
+  assert.equal(game.phase, 'roundIntro');
+  assert.equal(game.teams.get('team1aaaa').score, 0);
+  assert.ok(game.teams.get('team1aaaa').connected, 'phones stay connected after a step back');
+});
+
+test('a saved game comes back after a restart with scores and the question time', () => {
+  const { game, clock } = setup();
+  game.join('team1aaaa', 'A', 'amber', 's1');
+  game.next();
+  game.next();
+  game.answer('team1aaaa', 1);
+  game.next(); // reveal -> question 2
+  clock.advance(7000);
+  const saved = JSON.parse(JSON.stringify({ quiz: game.quiz, state: game.snapshot() }));
+
+  const later = new Game({ clock });
+  later.resume(saved);
+  assert.equal(later.phase, 'question');
+  assert.equal(later.questionIndex, 1);
+  assert.equal(later.teams.get('team1aaaa').score, 1);
+  assert.equal(later.teams.get('team1aaaa').connected, false);
+  assert.equal(later.remaining(), 10000, 'a question that comes back gets at least 10 seconds');
+  // The phone comes back with its stored team id.
+  assert.ok(later.join('team1aaaa', '', '', 's9').ok);
+  assert.ok(later.teams.get('team1aaaa').connected);
+  later.answer('team1aaaa', 0);
+  assert.equal(later.phase, 'reveal');
+  assert.equal(later.teams.get('team1aaaa').score, 2);
+});

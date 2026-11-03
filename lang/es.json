@@ -43,7 +43,7 @@
   "host.showWinner": "Mostrar al ganador",
   "host.newQuiz": "Nuevo quiz",
   "host.stop": "Parar el quiz",
-  "host.keyHint": "Espacio = siguiente",
+  "host.keyHint": "Espacio = siguiente · ← = atrás",
   "host.teams": "Equipos",
   "host.noTeams": "Aún no hay equipos. Escanean el código QR de la pantalla grande.",
   "host.answered": "ha respondido",
@@ -679,5 +679,13 @@
   "host.mode": "Cómo jugar",
   "mode.screen": "📺 Pantalla grande",
   "mode.phones": "📱 Solo móviles",
-  "play.bigger": "Ver la pantalla en grande"
+  "play.bigger": "Ver la pantalla en grande",
+  "host.resumeKicker": "Quizbrew se cerró en mitad de un quiz",
+  "host.resume": "Seguir jugando",
+  "host.resumeNo": "Empezar de nuevo",
+  "host.resumeNoSure": "¿Tirar el quiz guardado con sus equipos y puntos?",
+  "host.resumeMeta": "Ronda {n} de {total} · {teams} equipos. Todos los puntos siguen ahí; los móviles vuelven solos.",
+  "host.addTime": "+10 s",
+  "host.back": "↶ Atrás",
+  "host.judgeAfter": "Toca ✓ o ✗ para dar una respuesta por buena o mala a posteriori."
 }

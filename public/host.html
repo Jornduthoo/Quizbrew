@@ -44,6 +44,18 @@
 
   <!-- Pick a quiz -->
   <main id="v-idle" class="view library" hidden>
+    <!-- A quiz that was running when Quizbrew stopped: pick it up again. -->
+    <section class="resume panel" id="resume" hidden>
+      <div>
+        <p class="label" data-i18n="host.resumeKicker"></p>
+        <h2 class="resume-title" id="resume-title"></h2>
+        <p class="hint" id="resume-meta"></p>
+      </div>
+      <div class="card-actions">
+        <button class="brass-btn" id="resume-go" type="button" data-i18n="host.resume"></button>
+        <button class="ghost-btn" id="resume-no" type="button" data-i18n="host.resumeNo"></button>
+      </div>
+    </section>
     <div class="hero">
       <img class="hero-logo" src="/img/logo.webp" alt="Quizbrew">
       <p class="hero-slogan" data-i18n="host.tagline"></p>
@@ -86,6 +98,8 @@
       </div>
       <div class="controls">
         <button class="brass-btn next" id="next"></button>
+        <button class="ghost-btn" id="add-time" type="button" data-i18n="host.addTime" hidden></button>
+        <button class="ghost-btn" id="back" type="button" data-i18n="host.back" hidden></button>
         <span class="key-hint" data-i18n="host.keyHint"></span>
         <button class="ghost-btn danger" id="stop" data-i18n="host.stop"></button>
       </div>

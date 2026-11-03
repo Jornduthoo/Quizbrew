@@ -1,5 +1,6 @@
 // The Quizbrew server: static screens, a few JSON routes and the live game over socket.io.
 const http = require('http');
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const { Server } = require('socket.io');
@@ -44,9 +45,37 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     return `http://${addr}:${server.address() ? server.address().port : port}/play`;
   };
 
+  // The running game is saved to data/live.json after every change (at most twice a second),
+  // so a crash or a closed window costs nothing: at the next start the quizmaster can pick it up again.
+  const liveFile = path.join(library.dataDir, 'live.json');
+  let saveSoon = null;
+  const saveLive = () => {
+    saveSoon = null;
+    if (game.phase === 'idle') return;
+    try {
+      fs.mkdirSync(library.dataDir, { recursive: true });
+      fs.writeFileSync(liveFile, JSON.stringify({ savedAt: Date.now(), quiz: game.quiz, state: game.snapshot() }));
+    } catch (err) { console.error('Could not save the game:', err.message); }
+  };
+  const forgetLive = () => { clearTimeout(saveSoon); saveSoon = null; try { fs.unlinkSync(liveFile); } catch { /* nothing saved */ } };
+  const readLive = () => { try { return JSON.parse(fs.readFileSync(liveFile, 'utf8')); } catch { return null; } };
   const game = new Game({
     emit: (target, event, payload) => io.to(target).emit(event, payload),
+    onChange: () => {
+      if (game.phase === 'idle' || saveSoon) return;
+      saveSoon = setTimeout(saveLive, 500);
+      saveSoon.unref();
+    },
   });
+  {
+    const saved = readLive();
+    if (saved && saved.quiz && saved.state && saved.state.phase !== 'end') {
+      game.resumable = {
+        title: saved.quiz.title, savedAt: saved.savedAt, teams: saved.state.teams.length,
+        round: saved.state.roundIndex + 1, rounds: saved.quiz.rounds.length,
+      };
+    }
+  }
   const ai = Ai.create(settings);
 
   // My quiz folder in OneDrive or Google Drive: at start, every minute, and a few seconds after every change here.
@@ -216,7 +245,24 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       // Play the sound of the question again (or stop it) on the big screen.
       on('media', action => { if (['replay', 'stop'].includes(action)) io.to('screen').emit('media', action); });
       on('next', () => game.next());
-      on('stop', () => game.stop());
+      on('back', () => game.back());
+      on('addTime', () => game.addTime());
+      on('stop', () => { forgetLive(); game.stop(); });
+      on('resume', cb => {
+        const saved = readLive();
+        try {
+          if (!saved) throw new Error('nothing saved');
+          game.resume(saved);
+          cb && cb({ ok: true });
+        } catch (err) {
+          console.error('Could not resume:', err.message);
+          game.resumable = null;
+          forgetLive();
+          game.broadcast();
+          cb && cb({ error: 'error.generic' });
+        }
+      });
+      on('discard', () => { game.resumable = null; forgetLive(); game.broadcast(); });
       on('kick', teamId => game.kick(String(teamId)));
       on('score', ({ teamId, delta } = {}) => game.adjustScore(String(teamId), Number(delta)));
       on('look', name => {
@@ -290,7 +336,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   return {
     app, io, server, game, remoteKey, cloud,
     listen: () => new Promise(resolve => server.listen(port, () => resolve(server.address().port))),
-    close: () => new Promise(resolve => { clearInterval(cloudTimer); clearTimeout(cloudSoon); game.reset(); io.close(); server.close(() => resolve()); }),
+    close: () => new Promise(resolve => { clearInterval(cloudTimer); clearTimeout(cloudSoon); clearTimeout(saveSoon); game.reset(); io.close(); server.close(() => resolve()); }),
   };
 }
 

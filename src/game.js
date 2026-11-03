@@ -8,6 +8,9 @@ const { TEAM_COLORS } = require('./teams');
 const rounds = require('./rounds');
 
 const MAX_NAME = 20;
+const MAX_UNDO = 40;
+const EXTRA_TIME = 10000; // the quizmaster's +10 s
+const RESTORE_MIN = 10000; // a question that comes back (undo, after a crash) gets at least 10 seconds
 const SHRINK_STEP = 5000; // shrinking options twist: one wrong answer disappears every 5 seconds
 
 // What a round remembers about a team between questions (streak, pot, out of the round ...).
@@ -16,9 +19,12 @@ const freshMem = () => ({ streak: 0, pot: 0, out: false, banked: false });
 class Game {
   // emit(target, event, payload): target is 'host', 'screen' or a team socket id.
   // clock: { now, setTimeout, clearTimeout } so tests can drive time.
-  constructor({ emit = () => {}, clock = { now: Date.now, setTimeout, clearTimeout } } = {}) {
+  // onChange(): called after every change, so the app can save the game (resume after a crash).
+  constructor({ emit = () => {}, clock = { now: Date.now, setTimeout, clearTimeout }, onChange = () => {} } = {}) {
     this.emit = emit;
     this.clock = clock;
+    this.onChange = onChange;
+    this.resumable = null; // a saved game from before a restart: { title, round, teams }
     this.teams = new Map(); // teamId -> team (see join)
     this.reset();
   }
@@ -41,6 +47,7 @@ class Game {
     this.resetRoundState();
     this.teams.clear();
     this.previousRanks = {};
+    this.history = []; // snapshots before every step, for the quizmaster's undo
   }
 
   // Finales and clock rounds: who plays, whose turn it is, how much time every team has left.
@@ -58,6 +65,7 @@ class Game {
   load(quiz) {
     const clean = validateQuiz(quiz);
     this.reset();
+    this.resumable = null;
     this.quiz = clean;
     this.phase = 'lobby';
     this.broadcast();
@@ -136,6 +144,11 @@ class Game {
 
   // One button for the quizmaster: always moves to the next logical step.
   next() {
+    if (this.phase === 'lobby' && this.teams.size === 0) return;
+    if (this.phase !== 'idle' && this.phase !== 'end') {
+      this.history.push(this.snapshot());
+      if (this.history.length > MAX_UNDO) this.history.shift();
+    }
     switch (this.phase) {
       case 'lobby':
         if (this.teams.size === 0) return;
@@ -620,8 +633,11 @@ class Game {
     return true;
   }
 
+  // After the reveal the quizmaster may still count an answer as right or wrong.
   canJudge() {
-    return this.kind === 'text' && (!this.type.score || !!this.type.judge);
+    if (this.type.vote || this.type.turns) return false;
+    if (this.kind === 'text') return !this.type.score || !!this.type.judge;
+    return !this.type.score && ['choice', 'trueFalse', 'number'].includes(this.kind);
   }
 
   showScoreboard() {
@@ -634,6 +650,94 @@ class Game {
   stop() {
     this.reset();
     this.broadcast();
+  }
+
+  // Everything the game needs to pick up again, as plain JSON (no quiz, no phones, no timers).
+  snapshot() {
+    const teams = [...this.teams].map(([id, t]) => {
+      const { phones, connected, ...rest } = t;
+      return [id, JSON.parse(JSON.stringify(rest))];
+    });
+    return {
+      phase: this.phase, roundIndex: this.roundIndex, questionIndex: this.questionIndex,
+      remaining: this.remaining(),
+      overrides: [...this.overrides], underdogs: [...this.underdogs], leaders: this.leaders,
+      buzz: this.buzz, ballot: this.ballot, actor: this.actor,
+      finalists: this.finalists, picker: this.picker, resolved: this.resolved, clocks: [...this.clocks],
+      turnTeam: this.turnTeam, nextTurn: this.nextTurn, duelWinner: this.duelWinner, roundOver: this.roundOver,
+      previousRanks: this.previousRanks, teams,
+    };
+  }
+
+  // Back to a snapshot: the quizmaster's undo, or a saved game after a restart.
+  // Phones that are connected now stay connected; a running question gets its time back (at least 10 s).
+  restore(snap) {
+    const s = JSON.parse(JSON.stringify(snap));
+    this.clearTimer();
+    Object.assign(this, {
+      phase: s.phase, roundIndex: s.roundIndex, questionIndex: s.questionIndex,
+      overrides: new Map(s.overrides), underdogs: new Set(s.underdogs), leaders: s.leaders,
+      buzz: s.buzz, ballot: s.ballot, actor: s.actor,
+      finalists: s.finalists, picker: s.picker, resolved: s.resolved, clocks: new Map(s.clocks),
+      turnTeam: s.turnTeam, nextTurn: s.nextTurn, duelWinner: s.duelWinner, roundOver: s.roundOver,
+      previousRanks: s.previousRanks || {},
+    });
+    const before = this.teams;
+    this.teams = new Map(s.teams.map(([id, t]) => {
+      const phones = before.has(id) ? before.get(id).phones : new Set();
+      return [id, { ...t, phones, connected: phones.size > 0 }];
+    }));
+    const left = Math.max(s.remaining || 0, RESTORE_MIN);
+    const now = this.clock.now();
+    if (this.phase === 'question') {
+      if (this.type.turns) {
+        this.questionStartedAt = now;
+        this.timer = this.clock.setTimeout(() => this.turnTimeout(), this.clocks.get(this.turnTeam));
+      } else {
+        const full = this.question.time * 1000;
+        this.questionStartedAt = now - Math.max(0, full - left);
+        if (this.buzz) this.buzz.left = Math.max(this.buzz.left, RESTORE_MIN);
+        else this.timer = this.clock.setTimeout(() => this.reveal(), Math.min(left, full));
+        if (this.shrinks()) this.scheduleShrink();
+      }
+    } else if (this.phase === 'vote') {
+      this.voteStartedAt = now - Math.max(0, this.voteTime() * 1000 - left);
+      this.timer = this.clock.setTimeout(() => this.finishVote(), Math.min(left, this.voteTime() * 1000));
+    }
+    this.broadcast();
+  }
+
+  // The quizmaster's undo: one step back.
+  back() {
+    const snap = this.history.pop();
+    if (!snap) return false;
+    this.restore(snap);
+    return true;
+  }
+
+  // The quizmaster's +10 s on the running question or vote (never past the full time).
+  addTime() {
+    const now = this.clock.now();
+    if (this.phase === 'question' && !this.type.turns && !this.buzz) {
+      this.questionStartedAt = Math.min(now, this.questionStartedAt + EXTRA_TIME);
+      this.clearTimer();
+      this.timer = this.clock.setTimeout(() => this.reveal(), this.remaining());
+      if (this.shrinks()) this.scheduleShrink();
+    } else if (this.phase === 'vote') {
+      this.voteStartedAt = Math.min(now, this.voteStartedAt + EXTRA_TIME);
+      this.clearTimer();
+      this.timer = this.clock.setTimeout(() => this.finishVote(), this.remaining());
+    } else return false;
+    this.broadcast();
+    return true;
+  }
+
+  // A saved game from before a restart (the app reads it from disk).
+  resume(saved) {
+    this.reset();
+    this.quiz = validateQuiz(saved.quiz);
+    this.resumable = null;
+    this.restore(saved.state);
   }
 
   clearTimer() {
@@ -796,6 +900,12 @@ class Game {
         ? [...this.teams.values()].filter(t => t.answer !== null).map(t => ({ name: t.name, color: t.color, answer: t.answer }))
         : null,
       canJudge: this.phase === 'reveal' && this.canJudge(),
+      judgeList: this.phase === 'reveal' && this.canJudge() && ['choice', 'trueFalse'].includes(this.kind)
+        ? [...this.teams.entries()].map(([id, t]) => ({ id, name: t.name, color: t.color, answer: t.answer, correct: t.correct, points: t.lastPoints }))
+        : null,
+      canBack: this.history.length > 0,
+      canAddTime: (this.phase === 'question' && !!this.type && !this.type.turns && !this.buzz) || this.phase === 'vote',
+      resumable: this.phase === 'idle' ? this.resumable : null,
       canJudgeBuzz: this.phase === 'question' && (!!this.buzz || (!!this.type.turns && !!this.turnTeam)),
       realTitle: this.round ? this.round.title : '',
       lastQuestion: !!this.round && this.questionIndex + 1 >= this.round.questions.length,
@@ -859,6 +969,7 @@ class Game {
     this.emit('screen', 'state', this.screenState());
     this.emit('lobby', 'state', this.teamState(null));
     for (const [id, t] of this.teams) if (t.connected) this.emit(`team:${id}`, 'state', this.teamState(id));
+    this.onChange();
   }
 }
 

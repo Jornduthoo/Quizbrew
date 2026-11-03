@@ -103,6 +103,12 @@
   function render(s) {
     showView(s.phase === 'idle' ? 'idle' : 'live');
     renderCopy();
+    const resume = s.resumable;
+    $('#resume').hidden = !resume;
+    if (resume) {
+      $('#resume-title').textContent = resume.title;
+      $('#resume-meta').textContent = t('host.resumeMeta', { n: resume.round, total: resume.rounds, teams: resume.teams });
+    }
     $('#quiz-name').textContent = s.title || '';
     if (s.phase === 'idle') return;
 
@@ -112,6 +118,8 @@
     if (label) next.textContent = t(label(s));
     next.disabled = s.phase === 'lobby' && s.teams.length === 0;
     $('#stop').textContent = t(s.phase === 'end' ? 'host.newQuiz' : 'host.stop');
+    $('#back').hidden = !s.canBack;
+    $('#add-time').hidden = !s.canAddTime;
 
     const kicker = $('#phase-kicker');
     const title = $('#phase-title');
@@ -189,6 +197,17 @@
         preview.append(h('ol', { class: 'mini-answers' }, answers.map((a, i) => h('li', { class: i === key ? 'key' : '', style: `--a: var(--ans-${i})` },
           h('span', { class: 'letter' }, kind === 'trueFalse' ? (i === 0 ? '✓' : '✗') : LETTERS[i]), a,
           s.phase === 'reveal' && s.counts ? h('span', { class: 'n' }, s.counts[i]) : null))));
+        // After the reveal: every team's pick, and ✓ / ✗ to overrule it.
+        if (s.judgeList) {
+          const letter = x => (x === null ? '—' : kind === 'trueFalse' ? (x === 0 ? t('play.true') : t('play.false')) : LETTERS[x] || '?');
+          preview.append(h('ul', { class: 'judge-list' }, s.judgeList.map(a => h('li', { class: 'judge-row' + (a.correct ? ' right' : ' wrong'), style: teamVar(a.color) },
+            h('span', { class: 'team-dot' }), h('span', { class: 'name' }, a.name), h('span', { class: 'given' }, letter(a.answer)),
+            h('span', { class: 'pts' }, (a.points > 0 ? '+' : '') + a.points),
+            h('span', { class: 'judge' },
+              h('button', { class: 'mini ok' + (a.correct ? ' on' : ''), title: t('host.markRight'), onclick: () => socket.emit('judge', { teamId: a.id, correct: true }) }, '✓'),
+              h('button', { class: 'mini no' + (!a.correct ? ' on' : ''), title: t('host.markWrong'), onclick: () => socket.emit('judge', { teamId: a.id, correct: false }) }, '✗'))))));
+          preview.append(h('p', { class: 'hint' }, t('host.judgeAfter')));
+        }
       } else {
         const keyText = s.phase === 'reveal' ? s.reveal.answerText : s.answerKey && s.answerKey.answerText;
         if (keyText) preview.append(h('p', { class: 'answer-key' }, t('host.answerKey', { text: keyText + (q.unit ? ' ' + q.unit : '') })));
@@ -249,6 +268,10 @@
   }
 
   $('#next').addEventListener('click', () => socket.emit('next'));
+  $('#back').addEventListener('click', () => socket.emit('back'));
+  $('#add-time').addEventListener('click', () => socket.emit('addTime'));
+  $('#resume-go').addEventListener('click', () => socket.emit('resume', res => { if (res && res.error) alert(t(res.error)); }));
+  $('#resume-no').addEventListener('click', () => { if (confirm(t('host.resumeNoSure'))) socket.emit('discard'); });
   $('#stop').addEventListener('click', () => {
     if (state.phase === 'end' || confirm(t('host.confirmStop'))) socket.emit('stop');
   });
@@ -257,6 +280,10 @@
     if ((e.key === ' ' || e.key === 'ArrowRight') && !$('#next').hidden && !$('#next').disabled && !$('#v-live').hidden) {
       e.preventDefault();
       socket.emit('next');
+    }
+    if (e.key === 'ArrowLeft' && !$('#back').hidden && !$('#v-live').hidden) {
+      e.preventDefault();
+      socket.emit('back');
     }
   });
 })();

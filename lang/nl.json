@@ -43,7 +43,7 @@
   "host.showWinner": "Winnaar tonen",
   "host.newQuiz": "Nieuwe quiz",
   "host.stop": "Quiz stoppen",
-  "host.keyHint": "Spatie = volgende",
+  "host.keyHint": "Spatie = verder · ← = terug",
   "host.teams": "Teams",
   "host.noTeams": "Nog geen teams. Ze scannen de QR-code op het grote scherm.",
   "host.answered": "geantwoord",
@@ -679,5 +679,13 @@
   "host.mode": "Hoe spelen",
   "mode.screen": "📺 Groot scherm",
   "mode.phones": "📱 Alleen gsm's",
-  "play.bigger": "Toon het scherm groot"
+  "play.bigger": "Toon het scherm groot",
+  "host.resumeKicker": "Quizbrew stopte tijdens een quiz",
+  "host.resume": "Verder spelen",
+  "host.resumeNo": "Opnieuw beginnen",
+  "host.resumeNoSure": "De bewaarde quiz met ploegen en scores weggooien?",
+  "host.resumeMeta": "Ronde {n} van {total} · {teams} ploegen. Alle scores staan er nog; de gsm's doen vanzelf weer mee.",
+  "host.addTime": "+10 s",
+  "host.back": "↶ Stap terug",
+  "host.judgeAfter": "Tik ✓ of ✗ om een antwoord toch goed of fout te rekenen."
 }
