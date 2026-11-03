@@ -52,7 +52,7 @@ test('every round type, scoring mode, twist and family has a name in every langu
     for (const s of rounds.SCORINGS) assert.ok(d[`scoring.${s}`] && d[`scoring.${s}.desc`], `${code}: scoring.${s}`);
     for (const tw of rounds.TWISTS) assert.ok(d[`twist.${tw}`] && d[`twist.${tw}.desc`], `${code}: twist.${tw}`);
     for (const f of ['all', ...rounds.FAMILIES]) assert.ok(d[`family.${f}`], `${code}: family.${f}`);
-    for (const k of ['choice', 'trueFalse', 'text', 'number', 'choiceOrText', 'order', 'pairs', 'point', 'buzz', 'list', 'level']) assert.ok(d[`kind.${k}`], `${code}: kind.${k}`);
+    for (const k of ['choice', 'trueFalse', 'text', 'number', 'choiceOrText', 'order', 'pairs', 'point', 'buzz', 'list', 'level', 'draw', 'photo']) assert.ok(d[`kind.${k}`], `${code}: kind.${k}`);
   }
 });
 
@@ -310,6 +310,82 @@ test('crowd mind: the most common answer scores', () => {
   game.answer(ids[2], 'Kiwi');
   assert.deepEqual(scores(game), [2, 2, 0]);
   assert.equal(game.screenState().reveal.answerText, 'Apple');
+});
+
+test('caption this: entries go on a ballot, every vote is worth the points, no voting for yourself', () => {
+  const { game, ids, go } = play({ type: 'captionThis', questions: [{ image: '/media/x.webp', question: 'Caption?' }] }, { teams: ['A', 'B', 'C'] });
+  go();
+  game.answer(ids[0], 'Monday mood');
+  game.answer(ids[1], 'When the wifi drops');
+  game.answer(ids[2], 'Me at 7 am');
+  assert.equal(game.phase, 'vote');
+  const ballot = game.teamState(ids[0]).ballot;
+  assert.equal(ballot.length, 3);
+  assert.equal(ballot.filter(b => b.mine).length, 1);
+  const idx = text => ballot.findIndex(b => b.content === text);
+  assert.equal(game.castVote(ids[0], idx('Monday mood')), false, 'own entry');
+  game.castVote(ids[0], idx('When the wifi drops'));
+  game.castVote(ids[1], idx('Me at 7 am'));
+  game.castVote(ids[2], idx('When the wifi drops'));
+  assert.equal(game.phase, 'reveal');
+  assert.deepEqual(scores(game), [0, 2, 1]);
+  assert.equal(game.screenState().ballot.find(b => b.content === 'When the wifi drops').votes.length, 2);
+});
+
+test('bluff: find the truth, fool the others', () => {
+  const { game, ids, go } = play({ type: 'bluffBank', questions: [{ question: 'What was the first webcam used for?', answer: 'Watching a coffee pot' }] }, { teams: ['A', 'B', 'C'] });
+  go();
+  assert.equal(game.answer(ids[0], 'watching a coffee pot'), false, 'the real answer is no bluff');
+  game.answer(ids[0], 'Spying on a cat');
+  game.answer(ids[1], 'Checking the weather');
+  game.answer(ids[2], 'Counting birds');
+  const ballot = game.teamState(ids[0]).ballot;
+  assert.equal(ballot.length, 4);
+  const idx = text => ballot.findIndex(b => b.content === text);
+  game.castVote(ids[0], idx('Watching a coffee pot')); // A finds the truth: +1
+  game.castVote(ids[1], idx('Spying on a cat')); // B fooled by A: A +1
+  game.castVote(ids[2], idx('Spying on a cat')); // C fooled by A: A +1
+  assert.deepEqual(scores(game), [3, 0, 0]);
+  assert.equal(game.screenState().ballot.find(b => b.truth).content, 'Watching a coffee pot');
+});
+
+test("who's who: match answers to teams by colour", () => {
+  const { game, ids, go } = play({ type: 'whosWho', questions: [{ question: 'Our hidden talent' }] }, { teams: ['A', 'B', 'C'] });
+  go();
+  game.answer(ids[0], 'Juggling');
+  game.answer(ids[1], 'Yodeling');
+  game.answer(ids[2], 'Origami');
+  const st = game.teamState(ids[0]);
+  assert.deepEqual(st.teamsToMatch.map(x => x.name), ['B', 'C']);
+  const owner = { Juggling: 'amber', Yodeling: 'pink', Origami: 'cyan' };
+  game.castVote(ids[0], st.ballot.map(b => owner[b.content]));
+  game.castVote(ids[1], st.ballot.map(() => 'amber'));
+  game.castVote(ids[2], st.ballot.map(() => 'nope'));
+  assert.deepEqual(scores(game), [2, 1, 0]);
+});
+
+test('act it out: one team acts, the others guess, the actors score when someone gets it', () => {
+  const { game, ids, go } = play({ type: 'actItOut', questions: [{ answer: 'Penguin' }, { answer: 'Firefighter' }] }, { teams: ['A', 'B', 'C'] });
+  go();
+  assert.equal(game.teamState(ids[0]).isActor, true);
+  assert.equal(game.teamState(ids[0]).secret, 'Penguin');
+  assert.equal(game.teamState(ids[1]).secret, null);
+  assert.equal(game.answer(ids[0], 'Penguin'), false, 'the actors do not guess');
+  game.answer(ids[1], 'penguin');
+  game.answer(ids[2], 'duck');
+  assert.equal(game.phase, 'reveal');
+  assert.deepEqual(scores(game), [1, 1, 0]);
+  go();
+  assert.equal(game.teamState(ids[1]).isActor, true, 'the next team acts');
+});
+
+test('drawings and photos are media urls; one entry only skips the vote', () => {
+  const { game, ids, go } = play({ type: 'drawGuess', questions: [{ question: 'Draw a cat' }] });
+  go();
+  assert.equal(game.answer(ids[0], 'data:image/png;base64,AAAA'), false, 'raw data never reaches the game');
+  assert.equal(game.answer(ids[0], '/media/0123456789abcdef0123.webp'), true);
+  go();
+  assert.equal(game.phase, 'reveal');
 });
 
 test('scoring modes: speed, race, risk, time and ladder', () => {

@@ -66,6 +66,14 @@ Open http://localhost:3000/builder (or "Open quiz builder" on the quizmaster scr
 | `hotStreak` | buttons or typed; right answers in a row count up | 1x, 2x, 3x ... |
 | `listRush` | type as many items as you can until time is up | points per item |
 | `crowdMind` | type; no right answer | the most common answer scores |
+| `drawGuess` | draw on the phone, then vote for the best drawing | points per vote |
+| `captionThis` | write a caption for a picture, then vote | points per vote |
+| `bluffBank` | write a fake answer, then find the truth between the bluffs | truth found + teams fooled |
+| `actItOut` | one team acts the secret out (it is only on their phone), the others type | right guess; actors score when anyone gets it |
+| `photoHunt` | take a photo for the task, then vote | points per vote |
+| `whosWho` | answer about your team, then match answers to teams | points per right match |
+
+Party rounds add a vote phase after the question: drawings and photos are stored in the library media folder, and nobody can vote for their own entry.
 
 Sound files (mp3, m4a, ogg, wav) are uploaded in the builder with a start and end second. Browsers only play sound after one click on the big screen; a button asks for it when needed.
 

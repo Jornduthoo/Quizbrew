@@ -20,7 +20,7 @@ const TEAM_ID = /^[a-z0-9]{8,40}$/;
 function createServer({ port = 3000, settings = Settings.create(), library = Library.create(), lanAddresses = network.lanAddresses, hostFromAnywhere = false } = {}) {
   const app = express();
   const server = http.createServer(app);
-  const io = new Server(server, { serveClient: true, pingInterval: 10000, pingTimeout: 8000 });
+  const io = new Server(server, { serveClient: true, pingInterval: 10000, pingTimeout: 8000, maxHttpBufferSize: 3e6 });
   const pub = path.join(__dirname, '..', 'public');
 
   const language = () => (i18n.isSupported(settings.get('language')) ? settings.get('language') : i18n.DEFAULT);
@@ -198,7 +198,16 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       }
       cb(result);
     });
-    on('answer', choice => teamId && game.answer(teamId, choice));
+    on('answer', choice => {
+      if (!teamId) return;
+      // A drawing or a photo: store the picture first, the game only keeps its url.
+      const m = typeof choice === 'string' && /^data:(image\/(?:webp|png|jpeg));base64,(.+)$/.exec(choice);
+      if (m) {
+        try { choice = library.addMedia(Buffer.from(m[2], 'base64'), m[1]); } catch { return; }
+      }
+      game.answer(teamId, choice);
+    });
+    on('vote', choice => teamId && game.castVote(teamId, choice));
     on('wager', amount => teamId && game.setWager(teamId, Number(amount)));
     on('bank', () => teamId && game.bankPot(teamId));
     on('joker', () => teamId && game.playJoker(teamId));

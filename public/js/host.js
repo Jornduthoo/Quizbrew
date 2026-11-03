@@ -46,7 +46,8 @@
     lobby: () => 'host.startQuiz',
     roundIntro: () => 'host.firstQuestion',
     wager: () => 'host.showQuestion',
-    question: () => 'host.reveal',
+    question: s => (s.round && ['drawGuess', 'captionThis', 'bluffBank', 'photoHunt', 'whosWho'].includes(s.round.type) ? 'host.startVote' : 'host.reveal'),
+    vote: () => 'host.showVotes',
     reveal: s => (s.lastQuestion ? 'host.showScores' : 'host.nextQuestion'),
     scoreboard: s => (s.lastRound ? 'host.showWinner' : 'host.nextRound'),
   };
@@ -87,10 +88,22 @@
       title.textContent = s.category || '';
       preview.append(h('p', { class: 'hint' }, t('host.wagered', { n: s.teams.filter(x => x.wagered).length, total: s.teams.length })));
       if (s.answerKey) preview.append(h('p', { class: 'answer-key' }, t('host.answerKey', { text: s.answerKey.answerText })));
+    } else if (s.phase === 'vote') {
+      kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('host.phase.vote')}`;
+      title.textContent = s.question.text || '';
+      preview.append(h('ol', { class: 'mini-answers ballot-mini' }, s.ballot.map((b, i) => h('li', {},
+        h('span', { class: 'letter' }, LETTERS[i] || String(i + 1)), b.image ? h('img', { class: 'ballot-thumb', src: b.content, alt: '' }) : b.content))));
+      preview.append(h('p', { class: 'hint' }, t('screen.votedCount', { n: s.answered, total: s.teams.length })));
     } else if (s.phase === 'question' || s.phase === 'reveal') {
       kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions })}`;
       const q = s.question;
       title.textContent = q.text || (q.clues ? q.clues.join(' · ') : '') || (q.scrambled || '');
+      if (s.actor) preview.append(h('p', { class: 'hint' }, t('screen.actsNow', { name: s.actor.name })));
+      if (s.phase === 'reveal' && s.ballot) {
+        preview.append(h('ol', { class: 'mini-answers ballot-mini' }, s.ballot.map((b, i) => h('li', { class: b.truth ? 'key' : '' },
+          h('span', { class: 'letter' }, LETTERS[i] || String(i + 1)), b.image ? h('img', { class: 'ballot-thumb', src: b.content, alt: '' }) : b.content,
+          h('span', { class: 'n' }, `${b.truth ? t('screen.theTruth') : b.by ? b.by.name : ''} · ${(b.votes || []).length}`)))));
+      }
       const key = s.phase === 'reveal' ? s.reveal : s.answerKey;
       if (q.emoji) preview.append(h('p', { class: 'host-emoji' }, q.emoji));
       if (q.image) preview.append(h('img', { class: 'host-img' + (q.effect === 'silhouette' && s.phase !== 'reveal' ? ' shadow' : ''), src: q.image, alt: '' }));

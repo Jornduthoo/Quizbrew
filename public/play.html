@@ -83,6 +83,39 @@
     <ul class="list-sent" id="list-sent"></ul>
   </section>
 
+  <!-- Draw on the phone -->
+  <section id="v-draw" class="view answer-view" hidden>
+    <div class="mini-head"><span id="d-num"></span><span id="d-time"></span></div>
+    <div class="draw-wrap"><canvas class="draw-canvas" id="draw-canvas"></canvas></div>
+    <div class="draw-tools" id="draw-tools"></div>
+    <div class="build-actions">
+      <button class="ghost-btn" id="draw-undo" type="button" data-i18n="play.undo"></button>
+      <button class="ghost-btn" id="draw-clear" type="button" data-i18n="play.clear"></button>
+      <button class="brass-btn big" id="draw-send" type="button" data-i18n="play.send"></button>
+    </div>
+  </section>
+
+  <!-- Take a photo -->
+  <section id="v-photo" class="view center" hidden>
+    <div class="mini-head wide"><span id="p-num"></span><span id="p-time"></span></div>
+    <label class="photo-shot"><input type="file" id="photo-input" accept="image/*" capture="environment" hidden><img id="photo-preview" alt="" hidden><span id="photo-label" data-i18n="play.takePhoto"></span></label>
+    <button class="brass-btn big" id="photo-send" type="button" data-i18n="play.send" disabled></button>
+  </section>
+
+  <!-- Act it out: only the acting team sees the secret -->
+  <section id="v-actor" class="view center" hidden>
+    <p class="label" data-i18n="play.actKicker"></p>
+    <p class="secret" id="actor-secret"></p>
+    <p class="sub" data-i18n="play.actHint"></p>
+  </section>
+
+  <!-- Vote on what the other teams made -->
+  <section id="v-vote" class="view answer-view" hidden>
+    <div class="mini-head"><span id="v-label"></span><span id="v-time"></span></div>
+    <div class="ballot" id="ballot"></div>
+    <button class="brass-btn big" id="match-send" type="button" data-i18n="play.send" hidden></button>
+  </section>
+
   <!-- Bet points before the question (jackpot) -->
   <section id="v-wager" class="view center" hidden>
     <p class="label" id="wager-kicker"></p>

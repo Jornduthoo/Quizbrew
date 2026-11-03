@@ -34,6 +34,9 @@ class Game {
     this.underdogs = new Set();
     this.leaders = [];
     this.buzz = null;
+    this.ballot = null;
+    this.actor = null;
+    this.voteStartedAt = 0;
     this.teams.clear();
     this.previousRanks = {};
   }
@@ -123,6 +126,8 @@ class Game {
         return this.startQuestion();
       case 'question':
         return this.reveal();
+      case 'vote':
+        return this.finishVote();
       case 'reveal':
         if (this.questionIndex + 1 < this.round.questions.length) return this.openQuestion(this.questionIndex + 1);
         return this.showScoreboard();
@@ -159,12 +164,17 @@ class Game {
     this.questionIndex = index;
     this.overrides = new Map();
     this.buzz = null;
+    this.ballot = null;
+    // Act it out: the teams take turns, in the order they joined.
+    const ids = [...this.teams.keys()];
+    this.actor = this.type.actor && ids.length ? ids[(this.roundIndex + this.questionIndex) % ids.length] : null;
     const top = Math.max(...[...this.teams.values()].map(t => t.score));
     this.leaders = top > 0 ? [...this.teams.entries()].filter(([, t]) => t.score === top).map(([id]) => id) : [];
     for (const t of this.teams.values()) {
       if (t.memNext) { t.mem = t.memNext; t.memNext = null; }
       t.bank = false;
       t.buzzOut = false;
+      t.vote = null;
       t.answer = null;
       t.answeredAt = 0;
       t.correct = false;
@@ -192,7 +202,7 @@ class Game {
   }
 
   done(t) {
-    return t.answer !== null || t.bank || t.blocked || !t.connected || this.sitsOut(t);
+    return t.answer !== null || t.bank || t.blocked || !t.connected || this.sitsOut(t) || (!!this.actor && this.teams.get(this.actor) === t);
   }
 
   setWager(teamId, amount) {
@@ -214,7 +224,7 @@ class Game {
 
   answer(teamId, raw) {
     const t = this.teams.get(teamId);
-    if (!t || this.phase !== 'question' || t.blocked || t.bank || this.sitsOut(t)) return false;
+    if (!t || this.phase !== 'question' || t.blocked || t.bank || this.sitsOut(t) || teamId === this.actor) return false;
     if (t.answer !== null && !this.type.multi) return false;
     if (this.kind === 'buzz') return this.buzzIn(teamId, t);
     const value = this.type.parse(raw, this.question, t);
@@ -285,7 +295,7 @@ class Game {
     const ids = [...this.teams.keys()];
     const entries = ids.map(id => {
       const t = this.teams.get(id);
-      return { id, answer: t.answer, answeredAt: t.answeredAt, wager: t.wager || 0, mem: t.mem, bank: t.bank, score: t.score - t.lastPoints };
+      return { id, answer: t.answer, answeredAt: t.answeredAt, wager: t.wager || 0, mem: t.mem, bank: t.bank, score: t.score - t.lastPoints, vote: t.vote };
     });
     const base = q.points;
     const timeMs = q.time * 1000;
@@ -293,7 +303,7 @@ class Game {
     const isRight = e => (this.overrides.has(e.id) ? this.overrides.get(e.id) : e.answer !== null && !!type.isCorrect && type.isCorrect(e.answer, q));
     if (type.score) {
       results = type.score(entries, q, base, {
-        isRight, leaders: this.leaders, scoring: this.round.scoring,
+        isRight, leaders: this.leaders, scoring: this.round.scoring, ballot: this.ballot, vote: type.vote, actor: this.actor,
         lastQuestion: this.questionIndex + 1 >= this.round.questions.length,
       });
     } else {
@@ -345,10 +355,74 @@ class Game {
   reveal() {
     if (this.phase !== 'question') return;
     this.clearTimer();
+    if (this.type.vote && this.startVote()) return;
     for (const t of this.teams.values()) t.lastPoints = 0;
     this.applyPoints();
     this.phase = 'reveal';
     this.broadcast();
+  }
+
+  // Party rounds: everything the teams made goes on a ballot (shuffled, the same after a reload) and every team votes.
+  startVote() {
+    const made = [...this.teams.entries()].filter(([, t]) => t.answer !== null).map(([teamId, t]) => ({ teamId, content: t.answer }));
+    if (this.type.vote === 'truth') made.push({ teamId: null, content: this.question.answer });
+    const enough = this.type.vote === 'truth' ? made.length >= 2 : made.length >= 2 && this.teams.size >= 2;
+    if (!enough) return false;
+    const order = rounds.permutation(made.length, made.map(m => m.content).join('|') + this.questionIndex);
+    this.ballot = order.map((i, k) => ({ id: k, ...made[i] }));
+    this.phase = 'vote';
+    this.voteStartedAt = this.clock.now();
+    this.timer = this.clock.setTimeout(() => this.finishVote(), this.voteTime() * 1000);
+    this.broadcast();
+    return true;
+  }
+
+  voteTime() {
+    return this.type.vote === 'match' ? 45 : 30;
+  }
+
+  // best / truth: the index of an entry that is not your own. match: for every entry the colour of the team you think wrote it.
+  castVote(teamId, raw) {
+    const t = this.teams.get(teamId);
+    if (!t || this.phase !== 'vote' || t.vote !== null) return false;
+    const ballot = this.ballot;
+    if (this.type.vote === 'match') {
+      if (!Array.isArray(raw) || raw.length !== ballot.length) return false;
+      const byColor = new Map([...this.teams.entries()].map(([id, x]) => [x.color, id]));
+      t.vote = raw.map((c, i) => (ballot[i].teamId === teamId ? null : byColor.get(c) || null));
+    } else {
+      if (!Number.isInteger(raw) || !ballot[raw] || ballot[raw].teamId === teamId) return false;
+      t.vote = raw;
+    }
+    if ([...this.teams.values()].every(x => x.vote !== null || !x.connected)) this.finishVote();
+    else this.broadcast();
+    return true;
+  }
+
+  finishVote() {
+    if (this.phase !== 'vote') return;
+    this.clearTimer();
+    for (const t of this.teams.values()) t.lastPoints = 0;
+    this.applyPoints();
+    this.phase = 'reveal';
+    this.broadcast();
+  }
+
+  // What the ballot looks like on a screen: an entry is a picture or a text; the authors only come with the reveal.
+  publicBallot(teamId) {
+    if (!this.ballot) return null;
+    const reveal = this.phase === 'reveal';
+    return this.ballot.map(b => {
+      const out = { content: b.content, image: /^\/media\//.test(b.content) };
+      if (teamId !== undefined) out.mine = b.teamId === teamId;
+      if (reveal) {
+        const author = b.teamId && this.teams.get(b.teamId);
+        out.truth = b.teamId === null;
+        out.by = author ? { name: author.name, color: author.color } : null;
+        out.votes = [...this.teams.values()].filter(x => x.vote === b.id).map(x => ({ name: x.name, color: x.color }));
+      }
+      return out;
+    });
   }
 
   // The quizmaster overrules a typed answer after the reveal (a spelling the list did not know, a wrong match).
@@ -395,6 +469,7 @@ class Game {
   }
 
   remaining() {
+    if (this.phase === 'vote') return Math.max(0, this.voteTime() * 1000 - (this.clock.now() - this.voteStartedAt));
     if (this.phase !== 'question') return 0;
     if (this.buzz) return this.buzz.left;
     return Math.max(0, this.question.time * 1000 - (this.clock.now() - this.questionStartedAt));
@@ -421,7 +496,7 @@ class Game {
 
   common() {
     const q = this.question;
-    const showQuestion = q && (this.phase === 'question' || this.phase === 'reveal');
+    const showQuestion = q && (this.phase === 'question' || this.phase === 'reveal' || this.phase === 'vote');
     const round = this.round;
     return {
       phase: this.phase,
@@ -442,6 +517,8 @@ class Game {
       // Buzzer: who holds the floor; the clock stands still meanwhile.
       buzz: this.buzz ? { name: this.teams.get(this.buzz.teamId).name, color: this.teams.get(this.buzz.teamId).color } : null,
       paused: !!this.buzz,
+      vote: this.ballot && (this.phase === 'vote' || this.phase === 'reveal') ? { mode: this.type.vote, time: this.voteTime() } : null,
+      actor: this.actor && this.teams.get(this.actor) ? { name: this.teams.get(this.actor).name, color: this.teams.get(this.actor).color } : null,
     };
   }
 
@@ -476,7 +553,8 @@ class Game {
         out: this.sitsOut(t), pot: t.mem.pot, streak: t.mem.streak, banked: t.bank || t.mem.banked, buzzOut: t.buzzOut,
         level: this.type && this.type.wager === 'level' ? t.wager : null,
       })),
-      answered: teams.filter(t => t.answer !== null || t.bank).length,
+      answered: this.phase === 'vote' ? teams.filter(t => t.vote !== null).length : teams.filter(t => t.answer !== null || t.bank).length,
+      ballot: this.publicBallot(),
       counts: null,
       answers: null,
       ranking: this.phase === 'scoreboard' || this.phase === 'end' || reveal ? this.ranking() : null,
@@ -545,6 +623,12 @@ class Game {
       buzzOut: t.buzzOut,
       buzzMine: !!this.buzz && this.buzz.teamId === teamId,
       found: this.phase === 'reveal' ? t.found : undefined,
+      ballot: this.publicBallot(teamId),
+      voted: t.vote !== null,
+      isActor: this.actor === teamId,
+      secret: this.actor === teamId && this.phase === 'question' ? this.question.answer : null,
+      // Who's who: the teams you can choose from (by colour, never by id).
+      teamsToMatch: this.phase === 'vote' && this.type.vote === 'match' ? [...this.teams.entries()].filter(([id]) => id !== teamId).map(([, x]) => ({ name: x.name, color: x.color })) : null,
     };
   }
 
