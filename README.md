@@ -34,6 +34,16 @@ Open http://localhost:3000/builder (or "Open quiz builder" on the quizmaster scr
 - Import and export: `.quizbrew.json` (pictures inside the file) and spreadsheets (`.csv`, comma or semicolon).
 - AI help per round or for the whole evening: with your own Gemini, Claude or ChatGPT key (kept in `data/settings.json`), or by copying the prompt into any AI chat and pasting the answer back.
 
+## My quiz folder (OneDrive or Google Drive)
+
+Build at home, play on the quiz laptop. In the builder, click **Quiz folder** and pick a folder in OneDrive or Google Drive (Quizbrew finds them on Windows and offers them with one click), or type the path. Pick the same folder on every computer that runs Quizbrew.
+
+- The folder gets `library/` (your quizzes and folders), `media/` (pictures, sounds, clips) and `_trash/`.
+- It syncs at start, every minute, and a few seconds after every change. **Sync now** does it straight away.
+- Changed on both computers? The newest version wins; the other one goes to `_trash` (30 days). A deleted quiz goes there too, and a half-downloaded file is never pulled in.
+- If the `library` folder in the cloud is missing, nothing is deleted on this computer.
+- Export and import still work for sending one quiz to someone else.
+
 ## Run sheet and remote
 
 - **Run sheet**: *Run sheet* on a quiz card (or in the builder) opens a printable sheet with every round, question, answer, time and points, plus an empty score sheet. Untick *With answers* for a copy without answers.

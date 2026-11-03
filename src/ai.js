@@ -9,7 +9,7 @@ const PROVIDERS = {
   claude: { name: 'Claude', key: 'claudeKey', model: 'claudeModel', defaultModel: 'claude-sonnet-5-5' },
   openai: { name: 'ChatGPT', key: 'openaiKey', model: 'openaiModel', defaultModel: 'gpt-6.1-sol' },
 };
-const LANGUAGE_NAMES = { en: 'English', nl: 'Dutch (Flemish, as spoken in Belgium)', fr: 'French' };
+const LANGUAGE_NAMES = { en: 'English', nl: 'Dutch (Flemish, as spoken in Belgium)', fr: 'French', de: 'German', es: 'Spanish' };
 const AUDIENCES = { mixed: 'a mixed adult pub crowd', kids: 'children aged 8 to 12', experts: 'experienced quiz fans', company: 'colleagues at a company party', family: 'a family party with all ages' };
 const DIFFICULTY = ['', 'very easy', 'easy', 'medium', 'hard', 'very hard'];
 

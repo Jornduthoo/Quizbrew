@@ -15,6 +15,7 @@
     <span class="quiz-name" data-i18n="builder.title"></span>
     <div class="top-actions">
       <span class="save-state" id="save-state"></span>
+      <button class="ghost-btn cloud-btn" id="cloud-btn"><span class="cloud-dot" id="cloud-dot"></span><span data-i18n="cloud.button"></span></button>
       <button class="ghost-btn" id="ai-settings-btn" data-i18n="builder.aiSettings"></button>
       <a class="ghost-btn" href="/host" data-i18n="builder.toHost"></a>
     </div>
@@ -128,6 +129,34 @@
       <p class="hint" data-i18n="ai.keyPrivacy"></p>
       <button class="brass-btn" type="submit" data-i18n="builder.saveSettings"></button>
     </form>
+  </dialog>
+
+  <!-- My quiz folder in OneDrive or Google Drive -->
+  <dialog class="modal small" id="cloud-modal">
+    <header class="modal-head">
+      <h2 data-i18n="cloud.title"></h2>
+      <button class="mini close" data-close data-i18n-attr="aria-label:builder.close"></button>
+    </header>
+    <div class="cloud-body">
+      <p class="hint" data-i18n="cloud.intro"></p>
+      <p class="cloud-status" id="cloud-status"></p>
+      <div class="cloud-linked" id="cloud-linked">
+        <button class="brass-btn small" id="cloud-sync" type="button" data-i18n="cloud.syncNow"></button>
+        <button class="ghost-btn small" id="cloud-open" type="button" data-i18n="cloud.open"></button>
+        <button class="ghost-btn small danger" id="cloud-off" type="button" data-i18n="cloud.disconnect"></button>
+      </div>
+      <div class="cloud-pick">
+        <p class="cloud-label" id="cloud-sugg-label" data-i18n="cloud.quickPick"></p>
+        <div class="chips" id="cloud-sugg"></div>
+        <label class="cloud-label" for="cloud-path" data-i18n="cloud.path"></label>
+        <div class="cloud-row">
+          <input id="cloud-path" autocomplete="off" spellcheck="false">
+          <button class="ghost-btn small" id="cloud-browse" type="button" data-i18n="cloud.browse"></button>
+        </div>
+        <button class="brass-btn" id="cloud-use" type="button" data-i18n="cloud.use"></button>
+      </div>
+      <p class="hint" data-i18n="cloud.how"></p>
+    </div>
   </dialog>
 
   <script src="/socket.io/socket.io.js"></script>

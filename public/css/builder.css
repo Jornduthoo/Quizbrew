@@ -220,3 +220,24 @@ body.builder { font-size: 15px; }
 .opt-head .field { flex: 1; }
 .video-preview { max-width: 320px; max-height: 180px; border-radius: 8px; background: var(--wood-900); }
 .round-note { margin: 0 0 12px; padding: 8px 12px; border-left: 3px solid var(--glow, var(--brass)); background: rgba(0, 0, 0, .25); border-radius: 0 8px 8px 0; }
+
+/* My quiz folder */
+.cloud-btn { display: inline-flex; align-items: center; gap: 8px; }
+.cloud-dot { width: 9px; height: 9px; border-radius: 50%; background: rgb(var(--k-brass-l) / .25); box-shadow: inset 0 0 0 1px rgb(var(--k-brass-l) / .4); }
+.cloud-dot.on { background: var(--good); box-shadow: 0 0 8px var(--good); }
+.cloud-dot.bad { background: var(--bad); box-shadow: 0 0 8px var(--bad); }
+.cloud-body { display: flex; flex-direction: column; gap: 14px; padding: 18px 22px 22px; }
+.cloud-body .hint { margin: 0; }
+.cloud-status { margin: 0; padding: 12px 14px; border-radius: 12px; background: rgba(0, 0, 0, .3); border: 1.5px solid rgb(var(--k-brass-l) / .2); line-height: 1.5; overflow-wrap: anywhere; }
+.cloud-status.on { border-color: color-mix(in srgb, var(--good) 55%, transparent); box-shadow: 0 0 18px color-mix(in srgb, var(--good) 12%, transparent); }
+.cloud-status.bad { border-color: color-mix(in srgb, var(--bad) 60%, transparent); color: color-mix(in srgb, var(--bad) 40%, white); }
+.cloud-status strong { color: var(--brass-light); }
+.cloud-linked { display: flex; flex-wrap: wrap; gap: 8px; }
+.cloud-linked[hidden] { display: none; }
+.cloud-pick { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.cloud-pick .chips { padding: 0; }
+.cloud-label { margin: 4px 0 0; font-size: .85em; font-weight: 700; color: var(--muted); }
+.cloud-label[hidden] { display: none; }
+.cloud-row { display: flex; gap: 8px; width: 100%; }
+.cloud-row input { flex: 1; min-width: 0; padding: .55em .8em; border-radius: 10px; border: 1.5px solid rgb(var(--k-brass-l) / .3); background: rgba(0, 0, 0, .35); color: var(--cream); font-family: ui-monospace, monospace; font-size: .9em; }
+.cloud-row button[hidden], .cloud-linked button[hidden] { display: none; }
