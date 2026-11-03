@@ -442,8 +442,8 @@ body.silent .mini-head span:last-child, body.silent #turn-num { visibility: hidd
 /* "Did you know": a short extra line along the bottom after the answer (where the answered dots were). */
 .screen .q-fact {
   position: absolute; left: 50%; bottom: 1.4vh; transform: translateX(-50%); z-index: 2;
-  width: max-content; max-width: 84vw; margin: 0; padding: .7vh 1.6vw; border-radius: 999px; text-align: center;
-  background: rgb(0 0 0 / .72); border: 2px solid var(--brass); color: var(--cream); font-size: 1.25em; line-height: 1.3;
+  width: max-content; max-width: 90vw; margin: 0; padding: .6vh 1.6vw; border-radius: 999px; text-align: center;
+  background: rgb(0 0 0 / .72); border: 2px solid var(--brass); color: var(--cream); font-size: 1.05em; line-height: 1.3;
   box-shadow: 0 0 24px rgb(0 0 0 / .6); animation: fact-in .7s ease both 1.2s;
 }
 @keyframes fact-in { from { opacity: 0; transform: translate(-50%, 1.5vh); } }
