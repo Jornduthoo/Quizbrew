@@ -607,6 +607,7 @@
   "look.spooky": "👻 Haunted manor",
   "look.arcade": "🕹️ Retro arcade",
   "host.tagline": "Brew a quiz in seconds",
+  "host.network": "Quiz night on your own network",
   "host.screenHint": "Drag it to the TV or projector. Teams scan the QR code.",
   "host.remoteTileHint": "Drive the quiz from your phone or tablet while you walk around.",
   "host.tagBuild": "Make",

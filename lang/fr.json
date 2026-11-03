@@ -607,6 +607,7 @@
   "look.spooky": "👻 Manoir hanté",
   "look.arcade": "🕹️ Arcade rétro",
   "host.tagline": "Brasse un quiz en quelques secondes",
+  "host.network": "Soirée quiz sur ton propre réseau",
   "host.screenHint": "Glisse-le sur la télé ou le projecteur. Les équipes scannent le QR code.",
   "host.remoteTileHint": "Pilote le quiz depuis ton téléphone ou ta tablette en te déplaçant.",
   "host.tagBuild": "Créer",

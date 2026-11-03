@@ -8,6 +8,8 @@ const LANGUAGES = [
   { code: 'en', name: 'English' },
   { code: 'nl', name: 'Nederlands' },
   { code: 'fr', name: 'Français' },
+  { code: 'de', name: 'Deutsch' },
+  { code: 'es', name: 'Español' },
 ];
 const DEFAULT = 'en';
 
