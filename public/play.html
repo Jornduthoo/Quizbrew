@@ -185,7 +185,8 @@
     </div>
   </div>
 
-  <div class="team-bar" id="team-bar" hidden><span class="team-dot" id="bar-dot"></span><span id="bar-name"></span><span class="bar-score" id="bar-score"></span></div>
+  <div class="react-bar" id="react-bar" role="group" hidden data-i18n-attr="aria-label:play.react"></div>
+  <div class="team-bar" id="team-bar" hidden><span class="team-dot" id="bar-dot"></span><span id="bar-name"></span><span class="bar-score" id="bar-score"></span><button class="text-size" id="text-size" type="button" aria-pressed="false" data-i18n-attr="aria-label:play.bigText,title:play.bigText"></button></div>
   <div class="offline" id="offline" hidden data-i18n="play.reconnecting"></div>
 
   <script src="/socket.io/socket.io.js"></script>

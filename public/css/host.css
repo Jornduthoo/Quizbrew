@@ -196,3 +196,5 @@ body.remote .key-hint { display: none; }
 .raffle-winners .team-dot { width: 14px; height: 14px; }
 .rating-live { margin: 6px 0 0; font-size: 1.2em; color: var(--brass-light); font-weight: 700; }
 .quiz-rating { color: var(--brass-light); font-weight: 700; }
+.sfx-btn { min-width: 46px; padding-left: 10px; padding-right: 10px; font-size: 1.1em; }
+.sfx-btn.off { opacity: .6; }

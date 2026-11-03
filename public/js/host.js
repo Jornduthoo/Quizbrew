@@ -59,6 +59,11 @@
   addEventListener('resize', renderCopy);
   $('#mode').addEventListener('change', e => socket.emit('mode', e.target.value));
   socket.on('mode', m => renderModes(m));
+  // Sound effects on the big screen: on or off for the whole evening.
+  let sfxOn = true;
+  const renderSfx = () => { $('#sfx').textContent = sfxOn ? '🔊' : '🔇'; $('#sfx').classList.toggle('off', !sfxOn); };
+  socket.on('sfx', v => { sfxOn = !!v; renderSfx(); });
+  $('#sfx').addEventListener('click', () => socket.emit('sfx', !sfxOn));
   socket.on('look', l => { $('#look').value = l; });
   $('#lang').addEventListener('change', e => socket.emit('language', e.target.value));
   if (!remote) {
@@ -174,11 +179,13 @@
     const label = NEXT_LABEL[s.phase];
     const next = $('#next');
     next.hidden = !label;
-    if (label) next.textContent = t(label(s));
+    if (label) next.textContent = t(s.break ? 'host.endBreak' : label(s));
     next.disabled = s.phase === 'lobby' && s.teams.length === 0;
     $('#stop').textContent = t(s.phase === 'end' ? 'host.newQuiz' : 'host.stop');
     $('#back').hidden = !s.canBack;
     $('#add-time').hidden = !s.canAddTime;
+    $('#break').hidden = !s.canBreak;
+    $('#break').textContent = t(s.break ? 'host.breakMore' : 'host.break');
 
     const kicker = $('#phase-kicker');
     const title = $('#phase-title');
@@ -254,7 +261,7 @@
         const key = s.phase === 'reveal' ? s.correct : s.answerKey && s.answerKey.correct;
         const answers = kind === 'trueFalse' ? [t('play.true'), t('play.false')] : q.answers;
         preview.append(h('ol', { class: 'mini-answers' }, answers.map((a, i) => h('li', { class: i === key ? 'key' : '', style: `--a: var(--ans-${i})` },
-          h('span', { class: 'letter' }, kind === 'trueFalse' ? (i === 0 ? '✓' : '✗') : LETTERS[i]), a,
+          h('span', { class: 'letter', 'data-shape': kind === 'trueFalse' ? null : i }, kind === 'trueFalse' ? (i === 0 ? '✓' : '✗') : LETTERS[i]), a,
           s.phase === 'reveal' && s.counts ? h('span', { class: 'n' }, s.counts[i]) : null))));
         // After the reveal: every team's pick, and ✓ / ✗ to overrule it.
         if (s.judgeList) {
@@ -335,6 +342,7 @@
   $('#next').addEventListener('click', () => socket.emit('next'));
   $('#back').addEventListener('click', () => socket.emit('back'));
   $('#add-time').addEventListener('click', () => socket.emit('addTime'));
+  $('#break').addEventListener('click', () => socket.emit('break'));
   $('#resume-go').addEventListener('click', () => socket.emit('resume', res => { if (res && res.error) alert(t(res.error)); }));
   $('#resume-no').addEventListener('click', () => { if (confirm(t('host.resumeNoSure'))) socket.emit('discard'); });
   $('#stop').addEventListener('click', () => {

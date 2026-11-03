@@ -1,6 +1,6 @@
 // The phone. One sentence, one button at a time.
 (function () {
-  const { $, h, showView, LETTERS, teamVar, countdown, CROWN } = QB;
+  const { $, h, showView, LETTERS, REACTIONS, teamVar, countdown, CROWN } = QB;
   const store = {
     get: k => { try { return localStorage.getItem(k); } catch { return null; } },
     set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
@@ -47,6 +47,8 @@
     if (stopTimer) { stopTimer(); stopTimer = null; }
 
     renderStage(s);
+    $('#react-bar').hidden = !s.team || !(s.break || REACT_PHASES.includes(s.phase));
+    document.body.classList.toggle('reacting', !$('#react-bar').hidden);
     const bar = $('#team-bar');
     bar.hidden = !s.team;
     if (s.team) {
@@ -65,6 +67,15 @@
       $('#join-form').hidden = s.phase !== 'lobby';
       renderTeamPick(s.teams || []);
       if (s.phase === 'lobby') renderSwatches(s.takenColors);
+      return;
+    }
+
+    // A break: a countdown and the standings, whatever the phase.
+    if (s.break) {
+      const say = left => { $('#wait-text').textContent = t('play.break', { time: QB.mmss(left) }); };
+      wait('', '\u2615');
+      stopTimer = countdown(s.break.left, 0, say);
+      renderStandings(s.break.standings.map(r => ({ ...r, me: r.name === s.team.name })));
       return;
     }
 
@@ -645,6 +656,34 @@
   $('#stage-tap').addEventListener('click', () => { $('#stage').classList.add('big'); fitStage(); });
   $('#stage-close').addEventListener('click', () => { $('#stage').classList.remove('big'); fitStage(); });
 
+  // Bigger text for whoever holds the phone at arm's length; remembered on this phone.
+  const setBigText = on => {
+    document.body.classList.toggle('big-text', on);
+    $('#text-size').setAttribute('aria-pressed', String(on));
+  };
+  setBigText(store.get('qb.bigText') === '1');
+  $('#text-size').addEventListener('click', () => {
+    const on = !document.body.classList.contains('big-text');
+    store.set('qb.bigText', on ? '1' : '0');
+    setBigText(on);
+  });
+
+  // Reactions: tap an emoji and it floats up on the big screen. Not during a question, so nobody is distracted.
+  const REACT_PHASES = ['lobby', 'roundIntro', 'reveal', 'scoreboard', 'awards', 'end'];
+  REACTIONS.forEach((emoji, i) => {
+    const b = h('button', { type: 'button', class: 'react-btn' }, emoji);
+    b.addEventListener('click', () => {
+      if (b.classList.contains('cool')) return;
+      socket.emit('react', i);
+      b.classList.remove('sent');
+      void b.offsetWidth;
+      b.classList.add('sent', 'cool');
+      setTimeout(() => b.classList.remove('cool'), 600);
+      if (navigator.vibrate) navigator.vibrate(15);
+    });
+    $('#react-bar').append(b);
+  });
+
   // Join a team that is already in: this phone then plays along with that team.
   function renderTeamPick(teams) {
     $('#join-team').hidden = !teams.length;
@@ -704,7 +743,7 @@
           if (navigator.vibrate) navigator.vibrate(25);
           socket.emit('answer', i);
         },
-      }, h('span', { class: 'letter' }, tf ? (i === 0 ? '✓' : '✗') : LETTERS[i]), h('span', { class: 'text' }, a))));
+      }, h('span', { class: 'letter', 'data-shape': tf ? null : i }, tf ? (i === 0 ? '✓' : '✗') : LETTERS[i]), h('span', { class: 'text' }, a))));
     }
     // Shrinking options and the 50/50 lifeline: answers that are gone can not be tapped.
     const gone = new Set(s.question.gone || []);

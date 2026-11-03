@@ -20,11 +20,27 @@
     await I18n.load(lang);
     if (state) render(state, true);
   });
+  // Reactions from the phones float up from the bottom edge, with a halo in the team colour.
+  // A separate layer on top of every view, so it never moves anything; at most 24 at once.
+  socket.on('react', ({ i, color } = {}) => {
+    const emoji = QB.REACTIONS[i];
+    const layer = $('#reactions');
+    if (!emoji || layer.childElementCount >= 24) return;
+    const x = 4 + Math.random() * 92;
+    const el = h('span', { class: 'reaction', style: `${teamVar(color)};left:${x}%;--drift:${Math.round(Math.random() * 120 - 60)}px;--spin:${Math.round(Math.random() * 40 - 20)}deg;--rise:${(2.6 + Math.random()).toFixed(2)}s` }, emoji);
+    el.addEventListener('animationend', () => el.remove());
+    layer.append(el);
+  });
   socket.on('media', action => (action === 'replay' ? Media.replay() : Media.stop()));
   // Browsers only play sound after a click on the page: show a button for that once.
   Media.onBlocked(() => { $('#sound-gate').hidden = MUTE; });
+  // Sound effects: on unless the quizmaster turned them off; never on a muted copy (phones-only mode).
+  let sfxSetting = true;
+  socket.on('sfx', on => { sfxSetting = !!on; });
+  SFX.onBlocked(() => { if (!MUTE && sfxSetting) $('#sound-gate').hidden = false; });
   $('#sound-gate').addEventListener('click', async () => {
     $('#sound-gate').hidden = true;
+    await SFX.unlock();
     await Media.unlock();
     Media.replay();
   });
@@ -79,6 +95,7 @@
     document.body.classList.remove('urgent');
     if (s.phase !== 'lobby') lobbyShown = false;
     if (s.round) setTheme(s.round.type);
+    SFX.enabled = sfxSetting && !MUTE && !(s.round && s.round.twists.includes('silentRound'));
     if (s.phase === 'lobby') renderLobby(s);
     if (s.phase === 'roundIntro' && fresh) renderRoundIntro(s);
     if (s.vote) renderVote(s, fresh);
@@ -87,6 +104,35 @@
     if (s.phase === 'scoreboard' && fresh) renderScoreboard(s);
     if (s.phase === 'awards' && fresh) renderAwards(s);
     if (s.phase === 'end' && fresh) renderEnd(s);
+    renderBreak(s);
+  }
+
+  // The break: a big clock, a line for the room and the standings, over whatever was on screen.
+  let breakStop = null;
+  let breakBoard = '';
+  function renderBreak(s) {
+    const layer = $('#break');
+    const was = !layer.hidden;
+    if (breakStop) { breakStop(); breakStop = null; }
+    layer.hidden = !s.break;
+    document.body.classList.toggle('on-break', !!s.break);
+    if (!s.break) { breakBoard = ''; return; }
+    if (!was) FX.ambient('lights');
+    let shown = '';
+    breakStop = countdown(s.break.left, 0, left => {
+      const text = left > 0 ? QB.mmss(left) : '0:00';
+      if (text === shown) return;
+      shown = text;
+      $('#break-clock').textContent = text;
+      $('#break-sub').textContent = t(left > 0 ? 'screen.breakSub' : 'screen.breakOver');
+      layer.classList.toggle('over', left <= 0);
+    });
+    const rows = s.break.standings.slice(0, 8);
+    const sig = JSON.stringify(rows);
+    if (sig === breakBoard) return;
+    breakBoard = sig;
+    $('#break-board').replaceChildren(...rows.map((r, i) => h('li', { class: 'break-row', style: `${teamVar(r.color)};--k:${i}` },
+      h('span', { class: 'br-rank' }, String(r.rank)), QB.dot(r), h('span', { class: 'br-name' }, r.name), h('span', { class: 'br-score' }, String(r.score)))));
   }
 
   function setTheme(type) {
@@ -114,7 +160,7 @@
       const chip = h('li', { class: 'team-chip', style: teamVar(team.color), 'data-name': team.name, 'data-photo': team.photo || '' }, QB.dot(team), team.name);
       list.append(chip);
       // A new team arriving gets a little burst of sparks in its colour.
-      if (lobbyShown) setTimeout(() => FX.sparksAt(chip, { color: cssColor('--team-' + team.color), count: 34 }), 250);
+      if (lobbyShown) { setTimeout(() => FX.sparksAt(chip, { color: cssColor('--team-' + team.color), count: 34 }), 250); SFX.join(list.children.length - 1); }
     });
     lobbyShown = true;
     list.style.setProperty('--rows', Math.max(6, Math.ceil(s.teams.length / 2)));
@@ -164,7 +210,7 @@
       $('#answers').className = 'answers' + (kind === 'trueFalse' ? ' tf' : '') + (q.images ? ' images' : '');
       $('#answers').replaceChildren(...answers.map((a, i) => h('li', { class: 'answer', style: kind === 'trueFalse' ? `--k: ${i}` : `--a: var(--ans-${i}); --k: ${i}` },
         q.images ? h('img', { class: 'answer-img', src: q.images[i], alt: '' }) : null,
-        h('span', { class: 'letter' }, kind === 'trueFalse' ? (i === 0 ? '✓' : '✗') : LETTERS[i]),
+        h('span', { class: 'letter', 'data-shape': kind === 'trueFalse' ? null : i }, kind === 'trueFalse' ? (i === 0 ? '✓' : '✗') : LETTERS[i]),
         h('span', { class: 'text' }, a),
         h('span', { class: 'count' }))));
       $('#q-emoji').hidden = !q.emoji;
@@ -331,6 +377,7 @@
     }
 
     if (reveal && (!wasRevealed || fresh)) {
+      if (!wasRevealed) SFX.reveal();
       const color = cssColor(s.correct !== null ? '--ans-' + s.correct : '--good');
       const flash = $('#flash');
       flash.style.setProperty('--f', color);
@@ -381,7 +428,10 @@
       Media.stop();
       return;
     }
+    let lastTick = Math.ceil(s.remaining / 1000);
     stopTimer = countdown(s.remaining, total, (left, frac) => {
+      const sec = Math.ceil(left / 1000);
+      if (sec !== lastTick) { lastTick = sec; if (sec > 0 && sec <= 5) SFX.tick(sec); }
       Media.tick(total - left);
       if (q.effect === 'pixel') pixelate(canvas, img, 1 - frac);
       ring.style.strokeDashoffset = C * (1 - frac);
@@ -545,6 +595,8 @@
     list.style.setProperty('--n', Math.max(1, n > 10 ? Math.ceil(n / 2) : n));
     // The reveal goes from last place to first: the bottom rows appear first, the leader last.
     const step = Math.min(0.7, 6 / Math.max(1, n));
+    // The drum roll ends with a cymbal just when the leader lands.
+    SFX.roll(0.6 + (n - 1) * step + 0.8 + 0.2);
     list.replaceChildren(...rows.map((r, i) => {
       const moved = r.previousRank ? r.previousRank - r.rank : 0;
       const delay = 0.6 + (n - 1 - i) * step + (i === 0 ? 0.8 : 0);
@@ -585,6 +637,7 @@
       const b = card.getBoundingClientRect();
       FX.glints({ x: b.left + b.width / 2, y: b.top, width: b.width, count: 40 });
       FX.sparksAt(card, { color: cssColor('--team-' + s.awards[i].team.color) || '#ffb43c', count: 50 });
+      SFX.award();
     }, (1.3 + i * 1.8) * 1000));
   }
 
@@ -611,6 +664,8 @@
       FX.glints({ x: m.left + m.width / 2, y: m.top, width: m.width * 4, count: 90 });
     }, 2300);
     later(() => FX.swarm({ seconds: 8 }), 2600);
+    SFX.roll(2.2);
+    later(() => SFX.fanfare(), 2350);
   }
 
 })();

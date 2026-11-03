@@ -462,3 +462,59 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .raffle.landed .raffle-reel { box-shadow: inset 0 4px 0 var(--brass), 0 0 0 4px var(--brass-light), 0 0 90px rgb(var(--k-amber) / .7); }
 .raffle.landed .raffle-slot { animation: pop-in .6s cubic-bezier(.2, 1.4, .4, 1) both; text-shadow: 0 0 24px rgb(var(--k-amber) / .8); }
 .raffle-sub { margin: 0; min-height: 1.4em; font-size: 2em; color: var(--brass-light); font-family: var(--display); }
+/* ---------- Reactions from the phones: emoji that float up and fade ---------- */
+.reactions { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 40; }
+.reaction {
+  position: absolute; bottom: -1.2em;
+  font-size: 5.6vh; line-height: 1;
+  filter: drop-shadow(0 0 .35em var(--c)) drop-shadow(0 .1em .15em rgba(0, 0, 0, .6));
+  animation: react-rise var(--rise, 3s) cubic-bezier(.25, .6, .4, 1) forwards;
+  will-change: transform, opacity;
+}
+@keyframes react-rise {
+  0% { transform: translate(0, 0) scale(.4) rotate(0); opacity: 0; }
+  12% { transform: translate(calc(var(--drift) * .15), -8vh) scale(1.15) rotate(var(--spin)); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translate(var(--drift), -62vh) scale(.9) rotate(calc(var(--spin) * -1)); opacity: 0; }
+}
+
+/* ---------- Break: a clock and the standings over whatever was on screen ---------- */
+.break-layer {
+  position: fixed; inset: 0; z-index: 30;
+  display: grid; place-items: center;
+  background: radial-gradient(ellipse at 50% 40%, rgb(var(--k-wood-8) / .82), rgb(var(--k-wood-9) / .95) 70%);
+  backdrop-filter: blur(6px);
+  animation: break-in .6s ease both;
+}
+.break-layer[hidden] { display: none; }
+.break-card { display: flex; flex-direction: column; align-items: center; gap: 1.6vh; width: min(70vw, 1300px); text-align: center; }
+.break-kicker {
+  margin: 0; font-family: var(--display); letter-spacing: var(--display-track, 0); text-transform: var(--display-case);
+  font-size: 5.5vh; color: #fff;
+  text-shadow: 0 0 .25em var(--neon-cyan), 0 0 .7em var(--neon-cyan);
+  animation: neon-on 1.2s linear both;
+}
+.break-clock {
+  font-size: 22vh; font-weight: 900; line-height: .95; font-variant-numeric: tabular-nums;
+  color: var(--brass-light);
+  text-shadow: 0 0 .15em rgb(255 190 90 / .55), 0 .06em .1em rgb(0 0 0 / .7);
+}
+.break-layer.over .break-clock { color: var(--good); animation: break-pulse 1s ease-in-out infinite alternate; }
+.break-clock { margin-bottom: 3vh; }
+.break-sub { margin: 0; font-size: 3vh; color: var(--muted); }
+.break-layer.over .break-sub { color: #fff; font-weight: 800; font-size: 4vh; }
+.break-board { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 1.1vh 2vw; }
+.break-board:empty { display: none; }
+.break-row {
+  display: grid; grid-template-columns: 2.2em auto 1fr auto; align-items: center; gap: .8vw;
+  padding: 1vh 1.2vw; border-radius: 12px;
+  font-size: 2.6vh; font-weight: 700; text-align: left;
+  background: linear-gradient(90deg, rgb(var(--k-wood-7) / .92), rgb(var(--k-wood-8) / .85));
+  border-left: 5px solid var(--c);
+  animation: slide-in .6s cubic-bezier(.2, 1.1, .4, 1) both; animation-delay: calc(var(--k) * 80ms);
+}
+.br-rank { color: var(--muted); font-weight: 800; text-align: center; }
+.br-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.br-score { color: #fff; font-weight: 800; font-variant-numeric: tabular-nums; }
+@keyframes break-in { from { opacity: 0; } }
+@keyframes break-pulse { to { transform: scale(1.04); } }
