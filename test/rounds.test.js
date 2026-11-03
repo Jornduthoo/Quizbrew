@@ -553,6 +553,15 @@ test('library: pictures are stored once and travel inside an export', () => {
   assert.equal(saved.quiz.rounds[0].questions[0].image, url);
   assert.ok(other.mediaFile(url.slice(7)));
   assert.equal(other.mediaFile('../x.png'), null);
+  // Odd one out keeps a list of pictures; a video clip travels too.
+  const mp4 = lib.addMedia(Buffer.from('fake video bytes'), 'video/mp4');
+  const odd = { title: 'O', rounds: [{ type: 'oddOneOut', questions: [{ images: [url, url, url], correct: 1 }] }, { type: 'clipRecall', questions: [{ video: mp4, question: 'x', items: ['a', 'b', 'c'] }] }] };
+  const out = lib.inlineMedia(odd);
+  assert.ok(out.rounds[0].questions[0].images.every(x => x.startsWith('data:image/png')));
+  assert.match(out.rounds[1].questions[0].video, /^data:video\/mp4;base64,/);
+  const back = Library.create(tmp()).save(null, out).quiz;
+  assert.deepEqual(back.rounds[0].questions[0].images, [url, url, url]);
+  assert.equal(back.rounds[1].questions[0].video, mp4);
 });
 
 // ---------- spreadsheets ----------

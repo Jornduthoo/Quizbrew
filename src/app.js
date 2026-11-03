@@ -85,7 +85,8 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   const hostOnly = (req, res, next) => (canHost(req.socket.remoteAddress) ? next() : res.status(403).json({ error: 'error.generic' }));
   const api = express.Router();
   api.use(hostOnly);
-  api.use(express.json({ limit: '60mb' }));
+  // An exported quiz carries its pictures, sounds and video clips inside.
+  api.use(express.json({ limit: '250mb' }));
   const handle = fn => async (req, res) => {
     try {
       res.json(await fn(req, res));
