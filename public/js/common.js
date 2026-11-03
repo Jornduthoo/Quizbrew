@@ -46,6 +46,12 @@
     return () => cancelAnimationFrame(raf);
   }
 
+  // 9:05 from milliseconds (rounded up, so the clock never shows 0:00 too early).
+  function mmss(ms) {
+    const sec = Math.ceil(Math.max(0, ms) / 1000);
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  }
+
   async function info() {
     const res = await fetch('/api/info');
     const data = await res.json();
@@ -161,5 +167,5 @@
     return keys.length ? t(keys[(Math.random() * keys.length) | 0], vars) : '';
   }
 
-  window.QB = { quip, applyLook, $, h, showView, LETTERS, REACTIONS, teamVar, dot, countdown, info, ROUND_THEMES, roundTheme, CROWN, split, countUp, later, clearLater };
+  window.QB = { quip, applyLook, $, h, showView, LETTERS, REACTIONS, teamVar, dot, countdown, mmss, info, ROUND_THEMES, roundTheme, CROWN, split, countUp, later, clearLater };
 })();

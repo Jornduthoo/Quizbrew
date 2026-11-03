@@ -281,6 +281,8 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       on('next', () => game.next());
       on('back', () => game.back());
       on('addTime', () => game.addTime());
+      on('break', () => game.startBreak());
+      on('endBreak', () => game.endBreak());
       on('stop', () => { forgetLive(); game.stop(); });
       on('resume', cb => {
         const saved = readLive();

@@ -711,5 +711,12 @@
   "builder.stat": "{pct} % de bonnes réponses · {n} équipes",
   "builder.statHint": "Sur {n} soirée quiz|Sur {n} soirées quiz",
   "host.sfx": "Effets sonores sur le grand écran (oui/non)",
-  "play.react": "Envoyer une réaction au grand écran"
+  "play.react": "Envoyer une réaction au grand écran",
+  "host.break": "Pause · 10 min",
+  "host.breakMore": "+5 min de pause",
+  "host.endBreak": "Fin de la pause",
+  "screen.break": "Pause",
+  "screen.breakSub": "Dégourdissez-vous les jambes, prenez un en-cas. On reprend dans",
+  "screen.breakOver": "Tout le monde à sa place !",
+  "play.break": "Pause ! Reprise dans {time}"
 }

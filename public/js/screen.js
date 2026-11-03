@@ -71,6 +71,35 @@
     if (s.phase === 'scoreboard' && fresh) renderScoreboard(s);
     if (s.phase === 'awards' && fresh) renderAwards(s);
     if (s.phase === 'end' && fresh) renderEnd(s);
+    renderBreak(s);
+  }
+
+  // The break: a big clock, a line for the room and the standings, over whatever was on screen.
+  let breakStop = null;
+  let breakBoard = '';
+  function renderBreak(s) {
+    const layer = $('#break');
+    const was = !layer.hidden;
+    if (breakStop) { breakStop(); breakStop = null; }
+    layer.hidden = !s.break;
+    document.body.classList.toggle('on-break', !!s.break);
+    if (!s.break) { breakBoard = ''; return; }
+    if (!was) FX.ambient('lights');
+    let shown = '';
+    breakStop = countdown(s.break.left, 0, left => {
+      const text = left > 0 ? QB.mmss(left) : '0:00';
+      if (text === shown) return;
+      shown = text;
+      $('#break-clock').textContent = text;
+      $('#break-sub').textContent = t(left > 0 ? 'screen.breakSub' : 'screen.breakOver');
+      layer.classList.toggle('over', left <= 0);
+    });
+    const rows = s.break.standings.slice(0, 8);
+    const sig = JSON.stringify(rows);
+    if (sig === breakBoard) return;
+    breakBoard = sig;
+    $('#break-board').replaceChildren(...rows.map((r, i) => h('li', { class: 'break-row', style: `${teamVar(r.color)};--k:${i}` },
+      h('span', { class: 'br-rank' }, String(r.rank)), QB.dot(r), h('span', { class: 'br-name' }, r.name), h('span', { class: 'br-score' }, String(r.score)))));
   }
 
   function setTheme(type) {

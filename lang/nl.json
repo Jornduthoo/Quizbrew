@@ -711,5 +711,12 @@
   "builder.stat": "{pct}% juist · {n} ploegen",
   "builder.statHint": "Uit {n} quizavond|Uit {n} quizavonden",
   "host.sfx": "Geluidseffecten op het grote scherm (aan/uit)",
-  "play.react": "Stuur een reactie naar het grote scherm"
+  "play.react": "Stuur een reactie naar het grote scherm",
+  "host.break": "Pauze · 10 min",
+  "host.breakMore": "+5 min pauze",
+  "host.endBreak": "Pauze voorbij",
+  "screen.break": "Pauze",
+  "screen.breakSub": "Benen strekken, snack halen. We zijn terug over",
+  "screen.breakOver": "Terug naar je plaats!",
+  "play.break": "Pauze! Terug over {time}"
 }
