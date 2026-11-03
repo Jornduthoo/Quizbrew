@@ -12,6 +12,7 @@
     await I18n.load(lang);
     $('#lang').value = lang;
     renderLooks();
+    renderModes();
     if (state) render(state);
     loadQuizzes();
   });
@@ -26,6 +27,8 @@
     $('#join-url').textContent = info.url.replace(/^https?:\/\//, '');
     looks = info.looks;
     renderLooks();
+    modes = info.modes;
+    renderModes(info.mode);
   });
   let looks = [];
   function renderLooks() {
@@ -34,6 +37,28 @@
     $('#look').value = cur;
   }
   $('#look').addEventListener('change', e => socket.emit('look', e.target.value));
+  // Big screen, or phones only: then this laptop shows (and sounds) what the phones show.
+  let modes = [];
+  let mode = 'screen';
+  function renderModes(cur) {
+    mode = cur || mode;
+    $('#mode').replaceChildren(...modes.map(m => h('option', { value: m }, t('mode.' + m))));
+    $('#mode').value = mode;
+    renderCopy();
+  }
+  function renderCopy() {
+    const box = document.getElementById('screen-copy');
+    if (!box) return;
+    const on = mode === 'phones' && !!state && state.phase !== 'idle';
+    box.hidden = !on;
+    const frame = $('#screen-copy-frame');
+    if (!on) return;
+    if (!frame.getAttribute('src')) frame.src = '/screen?fx=low';
+    frame.style.transform = `scale(${box.clientWidth / 1280})`;
+  }
+  addEventListener('resize', renderCopy);
+  $('#mode').addEventListener('change', e => socket.emit('mode', e.target.value));
+  socket.on('mode', m => renderModes(m));
   socket.on('look', l => { $('#look').value = l; });
   $('#lang').addEventListener('change', e => socket.emit('language', e.target.value));
   if (!remote) {
@@ -77,6 +102,7 @@
 
   function render(s) {
     showView(s.phase === 'idle' ? 'idle' : 'live');
+    renderCopy();
     $('#quiz-name').textContent = s.title || '';
     if (s.phase === 'idle') return;
 

@@ -23,6 +23,8 @@
   socket.on('disconnect', () => { $('#offline').hidden = false; });
   socket.on('language', lang => { if (!deviceLang) I18n.load(lang).then(() => state && render(state, true)); });
   socket.on('state', s => { state = s; if (I18n.dict['app.name']) render(s); });
+  let mode = 'screen';
+  socket.on('mode', m => { mode = m; if (state) renderStage(state); });
   socket.on('kicked', () => {
     store.del('qb.teamId');
     teamId = newId();
@@ -44,6 +46,7 @@
     lastKey = key;
     if (stopTimer) { stopTimer(); stopTimer = null; }
 
+    renderStage(s);
     const bar = $('#team-bar');
     bar.hidden = !s.team;
     if (s.team) {
@@ -443,6 +446,36 @@
         rank, h('span', { class: 'st-name' }, r.name), h('span', { class: 'st-score' }, String(r.score)));
     }));
   }
+
+  // Phones-only mode: the big screen itself, small, on top of the phone (muted: the laptop plays the sound).
+  const STAGE_W = 1280;
+  const STAGE_H = 720;
+  const STAGE_PHASES = ['roundIntro', 'wager', 'question', 'reveal', 'vote', 'scoreboard', 'end'];
+  function renderStage(s) {
+    const on = mode === 'phones' && !!s.team && STAGE_PHASES.includes(s.phase);
+    const box = $('#stage');
+    box.hidden = !on;
+    document.body.classList.toggle('staged', on);
+    if (!on) { box.classList.remove('big'); return; }
+    const frame = $('#stage-frame');
+    if (!frame.getAttribute('src')) frame.src = '/screen?mute&fx=low';
+    fitStage();
+  }
+  function fitStage() {
+    const box = $('#stage');
+    const frame = $('#stage-frame');
+    if (box.hidden) return;
+    const big = box.classList.contains('big');
+    const k = big ? Math.min(innerWidth / STAGE_W, innerHeight / STAGE_H) : box.clientWidth / STAGE_W;
+    frame.style.width = STAGE_W + 'px';
+    frame.style.height = STAGE_H + 'px';
+    frame.style.transform = `scale(${k})`;
+    frame.style.left = big ? `${(innerWidth - STAGE_W * k) / 2}px` : '0';
+    frame.style.top = big ? `${(innerHeight - STAGE_H * k) / 2}px` : '0';
+  }
+  addEventListener('resize', fitStage);
+  $('#stage-tap').addEventListener('click', () => { $('#stage').classList.add('big'); fitStage(); });
+  $('#stage-close').addEventListener('click', () => { $('#stage').classList.remove('big'); fitStage(); });
 
   // Join a team that is already in: this phone then plays along with that team.
   function renderTeamPick(teams) {

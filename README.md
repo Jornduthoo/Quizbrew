@@ -23,7 +23,13 @@ The laptop and the phones must be on the same wifi (or the laptop's hotspot). Us
 
 ## Languages
 
-All screen text lives in `lang/en.json`, `lang/nl.json` and `lang/fr.json`. English is the default and the fallback. The quizmaster picks the language in the top bar; phones use their own language when Quizbrew has it. `npm test` fails when a key is missing in a language or when text is hardcoded in the HTML.
+All screen text lives in `lang/en.json`, `lang/nl.json`, `lang/fr.json`, `lang/de.json` and `lang/es.json`. English is the default and the fallback. The quizmaster picks the language in the top bar; phones use their own language when Quizbrew has it. `npm test` fails when a key is missing in a language or when text is hardcoded in the HTML.
+
+## Teams and phones
+
+A team can play on several phones: a teammate taps "Already a team? Join your teammates" and picks the team, also after the start. The first answer of the team counts, so the team talks it over first. Between rounds every phone shows the standings.
+
+No TV or projector? Pick **📱 Phones only** next to the look. Every phone then shows a small copy of the big screen above its buttons (tap it for full size, turn the phone sideways). The quizmaster's laptop shows the same copy and plays the sound for the room.
 
 ## Quiz builder
 

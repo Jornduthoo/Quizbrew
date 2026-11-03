@@ -211,3 +211,24 @@ body.phone::before { z-index: -1; }
 .st-rank .crown { width: 22px; height: 22px; fill: var(--brass-light); }
 .st-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .st-score { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--cream); }
+
+/* Phones-only mode: the big screen, small, on top. Tap for full size (turn the phone sideways). */
+.stage-box {
+  position: sticky; top: 0; z-index: 30;
+  width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
+  background: #000; border-bottom: 2px solid rgb(var(--k-brass) / .6);
+  box-shadow: 0 8px 24px rgb(0 0 0 / .6);
+}
+.stage-box iframe { position: absolute; border: 0; transform-origin: 0 0; pointer-events: none; }
+.stage-tap { position: absolute; inset: 0; background: none; border: 0; padding: 0; cursor: zoom-in; }
+.stage-close { display: none; }
+.stage-box.big { position: fixed; inset: 0; width: auto; aspect-ratio: auto; z-index: 200; border: 0; }
+.stage-box.big .stage-tap { display: none; }
+.stage-box.big .stage-close {
+  display: grid; place-items: center; position: absolute; top: 12px; right: 12px;
+  width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgb(var(--k-brass) / .8);
+  background: rgb(0 0 0 / .6); color: var(--cream); font-size: 1.2em;
+}
+body.staged .view { min-height: auto; padding-top: 16px; }
+body.staged .view.center { min-height: calc(100dvh - 56.25vw - 80px); }
+.stage-box.big .stage-close::before { content: '✕'; }

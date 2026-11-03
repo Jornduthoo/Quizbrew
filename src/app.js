@@ -21,6 +21,7 @@ const rounds = require('./rounds');
 const TEAM_ID = /^[a-z0-9]{8,40}$/;
 
 const LOOKS = ['pub', 'space', 'jungle', 'spooky', 'arcade'];
+const MODES = ['screen', 'phones'];
 
 function createServer({ port = 3000, settings = Settings.create(), library = Library.create(), lanAddresses = network.lanAddresses, hostFromAnywhere = false, cloudEvery = 60000 } = {}) {
   const app = express();
@@ -30,6 +31,8 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
 
   // The look of the evening (backgrounds, colours, fonts) for every screen. Pub is the default.
   const look = () => (LOOKS.includes(settings.get('look')) ? settings.get('look') : LOOKS[0]);
+  // Big screen (default), or phones only: then every phone shows a small copy of the big screen.
+  const mode = () => (MODES.includes(settings.get('mode')) ? settings.get('mode') : MODES[0]);
   const language = () => (i18n.isSupported(settings.get('language')) ? settings.get('language') : i18n.DEFAULT);
   const canHost = address => hostFromAnywhere || network.isLocal(address);
   // The quizmaster's remote: a phone or tablet on the wifi with the secret link (new on every start) may drive the quiz.
@@ -175,7 +178,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   app.get('/api/info', async (req, res) => {
     const url = joinUrl();
     const qr = await QRCode.toString(url, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#1b0f08', light: '#0000' } });
-    res.json({ url, qr, language: language(), languages: i18n.LANGUAGES, look: look(), looks: LOOKS, colors: TEAM_COLORS });
+    res.json({ url, qr, language: language(), languages: i18n.LANGUAGES, look: look(), looks: LOOKS, mode: mode(), modes: MODES, colors: TEAM_COLORS });
   });
 
   io.on('connection', socket => {
@@ -190,6 +193,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
 
     socket.emit('language', language());
     socket.emit('look', look());
+    socket.emit('mode', mode());
 
     if (role === 'host') {
       if (!canHost(socket.handshake.address) && !isRemote(socket.handshake.query.key)) return socket.disconnect(true);
@@ -219,6 +223,11 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
         if (!LOOKS.includes(name)) return;
         settings.set('look', name);
         io.emit('look', name);
+      });
+      on('mode', name => {
+        if (!MODES.includes(name)) return;
+        settings.set('mode', name);
+        io.emit('mode', name);
       });
       on('language', code => {
         if (!i18n.isSupported(code)) return;
@@ -285,4 +294,4 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   };
 }
 
-module.exports = { LOOKS, createServer };
+module.exports = { LOOKS, MODES, createServer };

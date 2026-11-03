@@ -673,5 +673,9 @@
   "play.joinTeam": "Déjà une équipe ? Rejoins tes coéquipiers",
   "play.joinTeamHint": "Touche ton équipe et joue sur ce téléphone. La première réponse de l'équipe compte, alors concertez-vous d'abord.",
   "play.joinTeamSure": "Jouer avec {name} sur ce téléphone ?",
-  "host.phones": "📱{n}"
+  "host.phones": "📱{n}",
+  "host.mode": "Comment jouer",
+  "mode.screen": "📺 Grand écran",
+  "mode.phones": "📱 Téléphones seulement",
+  "play.bigger": "Afficher l'écran en grand"
 }

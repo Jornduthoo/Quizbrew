@@ -161,3 +161,7 @@ body.remote .key-hint { display: none; }
   .lang select { max-width: 34vw; padding: .5em .5em; font-size: .9em; }
   .hero-tag { letter-spacing: .2em; font-size: .75em; }
 }
+
+/* Phones-only mode: a copy of the big screen on the laptop, with the sound for the room. */
+.screen-copy { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 10px; border: 2px solid rgb(var(--k-brass) / .5); background: #000; box-shadow: 0 10px 30px rgb(0 0 0 / .5); }
+.screen-copy iframe { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; border: 0; transform-origin: 0 0; }

@@ -4,6 +4,9 @@
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) / Math.SQRT2;
   const { $, h, showView, LETTERS, teamVar, countdown, roundTheme, CROWN, split, countUp, later, clearLater } = QB;
   const socket = io({ query: { role: 'screen' } });
+  // ?mute: a small copy of the screen on a phone (phones-only mode). The sound plays on the quizmaster's laptop.
+  const MUTE = new URLSearchParams(location.search).has('mute');
+  if (MUTE) document.documentElement.classList.add('embed');
   let state = null;
   let stopTimer = null;
   let lastKey = '';
@@ -19,7 +22,7 @@
   });
   socket.on('media', action => (action === 'replay' ? Media.replay() : Media.stop()));
   // Browsers only play sound after a click on the page: show a button for that once.
-  Media.onBlocked(() => { $('#sound-gate').hidden = false; });
+  Media.onBlocked(() => { $('#sound-gate').hidden = MUTE; });
   $('#sound-gate').addEventListener('click', async () => {
     $('#sound-gate').hidden = true;
     await Media.unlock();
@@ -108,8 +111,8 @@
     const kind = q.kind;
     const typed = kind === 'text' || kind === 'number';
     const listed = typed || ['point', 'order', 'pairs', 'list', 'level', 'buzz', 'turn'].includes(kind);
-    const silent = s.round.twists.includes('silentRound');
-    document.body.classList.toggle('silent', silent);
+    const silent = MUTE || s.round.twists.includes('silentRound');
+    document.body.classList.toggle('silent', s.round.twists.includes('silentRound'));
     $('#q-count').textContent = t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
     $('#q-answered').textContent = t('screen.answeredCount', { n: s.answered, total: s.teams.length });
     const wasRevealed = document.body.classList.contains('revealed');
@@ -365,7 +368,7 @@
     if (v.getAttribute('src') !== q.video) v.src = q.video;
     if (reveal) return;
     v.currentTime = 0;
-    v.muted = document.body.classList.contains('silent');
+    v.muted = MUTE || document.body.classList.contains('silent');
     v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
   }
 

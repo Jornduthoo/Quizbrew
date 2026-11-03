@@ -11,6 +11,12 @@
 </head>
 <body class="phone">
   <div class="glow-bg" aria-hidden="true"><i></i><i></i></div>
+  <!-- Phones-only mode: a small copy of the big screen. Tap it to see it full size. -->
+  <div class="stage-box" id="stage" hidden>
+    <iframe id="stage-frame" title="Quizbrew" tabindex="-1"></iframe>
+    <button class="stage-tap" id="stage-tap" type="button" data-i18n-attr="aria-label:play.bigger"></button>
+    <button class="stage-close" id="stage-close" type="button" data-i18n-attr="aria-label:builder.close"></button>
+  </div>
   <!-- Join: team name + colour -->
   <section id="v-join" class="view" hidden>
     <img class="logo" src="/img/logo.webp" alt="Quizbrew">
