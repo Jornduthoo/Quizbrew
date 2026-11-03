@@ -85,7 +85,7 @@
         if (s.question.kind === 'draw') return renderDraw(s, fresh);
         if (s.question.kind === 'photo') return renderPhoto(s, fresh);
         if (s.question.kind === 'list') return renderList(s, fresh);
-        if (s.answer !== null && s.answer !== undefined) return wait(t('play.locked'), lockedBadge(s));
+        if (s.answer !== null && s.answer !== undefined) { wait(t('play.locked'), lockedBadge(s)); if (fresh) $('#wait-quip').textContent = QB.quip('locked'); return; }
         if (s.question.kind === 'text' || s.question.kind === 'number') return renderType(s, fresh);
         if (['order', 'pairs', 'point'].includes(s.question.kind)) return renderBuild(s, fresh);
         return renderChoices(s, fresh);
@@ -422,6 +422,7 @@
     b.textContent = badge || (state && state.team ? state.team.name.charAt(0).toUpperCase() : '');
     b.className = 'badge' + (badge ? ' filled' : ' pulse');
     $('#wait-text').textContent = text;
+    $('#wait-quip').textContent = '';
   }
 
   function renderSwatches(taken) {
@@ -587,6 +588,7 @@
             : k === 'choice' ? t('play.answerWas', { letter: LETTERS[s.correct], text: s.question.answers[s.correct] })
       : k === 'trueFalse' ? t('play.statementWas', { text: t(s.correct === 0 ? 'play.true' : 'play.false') })
         : t('play.solutionWas', { text: s.reveal.answerText + (s.reveal.unit ? ' ' + s.reveal.unit : '') });
+    if (fresh) $('#result-quip').textContent = QB.quip(right ? 'correct' : answered ? 'wrong' : 'late');
     $('#result-sub').textContent = s.lastPoints > 0 ? t('play.pointsWon', { n: s.lastPoints })
       : s.lastPoints < 0 ? `${t('play.pointsLost', { n: -s.lastPoints })} · ${solution}` : solution;
     if (fresh && navigator.vibrate) navigator.vibrate(right ? [40, 60, 40] : 120);

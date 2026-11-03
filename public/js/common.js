@@ -147,5 +147,11 @@
   const later = (fn, ms) => timers.push(setTimeout(fn, ms));
   const clearLater = () => { while (timers.length) clearTimeout(timers.pop()); };
 
-  window.QB = { applyLook, $, h, showView, LETTERS, teamVar, countdown, info, ROUND_THEMES, roundTheme, CROWN, split, countUp, later, clearLater };
+    // A random one-liner from a group (quip.<group>.1, .2, ...), written per language, not translated.
+  function quip(group, vars) {
+    const keys = Object.keys(I18n.dict).filter(k => k.startsWith('quip.' + group + '.'));
+    return keys.length ? t(keys[(Math.random() * keys.length) | 0], vars) : '';
+  }
+
+  window.QB = { quip, applyLook, $, h, showView, LETTERS, teamVar, countdown, info, ROUND_THEMES, roundTheme, CROWN, split, countUp, later, clearLater };
 })();

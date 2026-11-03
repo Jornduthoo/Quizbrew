@@ -1,5 +1,7 @@
 # Quizbrew
 
+**Brew a quiz in seconds.**
+
 Quiz nights on your own network. One laptop runs the quiz, the TV shows it, teams play on their phones. No accounts, no app to install, no internet needed.
 
 ## Start

@@ -181,3 +181,5 @@ body.phone::before { z-index: -1; }
 @keyframes fade-in { from { opacity: 0; } }
 .bad-result .result { animation: pop-in .4s cubic-bezier(.2, 1.5, .4, 1) both, shake .6s ease .4s; }
 .bad-result .say { animation: shake .6s ease .4s; }
+.quip { margin: 2px 0 0; max-width: 20em; font-family: var(--display); letter-spacing: var(--display-track); text-transform: var(--display-case); font-size: 1.05em; color: var(--brass-light); text-shadow: 0 2px 6px rgb(0 0 0 / .7); animation: rise .5s ease both .25s; }
+.quip:empty { display: none; }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Quizbrew</title>
+  <title>Quizbrew · Brew a quiz in seconds</title>
   <link rel="preload" href="/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/screen.css">
@@ -40,6 +40,7 @@
           <p class="url" id="join-url"></p>
         </div>
       </div>
+      <p class="lobby-quip" id="lobby-quip"></p>
     </div>
     <div class="lobby-right panel">
       <h2 class="teams-head"><span id="team-count"></span></h2>
@@ -114,6 +115,7 @@
   <!-- Scoreboard -->
   <section id="v-scoreboard" class="view scoreboard" hidden>
     <h1 class="neon pink sb-title" id="sb-title"></h1>
+    <p class="sb-quip" id="sb-quip"></p>
     <ol class="sb-list" id="sb-list"></ol>
   </section>
 
@@ -122,6 +124,7 @@
     <h1 class="neon end-title" id="end-title"></h1>
     <div class="podium" id="podium"></div>
     <ol class="rest" id="rest"></ol>
+    <p class="end-quip" id="end-quip"></p>
   </section>
 
   <script src="/socket.io/socket.io.js"></script>

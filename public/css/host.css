@@ -37,7 +37,8 @@ body.host {
 /* Home: a big logo, three tiles with painted icons, then the quizzes. */
 .hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 8px 0 26px; }
 .hero-logo { width: min(520px, 80vw); filter: drop-shadow(0 0 30px rgb(var(--k-amber) / .35)) drop-shadow(0 10px 30px rgb(0 0 0 / .6)); animation: flicker 8s infinite 2s; }
-.hero-tag { margin: 6px 0 0; font-size: .9em; font-weight: 750; letter-spacing: .38em; text-transform: uppercase; color: var(--brass-light); text-shadow: 0 2px 8px rgb(0 0 0 / .8); }
+.hero-slogan { margin: 2px 0 0; font-family: var(--display); letter-spacing: var(--display-track, 0); font-size: clamp(1.4em, 3.4vw, 2.1em); line-height: 1.1; color: var(--cream); text-shadow: 0 0 18px rgb(var(--k-amber) / .45), 0 3px 10px rgb(0 0 0 / .8); }
+.hero-tag { margin: 8px 0 0; font-size: .9em; font-weight: 750; letter-spacing: .38em; text-transform: uppercase; color: var(--brass-light); text-shadow: 0 2px 8px rgb(0 0 0 / .8); }
 .hero-tag::before, .hero-tag::after { content: '◆'; margin: 0 .9em; font-size: .7em; color: var(--brass); vertical-align: .15em; letter-spacing: 0; }
 
 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 40px; }
