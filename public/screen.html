@@ -138,6 +138,15 @@
   <script src="/js/i18n.js"></script>
   <script src="/js/fx.js"></script>
   <script src="/js/common.js"></script>
+  <!-- A break: on top of whatever was on screen -->
+  <div class="break-layer" id="break" hidden>
+    <div class="break-card">
+      <p class="break-kicker" data-i18n="screen.break"></p>
+      <p class="break-sub" id="break-sub"></p>
+      <div class="break-clock" id="break-clock"></div>
+      <ol class="break-board" id="break-board"></ol>
+    </div>
+  </div>
   <div class="reactions" id="reactions" aria-hidden="true"></div>
   <button class="sound-gate" id="sound-gate" hidden data-i18n="screen.enableSound"></button>
   <script src="/js/media.js"></script>

@@ -47,7 +47,7 @@
     if (stopTimer) { stopTimer(); stopTimer = null; }
 
     renderStage(s);
-    $('#react-bar').hidden = !s.team || !REACT_PHASES.includes(s.phase);
+    $('#react-bar').hidden = !s.team || !(s.break || REACT_PHASES.includes(s.phase));
     document.body.classList.toggle('reacting', !$('#react-bar').hidden);
     const bar = $('#team-bar');
     bar.hidden = !s.team;
@@ -67,6 +67,15 @@
       $('#join-form').hidden = s.phase !== 'lobby';
       renderTeamPick(s.teams || []);
       if (s.phase === 'lobby') renderSwatches(s.takenColors);
+      return;
+    }
+
+    // A break: a countdown and the standings, whatever the phase.
+    if (s.break) {
+      const say = left => { $('#wait-text').textContent = t('play.break', { time: QB.mmss(left) }); };
+      wait('', '\u2615');
+      stopTimer = countdown(s.break.left, 0, say);
+      renderStandings(s.break.standings.map(r => ({ ...r, me: r.name === s.team.name })));
       return;
     }
 

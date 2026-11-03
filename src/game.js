@@ -10,6 +10,9 @@ const rounds = require('./rounds');
 const MAX_NAME = 20;
 const MAX_UNDO = 40;
 const EXTRA_TIME = 10000; // the quizmaster's +10 s
+// A break: the quizmaster pauses between questions; the screen shows a countdown and the standings.
+const BREAK_PHASES = ['lobby', 'roundIntro', 'reveal', 'scoreboard'];
+const BREAK_STEP = 5 * 60000;
 const RESTORE_MIN = 10000; // a question that comes back (undo, after a crash) gets at least 10 seconds
 const SHRINK_STEP = 5000; // shrinking options twist: one wrong answer disappears every 5 seconds
 
@@ -33,6 +36,7 @@ class Game {
     if (this.timer) this.clock.clearTimeout(this.timer);
     this.timer = null;
     this.quiz = null;
+    this.breakUntil = null;
     this.phase = 'idle';
     this.roundIndex = -1;
     this.questionIndex = -1;
@@ -156,6 +160,7 @@ class Game {
   // One button for the quizmaster: always moves to the next logical step.
   next() {
     if (this.phase === 'lobby' && this.teams.size === 0) return;
+    if (this.breakUntil) return this.endBreak();
     if (this.phase !== 'idle' && this.phase !== 'end') {
       this.history.push(this.snapshot());
       if (this.history.length > MAX_UNDO) this.history.shift();
@@ -726,10 +731,36 @@ class Game {
 
   // The quizmaster's undo: one step back.
   back() {
+    if (this.breakUntil) return this.endBreak();
     const snap = this.history.pop();
     if (!snap) return false;
     this.restore(snap);
     return true;
+  }
+
+  // A break of 10 minutes, or 5 more on a running one. Only between questions, never while a clock runs.
+  startBreak() {
+    const now = this.clock.now();
+    if (this.breakUntil) this.breakUntil = Math.max(this.breakUntil, now) + BREAK_STEP;
+    else if (BREAK_PHASES.includes(this.phase)) this.breakUntil = now + 2 * BREAK_STEP;
+    else return false;
+    this.broadcast();
+    return true;
+  }
+
+  endBreak() {
+    if (!this.breakUntil) return false;
+    this.breakUntil = null;
+    this.broadcast();
+    return true;
+  }
+
+  breakInfo() {
+    if (!this.breakUntil) return null;
+    return {
+      left: Math.max(0, this.breakUntil - this.clock.now()),
+      standings: this.phase === 'lobby' ? [] : this.ranking().map(r => ({ name: r.name, color: r.color, photo: r.photo, score: r.score, rank: r.rank })),
+    };
   }
 
   // The quizmaster's +10 s on the running question or vote (never past the full time).
@@ -835,6 +866,7 @@ class Game {
       levelBase: this.phase === 'wager' ? q.points : null,
       remaining: this.remaining(),
       awards: this.phase === 'awards' ? this.awards() : null,
+      break: this.breakInfo(),
       reveal: this.phase === 'reveal' ? this.revealInfo() : null,
       correct: this.phase === 'reveal' ? (this.type.revealQ(q).correct ?? null) : null,
       // Buzzer: who holds the floor; the clock stands still meanwhile.
@@ -921,7 +953,8 @@ class Game {
       judgeList: this.phase === 'reveal' && this.canJudge() && ['choice', 'trueFalse'].includes(this.kind)
         ? [...this.teams.entries()].map(([id, t]) => ({ id, name: t.name, color: t.color, answer: t.answer, correct: t.correct, points: t.lastPoints }))
         : null,
-      canBack: this.history.length > 0,
+      canBack: this.history.length > 0 && !this.breakUntil,
+      canBreak: !!this.breakUntil || BREAK_PHASES.includes(this.phase) && !!this.quiz,
       canAddTime: (this.phase === 'question' && !!this.type && !this.type.turns && !this.buzz) || this.phase === 'vote',
       resumable: this.phase === 'idle' ? this.resumable : null,
       canJudgeBuzz: this.phase === 'question' && (!!this.buzz || (!!this.type.turns && !!this.turnTeam)),

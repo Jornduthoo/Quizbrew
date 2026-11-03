@@ -306,3 +306,30 @@ test('a team photo shows up for the screen, the standings and the phone', () => 
   assert.equal(game.ranking()[0].photo, '/media/0123456789abcdef0123.webp');
   assert.equal(game.teamState('team1aaaa').team.photo, '/media/0123456789abcdef0123.webp');
 });
+
+test('a break shows a countdown and the standings, and the next press ends it', () => {
+  const { game, clock } = setup();
+  game.join('team1aaaa', 'A', 'amber', 's1');
+  game.join('team2aaaa', 'B', 'pink', 's2');
+  game.next();
+  game.next();
+  assert.equal(game.phase, 'question');
+  assert.equal(game.startBreak(), false, 'no break while the clock runs');
+  assert.equal(game.hostState().canBreak, false);
+  game.answer('team1aaaa', 1);
+  game.answer('team2aaaa', 0);
+  assert.equal(game.phase, 'reveal');
+  assert.ok(game.hostState().canBreak);
+  assert.ok(game.startBreak());
+  assert.equal(game.screenState().break.left, 10 * 60000);
+  assert.equal(game.teamState('team1aaaa').break.standings[0].name, 'A');
+  clock.advance(60000);
+  assert.ok(game.startBreak(), '5 minutes more');
+  assert.equal(game.screenState().break.left, 14 * 60000);
+  assert.equal(game.hostState().canBack, false);
+  game.next();
+  assert.equal(game.screenState().break, null);
+  assert.equal(game.phase, 'reveal', 'the press that ends the break does not move on');
+  game.next();
+  assert.equal(game.questionIndex, 1);
+});

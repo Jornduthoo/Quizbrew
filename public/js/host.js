@@ -121,11 +121,13 @@
     const label = NEXT_LABEL[s.phase];
     const next = $('#next');
     next.hidden = !label;
-    if (label) next.textContent = t(label(s));
+    if (label) next.textContent = t(s.break ? 'host.endBreak' : label(s));
     next.disabled = s.phase === 'lobby' && s.teams.length === 0;
     $('#stop').textContent = t(s.phase === 'end' ? 'host.newQuiz' : 'host.stop');
     $('#back').hidden = !s.canBack;
     $('#add-time').hidden = !s.canAddTime;
+    $('#break').hidden = !s.canBreak;
+    $('#break').textContent = t(s.break ? 'host.breakMore' : 'host.break');
 
     const kicker = $('#phase-kicker');
     const title = $('#phase-title');
@@ -281,6 +283,7 @@
   $('#next').addEventListener('click', () => socket.emit('next'));
   $('#back').addEventListener('click', () => socket.emit('back'));
   $('#add-time').addEventListener('click', () => socket.emit('addTime'));
+  $('#break').addEventListener('click', () => socket.emit('break'));
   $('#resume-go').addEventListener('click', () => socket.emit('resume', res => { if (res && res.error) alert(t(res.error)); }));
   $('#resume-no').addEventListener('click', () => { if (confirm(t('host.resumeNoSure'))) socket.emit('discard'); });
   $('#stop').addEventListener('click', () => {
