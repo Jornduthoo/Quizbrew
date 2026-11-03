@@ -55,8 +55,13 @@
 
     if (!s.team) {
       if (s.phase === 'idle') return showView('idle');
-      if (s.phase === 'lobby') { showView('join'); return renderSwatches(s.takenColors); }
-      return wait(t('play.tooLate'));
+      // A teammate can always join a team that is already in, also after the start.
+      if (s.phase !== 'lobby' && !(s.teams && s.teams.length)) return wait(t('play.tooLate'));
+      showView('join');
+      $('#join-form').hidden = s.phase !== 'lobby';
+      renderTeamPick(s.teams || []);
+      if (s.phase === 'lobby') renderSwatches(s.takenColors);
+      return;
     }
 
     switch (s.phase) {
@@ -93,6 +98,7 @@
       case 'scoreboard':
       case 'end':
         wait(t(s.phase === 'end' ? 'play.finalPlace' : 'play.place', { n: s.team.rank, total: s.team.teams }), '#' + s.team.rank);
+        renderStandings(s.standings);
         if (s.team.rank === 1) {
           const b = $('#wait-badge');
           b.classList.add('first');
@@ -423,6 +429,37 @@
     b.className = 'badge' + (badge ? ' filled' : ' pulse');
     $('#wait-text').textContent = text;
     $('#wait-quip').textContent = '';
+    $('#standings').hidden = true;
+  }
+
+  function renderStandings(rows) {
+    const list = $('#standings');
+    if (!rows || rows.length < 2) return;
+    list.hidden = false;
+    list.replaceChildren(...rows.map((r, i) => {
+      const rank = h('span', { class: 'st-rank' }, String(r.rank));
+      if (r.rank === 1) rank.innerHTML = CROWN;
+      return h('li', { class: 'st-row' + (r.me ? ' me' : ''), style: teamVar(r.color) + `; --k: ${i}` },
+        rank, h('span', { class: 'st-name' }, r.name), h('span', { class: 'st-score' }, String(r.score)));
+    }));
+  }
+
+  // Join a team that is already in: this phone then plays along with that team.
+  function renderTeamPick(teams) {
+    $('#join-team').hidden = !teams.length;
+    $('#team-pick').replaceChildren(...teams.map(x => h('button', {
+      type: 'button', class: 'team-chip', style: teamVar(x.color),
+      onclick: () => {
+        if (!confirm(t('play.joinTeamSure', { name: x.name }))) return;
+        socket.emit('join', { teamId: x.id }, res => {
+          if (res.error) return ($('#pick-error').textContent = t(res.error));
+          teamId = x.id;
+          store.set('qb.teamId', teamId);
+          socket.io.opts.query = { ...socket.io.opts.query, teamId };
+          if (navigator.vibrate) navigator.vibrate(30);
+        });
+      },
+    }, h('span', { class: 'dot' }), x.name)));
   }
 
   function renderSwatches(taken) {

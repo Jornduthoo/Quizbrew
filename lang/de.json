@@ -669,5 +669,9 @@
   "cloud.inside": "Wähle einen Ordner außerhalb des Quizbrew-Ordners.",
   "cloud.typeIt": "Das Fenster zur Ordnerwahl ging nicht auf. Gib den Pfad des Ordners ein.",
   "ai.lang.de": "Deutsch",
-  "ai.lang.es": "Spanisch"
+  "ai.lang.es": "Spanisch",
+  "play.joinTeam": "Schon ein Team? Spiel mit deinem Team mit",
+  "play.joinTeamHint": "Tippe auf dein Team und spiel auf diesem Handy mit. Die erste Antwort des Teams zählt, also sprecht euch vorher ab.",
+  "play.joinTeamSure": "Auf diesem Handy bei {name} mitspielen?",
+  "host.phones": "📱{n}"
 }

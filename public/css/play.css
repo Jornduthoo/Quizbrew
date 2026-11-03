@@ -183,3 +183,31 @@ body.phone::before { z-index: -1; }
 .bad-result .say { animation: shake .6s ease .4s; }
 .quip { margin: 2px 0 0; max-width: 20em; font-family: var(--display); letter-spacing: var(--display-track); text-transform: var(--display-case); font-size: 1.05em; color: var(--brass-light); text-shadow: 0 2px 6px rgb(0 0 0 / .7); animation: rise .5s ease both .25s; }
 .quip:empty { display: none; }
+
+/* Join a team that is already in: one chip per team in its own colour. */
+.join-team .hint { margin: -6px 0 0; color: var(--muted); font-size: .95em; }
+.team-pick { display: flex; flex-wrap: wrap; gap: 10px; }
+.team-chip {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 11px 16px; border-radius: 999px;
+  border: 2px solid var(--c); background: rgb(0 0 0 / .4); color: var(--cream);
+  font: inherit; font-weight: 750; font-size: 1.05em;
+  box-shadow: 0 0 12px rgb(0 0 0 / .4), inset 0 0 14px rgb(0 0 0 / .3);
+  transition: transform .12s;
+}
+.team-chip:active { transform: scale(.96); }
+.team-chip .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+
+/* Standings on the phone between rounds and at the end. */
+.standings { list-style: none; margin: 6px 0 0; padding: 0; width: min(100%, 360px); display: flex; flex-direction: column; gap: 6px; }
+.st-row {
+  display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px;
+  padding: 9px 14px; border-radius: 12px; text-align: left;
+  background: rgb(var(--k-wood-8) / .82); border-left: 5px solid var(--c);
+  animation: rise .35s ease both; animation-delay: calc(var(--k) * 60ms);
+}
+.st-row.me { background: rgb(var(--k-wood-7) / .95); box-shadow: 0 0 0 2px var(--c), 0 0 16px rgb(0 0 0 / .5); }
+.st-rank { font-weight: 800; color: var(--brass-light); display: grid; place-items: center; }
+.st-rank .crown { width: 22px; height: 22px; fill: var(--brass-light); }
+.st-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-score { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--cream); }

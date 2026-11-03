@@ -669,5 +669,9 @@
   "cloud.inside": "Elige una carpeta fuera de la carpeta de Quizbrew.",
   "cloud.typeIt": "No se abrió la ventana para elegir carpeta. Escribe la ruta de la carpeta.",
   "ai.lang.de": "Alemán",
-  "ai.lang.es": "Español"
+  "ai.lang.es": "Español",
+  "play.joinTeam": "¿Ya tienes equipo? Únete a tus compañeros",
+  "play.joinTeamHint": "Toca tu equipo y juega desde este móvil. Cuenta la primera respuesta del equipo, así que poneos de acuerdo antes.",
+  "play.joinTeamSure": "¿Jugar con {name} en este móvil?",
+  "host.phones": "📱{n}"
 }
