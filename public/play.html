@@ -40,6 +40,25 @@
       <div class="team-pick" id="team-pick"></div>
       <p class="error" id="pick-error" role="alert"></p>
     </div>
+    <!-- No team? Play along in the audience with a nickname. -->
+    <button class="link-btn aud-open" id="aud-open" type="button" data-i18n="play.audience.open"></button>
+    <form class="card panel aud-join" id="aud-form" autocomplete="off" hidden>
+      <p class="label" data-i18n="play.audience.title"></p>
+      <p class="hint" data-i18n="play.audience.hint"></p>
+      <input id="aud-input" maxlength="20" required data-i18n-attr="placeholder:play.audience.nickname,aria-label:play.audience.nickname" enterkeyhint="done">
+      <p class="error" id="aud-error" role="alert"></p>
+      <button class="brass-btn big" type="submit" data-i18n="play.audience.join"></button>
+    </form>
+  </section>
+
+  <!-- The audience: answer along, own score, never counts for the teams -->
+  <section id="v-audience" class="view audience-view" hidden>
+    <div class="aud-head"><span class="aud-badge" data-i18n="play.audience.badge"></span><span class="aud-name" id="aud-name"></span><span class="aud-score" id="aud-score"></span></div>
+    <p class="phone-q aud-q" id="aud-q" hidden></p>
+    <div class="choices" id="aud-choices"></div>
+    <p class="say aud-say" id="aud-say" aria-live="polite"></p>
+    <ol class="standings" id="aud-top" hidden></ol>
+    <button class="link-btn aud-leave" id="aud-leave" type="button" data-i18n="play.audience.leave"></button>
   </section>
 
   <!-- No quiz loaded yet -->
@@ -51,7 +70,7 @@
   <!-- Waiting: look at the big screen -->
   <section id="v-wait" class="view center" hidden>
     <div class="badge" id="wait-badge"></div>
-    <p class="say" id="wait-text"></p>
+    <p class="say" id="wait-text" aria-live="polite"></p>
     <p class="quip" id="wait-quip"></p>
     <button class="ghost-btn photo-later" id="photo-later" type="button" hidden data-i18n="play.teamPhotoLater"></button>
     <ol class="standings" id="standings" hidden></ol>
@@ -63,6 +82,8 @@
     </div>
     <p class="made-with" id="made-with" hidden><span data-i18n="brand.madeWith"></span><img src="/img/logo.webp" alt="Quizbrew" width="720" height="326"><span class="made-own" data-i18n="brand.yourOwn"></span></p>
     <button class="brass-btn big joker-btn" id="joker-btn" type="button" hidden data-i18n="play.playJoker"></button>
+    <button class="ghost-btn power-btn shield" id="shield-btn" type="button" hidden><span class="p-icon" aria-hidden="true"></span><span data-i18n="play.power.shield"></span></button>
+    <p class="power-left" id="power-left" hidden></p>
   </section>
 
   <!-- Answer buttons -->
@@ -72,6 +93,10 @@
     <div class="choices" id="choices"></div>
     <button class="brass-btn big bank-btn" id="bank-btn" type="button" hidden></button>
     <button class="ghost-btn lifeline-btn" id="lifeline-btn" type="button" hidden data-i18n="play.lifeline"></button>
+    <div class="powers" id="powers" hidden>
+      <button class="ghost-btn power-btn spy" id="spy-btn" type="button" hidden><span class="p-icon" aria-hidden="true"></span><span data-i18n="play.power.spy"></span></button>
+      <button class="ghost-btn power-btn fifty" id="fifty-btn" type="button" hidden><span class="p-icon" aria-hidden="true"></span><span data-i18n="play.power.fifty"></span></button>
+    </div>
   </section>
 
   <!-- Clock rounds: one team answers out loud while its clock runs -->
@@ -106,7 +131,7 @@
   <section id="v-buzz" class="view center" hidden>
     <div class="mini-head wide"><span id="z-num"></span><span id="z-time"></span></div>
     <button class="buzz-btn" id="buzz-btn" type="button"><span data-i18n="play.buzz"></span></button>
-    <p class="say" id="buzz-text"></p>
+    <p class="say" id="buzz-text" aria-live="polite"></p>
   </section>
 
   <!-- List rush: type as many as you can -->
@@ -169,7 +194,7 @@
   <!-- Result after the reveal -->
   <section id="v-reveal" class="view center" hidden>
     <div class="result-wrap"><div class="rays" aria-hidden="true"></div><div class="result" id="result-icon"></div></div>
-    <p class="say big" id="result-text"></p>
+    <p class="say big" id="result-text" aria-live="polite"></p>
     <p class="sub" id="result-sub"></p>
     <p class="quip" id="result-quip"></p>
     <p class="fact" id="result-fact" hidden></p>

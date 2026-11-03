@@ -231,6 +231,7 @@
     const quiz = current.quiz;
     $('#quiz-title').value = quiz.title || '';
     $('#quiz-jokers').checked = !!quiz.jokers;
+    $('#quiz-powers').checked = !!quiz.powerUps;
     $('#quiz-tiebreak').checked = quiz.tiebreak !== false;
     const own = quiz.tiebreak && typeof quiz.tiebreak === 'object' ? quiz.tiebreak : {};
     $('#tb-question').value = own.question || '';
@@ -244,6 +245,7 @@
 
   $('#quiz-title').addEventListener('input', e => { current.quiz.title = e.target.value; changed(); });
   $('#quiz-jokers').addEventListener('change', e => { current.quiz.jokers = e.target.checked; changed(); });
+  $('#quiz-powers').addEventListener('change', e => { current.quiz.powerUps = e.target.checked; changed(); });
   // Tie-break: off, a built-in question (true), or the quiz's own question.
   function readTiebreak() {
     if (!$('#quiz-tiebreak').checked) current.quiz.tiebreak = false;

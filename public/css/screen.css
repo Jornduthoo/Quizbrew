@@ -542,3 +542,8 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .end .end-sponsors { position: absolute; left: 2.5vw; bottom: 2.5vh; align-items: flex-start; max-width: 40vw; margin: 0; font-size: .9em; opacity: 0; animation: made-in 1s ease forwards 5s; }
 .end .end-sponsors ul { justify-content: flex-start; }
 .end .end-sponsors .sp-item img { height: 2.4em; }
+
+/* The audience */
+.aud-count { margin: 1.4vh 0 0; font-size: 1.2em; font-weight: 700; color: var(--neon-cyan); text-shadow: 0 0 10px rgb(var(--k-cyan) / .5); }
+.aud-pill { position: absolute; top: 11.6vh; right: 4.2vw; margin: 0; padding: .35em 1.1em; border-radius: 999px; background: rgb(0 0 0 / .5); box-shadow: inset 0 0 0 1.5px rgb(var(--k-cyan) / .55), 0 0 18px rgb(var(--k-cyan) / .2); font-weight: 800; color: var(--neon-cyan); white-space: nowrap; animation: rise .6s ease both .8s; z-index: 3; }
+.aud-best { margin: 0; font-size: 1.05em; font-weight: 700; color: var(--neon-cyan); opacity: 0; animation: made-in 1s ease forwards 4s; }

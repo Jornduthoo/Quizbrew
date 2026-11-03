@@ -324,3 +324,33 @@ body.big-text .choice .letter { width: 60px; height: 60px; }
 .venue-badge { display: flex; align-items: center; justify-content: center; gap: .6em; margin: -4px auto 14px; padding: .35em 1em .35em .4em; border-radius: 999px; width: fit-content; max-width: 100%; background: rgb(0 0 0 / .35); box-shadow: inset 0 0 0 1.5px rgb(var(--k-brass-l) / .4); font-weight: 700; color: var(--brass-light); }
 .venue-badge img { height: 2em; max-width: 5em; object-fit: contain; border-radius: .3em; }
 .venue-badge img[hidden] + span { padding-left: .5em; }
+
+/* Power-ups: shield (start of a round), spy and 50/50 (during a question) */
+.powers { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+.power-btn { display: inline-flex; align-items: center; gap: .55em; padding: .6em 1.1em; font-size: 1em; color: var(--cream); border-color: rgb(var(--k-cyan) / .55); box-shadow: 0 0 14px rgb(var(--k-cyan) / .18); }
+.power-btn.shield { margin-top: 12px; }
+.p-icon { width: 1.3em; height: 1.3em; background: var(--neon-cyan); -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; filter: drop-shadow(0 0 4px rgb(var(--k-cyan) / .7)); }
+.shield .p-icon { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l8 3v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5z'/%3E%3C/svg%3E"); }
+.spy .p-icon { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 5C6 5 2 12 2 12s4 7 10 7 10-7 10-7-4-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z'/%3E%3C/svg%3E"); }
+.fifty .p-icon { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 100 20 10 10 0 000-20zm0 2v16a8 8 0 010-16z'/%3E%3C/svg%3E"); }
+.power-left { margin: 10px 0 0; font-size: .85em; color: var(--muted); text-align: center; }
+.spy-n { position: absolute; top: 6px; right: 8px; min-width: 1.7em; padding: .1em .45em; border-radius: 999px; background: rgb(0 0 0 / .55); color: var(--neon-cyan); font-weight: 800; font-size: .85em; text-align: center; box-shadow: 0 0 0 1.5px rgb(var(--k-cyan) / .6); }
+
+/* The audience: plays along with a nickname, never counts for the teams */
+.link-btn { border: 0; background: none; color: var(--brass-light); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; padding: 10px; cursor: pointer; }
+.aud-open { display: block; margin: 14px auto 0; }
+.aud-join { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.aud-join .hint { margin: 0; }
+.audience-view { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.aud-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border-radius: 14px; background: rgb(0 0 0 / .35); box-shadow: inset 0 0 0 1.5px rgb(var(--k-cyan) / .4); }
+.aud-badge { padding: .15em .7em; border-radius: 999px; background: rgb(var(--k-cyan) / .16); color: var(--neon-cyan); font-size: .75em; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.aud-name { flex: 1; min-width: 0; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aud-score { font-weight: 800; color: var(--brass-light); }
+.aud-q { text-align: center; }
+#aud-choices { width: 100%; }
+#aud-choices .choice.picked { box-shadow: 0 0 0 3px var(--cream), 0 0 22px var(--a, var(--brass)); }
+#aud-choices .choice.right { box-shadow: 0 0 0 3px var(--good), 0 0 22px var(--good); }
+#aud-choices .choice.dim { opacity: .4; }
+#aud-choices .choice:disabled { cursor: default; }
+.aud-say { text-align: center; }
+.aud-leave { font-size: .85em; opacity: .75; }

@@ -2,6 +2,7 @@
   "title": "Pack soirée quiz 1",
   "language": "fr",
   "jokers": true,
+  "powerUps": true,
   "tiebreak": true,
   "rounds": [
     {
