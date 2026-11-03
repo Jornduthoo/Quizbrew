@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/css/play.css">
 </head>
 <body class="phone">
+  <div class="glow-bg" aria-hidden="true"><i></i><i></i></div>
   <!-- Join: team name + colour -->
   <section id="v-join" class="view" hidden>
     <img class="logo" src="/img/logo.webp" alt="Quizbrew">
@@ -42,7 +43,7 @@
 
   <!-- Result after the reveal -->
   <section id="v-reveal" class="view center" hidden>
-    <div class="result" id="result-icon"></div>
+    <div class="result-wrap"><div class="rays" aria-hidden="true"></div><div class="result" id="result-icon"></div></div>
     <p class="say big" id="result-text"></p>
     <p class="sub" id="result-sub"></p>
   </section>
@@ -52,6 +53,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/i18n.js"></script>
+  <script src="/js/fx.js"></script>
   <script src="/js/common.js"></script>
   <script src="/js/play.js"></script>
 </body>

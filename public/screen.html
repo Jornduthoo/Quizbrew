@@ -9,8 +9,15 @@
   <link rel="stylesheet" href="/css/screen.css">
 </head>
 <body class="screen">
-  <div class="backdrop"></div>
+  <!-- Backgrounds per phase; they cross-fade and drift slowly. -->
+  <div class="bg bg-lobby"></div>
+  <div class="bg bg-stage"></div>
+  <div class="bg bg-play"></div>
+  <div class="bg bg-board"></div>
+  <div class="bg bg-finale"></div>
+  <div class="beams" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="vignette"></div>
+  <div class="flash" id="flash"></div>
 
   <!-- Waiting for the quizmaster to pick a quiz -->
   <section id="v-idle" class="view center">
@@ -26,6 +33,7 @@
       <div class="qr-card">
         <div class="qr" id="qr"></div>
         <div class="qr-text">
+          <svg class="scan-arrow" viewBox="0 0 60 24" aria-hidden="true"><path d="M58 12H6M16 2L4 12l12 10"/></svg>
           <p class="scan neon" data-i18n="screen.scan"></p>
           <p class="or" data-i18n="screen.orGoTo"></p>
           <p class="url" id="join-url"></p>
@@ -40,9 +48,11 @@
   </section>
 
   <!-- Round intro -->
-  <section id="v-roundIntro" class="view center" hidden>
+  <section id="v-roundIntro" class="view center round-intro" hidden>
+    <div class="ri-medal" id="ri-medal"><svg class="ri-icon" id="ri-icon" viewBox="0 0 24 24" aria-hidden="true"></svg></div>
     <p class="round-kicker" id="round-kicker"></p>
     <h1 class="round-title neon" id="round-title"></h1>
+    <p class="ri-type" id="ri-type"></p>
     <p class="round-meta" id="round-meta"></p>
   </section>
 
@@ -69,13 +79,14 @@
 
   <!-- End: podium -->
   <section id="v-end" class="view end" hidden>
-    <h1 class="neon end-title" data-i18n="screen.winner"></h1>
+    <h1 class="neon end-title" id="end-title"></h1>
     <div class="podium" id="podium"></div>
     <ol class="rest" id="rest"></ol>
   </section>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/i18n.js"></script>
+  <script src="/js/fx.js"></script>
   <script src="/js/common.js"></script>
   <script src="/js/screen.js"></script>
 </body>

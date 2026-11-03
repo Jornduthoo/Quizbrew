@@ -81,5 +81,13 @@
   "color.yellow": "Yellow",
   "color.blue": "Blue",
   "color.mint": "Mint",
-  "color.rose": "Rose"
+  "color.rose": "Rose",
+  "round.classic": "Multiple choice",
+  "round.open": "Open answer",
+  "round.picture": "Picture round",
+  "round.music": "Music round",
+  "round.speed": "Speed round",
+  "round.drawGuess": "Draw and guess",
+  "round.puzzle": "Puzzle round",
+  "round.lastStanding": "Last team standing"
 }

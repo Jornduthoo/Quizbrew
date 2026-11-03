@@ -45,4 +45,10 @@ Quizzes are JSON files in `quizzes/`:
 - `public/` holds the three screens: `host`, `screen`, `play`. Plain HTML, CSS and JS, no build step.
 - Tests: `npm test` (node --test).
 
+## Look and effects
+
+- Backgrounds per phase live in `public/img/` (webp, under 150 KB each) and cross-fade on the big screen.
+- `public/js/fx.js` draws ambient particles and bursts (`FX.confetti`, `FX.sparks`, `FX.rain`, `FX.ambient`). It turns itself down on weak devices and off with reduced motion. Force a level with `?fx=off`, `?fx=low` or `?fx=high` in the URL.
+- Every round type has a neon colour and icon in `QB.ROUND_THEMES` (`public/js/common.js`) and a label `round.<type>` in the language files; the round intro uses both.
+
 The font is Bricolage Grotesque (SIL Open Font License, see `public/fonts/`).

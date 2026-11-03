@@ -146,6 +146,27 @@ button { cursor: pointer; }
   50% { filter: drop-shadow(0 0 22px var(--glow, var(--neon-amber))); }
 }
 
+/* A neon letter switching on: dark tube, sputter, full glow. */
+@keyframes neon-on {
+  0% { opacity: .08; text-shadow: none; }
+  8% { opacity: 1; }
+  12% { opacity: .15; }
+  20% { opacity: 1; }
+  24% { opacity: .3; }
+  34%, 100% { opacity: 1; }
+}
+@keyframes shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(5px); }
+  30%, 50%, 70% { transform: translateX(-9px); }
+  40%, 60% { transform: translateX(9px); }
+}
+
+/* Effect canvases from fx.js. */
+.fx-canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.fx-back { z-index: -1; }
+.fx-front { z-index: 60; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

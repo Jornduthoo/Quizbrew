@@ -1,6 +1,6 @@
 // The phone. One sentence, one button at a time.
 (function () {
-  const { $, h, showView, LETTERS, teamVar, countdown } = QB;
+  const { $, h, showView, LETTERS, teamVar, countdown, CROWN } = QB;
   const store = {
     get: k => { try { return localStorage.getItem(k); } catch { return null; } },
     set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
@@ -39,6 +39,7 @@
   function render(s, force) {
     const key = [s.phase, s.round && s.round.index, s.questionIndex, s.team ? 1 : 0, s.answer].join(':');
     const fresh = force || key !== lastKey;
+    if (key !== lastKey) window.scrollTo(0, 0);
     lastKey = key;
     if (stopTimer) { stopTimer(); stopTimer = null; }
 
@@ -67,7 +68,15 @@
       case 'reveal': return renderResult(s, fresh);
       case 'scoreboard':
       case 'end':
-        return wait(t(s.phase === 'end' ? 'play.finalPlace' : 'play.place', { n: s.team.rank, total: s.team.teams }), '#' + s.team.rank);
+        wait(t(s.phase === 'end' ? 'play.finalPlace' : 'play.place', { n: s.team.rank, total: s.team.teams }), '#' + s.team.rank);
+        if (s.team.rank === 1) {
+          const b = $('#wait-badge');
+          b.classList.add('first');
+          b.append(h('span', { class: 'badge-crown' }));
+          b.lastChild.innerHTML = CROWN;
+          if (fresh) setTimeout(() => celebrate(b, s.phase === 'end' ? 2 : 1), 300);
+        }
+        return;
       default:
     }
   }
@@ -112,7 +121,7 @@
     if (fresh) {
       $('#choices').className = 'choices n' + s.question.answers.length;
       $('#choices').replaceChildren(...s.question.answers.map((a, i) => h('button', {
-        class: 'choice', style: `--a: var(--ans-${i})`,
+        class: 'choice', style: `--a: var(--ans-${i}); --k: ${i}`,
         onclick: e => {
           e.currentTarget.classList.add('tapped');
           if (navigator.vibrate) navigator.vibrate(25);
@@ -125,12 +134,25 @@
     });
   }
 
+  // Confetti in the team colour (and brass) from an element.
+  function celebrate(el, power) {
+    const b = el.getBoundingClientRect();
+    const me = getComputedStyle(document.body).getPropertyValue('--me').trim();
+    const team = state && state.team ? getComputedStyle(document.body).getPropertyValue('--team-' + state.team.color).trim() : me;
+    FX.confetti({ x: b.left + b.width / 2, y: b.top + b.height / 2, colors: [team, '#f6d48c', '#ffffff', '#ffb43c'], count: 70 * power, spread: 0.8 });
+    if (power > 1) FX.rain({ colors: [team, '#f6d48c', '#ffffff'], seconds: 3, perSecond: 40 });
+  }
+
   function renderResult(s, fresh) {
     showView('reveal');
     const answered = s.answer !== null && s.answer !== undefined;
     const right = answered && s.answer === s.correct;
     const icon = $('#result-icon');
     icon.className = 'result ' + (right ? 'good' : answered ? 'bad' : 'none');
+    const view = $('#v-reveal');
+    view.classList.toggle('good-result', right);
+    view.classList.toggle('bad-result', answered && !right);
+    if (fresh && right) setTimeout(() => celebrate(icon, 1), 200);
     icon.textContent = right ? '✓' : answered ? '✗' : '–';
     $('#result-text').textContent = right ? t('play.correct') : answered ? t('play.wrong') : t('play.noAnswer');
     $('#result-sub').textContent = right
