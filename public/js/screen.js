@@ -56,7 +56,16 @@
     document.body.style.setProperty('--theme', roundTheme(type).glow);
   }
 
+  // The lobby line changes every few seconds.
+  let lobbyQuipTimer = 0;
+  function lobbyQuip() {
+    const el = $('#lobby-quip');
+    el.classList.remove('in'); void el.offsetWidth;
+    el.textContent = QB.quip('lobby');
+    el.classList.add('in');
+  }
   function renderLobby(s) {
+    if (!lobbyQuipTimer) { lobbyQuip(); lobbyQuipTimer = setInterval(() => { if (state && state.phase === 'lobby') lobbyQuip(); }, 9000); }
     $('#lobby-title').textContent = s.title;
     const list = $('#lobby-teams');
     const known = new Set([...list.children].map(li => li.dataset.name));
@@ -486,6 +495,7 @@
   function renderScoreboard(s) {
     split($('#sb-title'), t('screen.standingsAfter', { n: s.round.index + 1 }));
     const rows = s.ranking;
+    $('#sb-quip').textContent = rows[0] ? QB.quip('leader', { name: rows[0].name }) : '';
     const n = rows.length;
     const list = $('#sb-list');
     list.classList.toggle('two-col', n > 10);
@@ -519,6 +529,7 @@
 
   function renderEnd(s) {
     split($('#end-title'), t('screen.winner'));
+    $('#end-quip').textContent = QB.quip('final');
     const rows = s.ranking;
     const podium = [rows[1], rows[0], rows[2]].filter(Boolean);
     $('#podium').replaceChildren(...podium.map(r => h('div', { class: `step place${r.rank}`, style: teamVar(r.color) },
