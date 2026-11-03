@@ -87,8 +87,9 @@ class Game {
   join(teamId, name, color, socketId) {
     if (this.phase === 'idle') return { error: 'error.noQuiz' };
     const existing = this.teams.get(teamId);
+    // A known team: the same phone coming back, or a teammate joining on another phone.
     if (existing) {
-      existing.socketId = socketId;
+      existing.phones.add(socketId);
       existing.connected = true;
       this.broadcast();
       return { ok: true, name: existing.name, color: existing.color };
@@ -101,7 +102,7 @@ class Game {
     if (!TEAM_COLORS.includes(color)) return { error: 'error.colorInvalid' };
     if (teams.some(t => t.color === color)) return { error: 'error.colorTaken' };
     this.teams.set(teamId, {
-      name: clean, color, score: 0, socketId, connected: true,
+      name: clean, color, score: 0, phones: new Set([socketId]), connected: true,
       answer: null, answeredAt: 0, correct: false, lastPoints: 0, away: false, blocked: false, wager: null,
       jokerRound: -1, mem: freshMem(), memNext: null, bank: false, buzzOut: false,
       id: teamId, lifelineRound: -1, fifty: null, vote: null,
@@ -111,7 +112,10 @@ class Game {
   }
 
   disconnect(socketId) {
-    for (const t of this.teams.values()) if (t.socketId === socketId) t.connected = false;
+    for (const t of this.teams.values()) {
+      t.phones.delete(socketId);
+      t.connected = t.phones.size > 0;
+    }
     this.broadcast();
   }
 
@@ -119,7 +123,7 @@ class Game {
     const t = this.teams.get(teamId);
     if (!t) return;
     this.teams.delete(teamId);
-    this.emit(t.socketId, 'kicked');
+    this.emit(`team:${teamId}`, 'kicked');
     this.broadcast();
   }
 
@@ -755,7 +759,7 @@ class Game {
     const state = {
       ...this.common(),
       teams: teams.map(t => ({
-        name: t.name, color: t.color, answered: t.answer !== null, connected: t.connected, away: t.away, blocked: t.blocked,
+        name: t.name, color: t.color, answered: t.answer !== null, connected: t.connected, phones: t.phones.size, away: t.away, blocked: t.blocked,
         wagered: t.wager !== null, joker: t.jokerRound === this.roundIndex, jokerLeft: t.jokerRound === -1,
         out: this.sitsOut(t), pot: t.mem.pot, streak: t.mem.streak, banked: t.bank || t.mem.banked, buzzOut: t.buzzOut,
         level: this.type && this.type.wager === 'level' ? t.wager : null,
@@ -806,7 +810,8 @@ class Game {
     if (state.question && this.hasTwist('blackout') && this.phase === 'question') {
       state.question = { ...state.question, text: '', clues: undefined, answers: state.question.answers ? state.question.answers.map(() => '') : undefined, blackout: true };
     }
-    if (!t) return state;
+    // A phone without a team can join a team that is already in, so a whole table plays along.
+    if (!t) return { ...state, teams: [...this.teams].map(([id, x]) => ({ id, name: x.name, color: x.color })) };
     // Pick your level: every team gets the question of the level it chose.
     if (state.question && this.type.teamQ) state.question = { ...state.question, ...this.type.teamQ(this.question, t) };
     if (state.question && this.phase === 'question') state.question = { ...state.question, gone: this.hiddenFor(t) };
@@ -817,6 +822,8 @@ class Game {
         name: t.name, color: t.color, score: t.score, rank: r.rank, teams: this.teams.size,
         jokerLeft: t.jokerRound === -1, jokerNow: t.jokerRound === this.roundIndex,
       },
+      // Between rounds and at the end the phone shows the whole standings too.
+      standings: this.phase === 'scoreboard' || this.phase === 'end' ? this.ranking().map(r => ({ name: r.name, color: r.color, score: r.score, rank: r.rank, me: r.id === teamId })) : null,
       answer: t.answer,
       away: t.away,
       blocked: t.blocked,
@@ -851,7 +858,7 @@ class Game {
     this.emit('host', 'state', this.hostState());
     this.emit('screen', 'state', this.screenState());
     this.emit('lobby', 'state', this.teamState(null));
-    for (const [id, t] of this.teams) if (t.connected) this.emit(t.socketId, 'state', this.teamState(id));
+    for (const [id, t] of this.teams) if (t.connected) this.emit(`team:${id}`, 'state', this.teamState(id));
   }
 }
 

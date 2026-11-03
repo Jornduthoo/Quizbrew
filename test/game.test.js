@@ -58,7 +58,33 @@ test('joining needs a loaded quiz and is closed after the start', () => {
   assert.equal(game.join('team2aaaa', 'B', 'pink', 's2').error, 'error.alreadyStarted');
   // A known team can come back after a reload.
   assert.ok(game.join('team1aaaa', '', '', 's9').ok);
-  assert.equal(game.teams.get('team1aaaa').socketId, 's9');
+  assert.ok(game.teams.get('team1aaaa').phones.has('s9'));
+});
+
+test('several phones play in one team: the first answer counts', () => {
+  const { game, sent } = setup();
+  game.join('team1aaaa', 'A', 'amber', 's1');
+  assert.deepEqual(game.teamState(null).teams, [{ id: 'team1aaaa', name: 'A', color: 'amber' }]);
+  assert.ok(game.join('team1aaaa', '', '', 's2').ok);
+  assert.equal(game.teams.size, 1);
+  assert.equal(game.hostState().teams[0].phones, 2);
+  // One phone drops out: the team is still connected.
+  game.disconnect('s1');
+  assert.ok(game.teams.get('team1aaaa').connected);
+  game.next();
+  game.next();
+  assert.equal(game.phase, 'question');
+  game.join('team2aaaa', '', '', 's3');
+  assert.ok(!game.teams.has('team2aaaa'));
+  game.join('team1aaaa', '', '', 's1');
+  const kind = game.teamState('team1aaaa').question.kind;
+  assert.equal(kind, 'choice');
+  game.answer('team1aaaa', 1);
+  assert.equal(game.answer('team1aaaa', 2), false);
+  assert.ok(sent.some(m => m.to === 'team:team1aaaa' && m.ev === 'state'));
+  game.disconnect('s1');
+  game.disconnect('s2');
+  assert.equal(game.teams.get('team1aaaa').connected, false);
 });
 
 test('a full quiz: rounds, questions, reveal, scoreboard and end', () => {
@@ -144,7 +170,7 @@ test('kick and stop', () => {
   game.join('team1aaaa', 'A', 'amber', 's1');
   game.kick('team1aaaa');
   assert.equal(game.teams.size, 0);
-  assert.ok(sent.some(m => m.to === 's1' && m.ev === 'kicked'));
+  assert.ok(sent.some(m => m.to === 'team:team1aaaa' && m.ev === 'kicked'));
   game.stop();
   assert.equal(game.phase, 'idle');
 });

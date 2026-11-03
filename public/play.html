@@ -22,6 +22,12 @@
       <p class="error" id="join-error" role="alert"></p>
       <button class="brass-btn big" type="submit" data-i18n="play.join"></button>
     </form>
+    <div class="card panel join-team" id="join-team" hidden>
+      <p class="label" data-i18n="play.joinTeam"></p>
+      <p class="hint" data-i18n="play.joinTeamHint"></p>
+      <div class="team-pick" id="team-pick"></div>
+      <p class="error" id="pick-error" role="alert"></p>
+    </div>
   </section>
 
   <!-- No quiz loaded yet -->
@@ -35,6 +41,7 @@
     <div class="badge" id="wait-badge"></div>
     <p class="say" id="wait-text"></p>
     <p class="quip" id="wait-quip"></p>
+    <ol class="standings" id="standings" hidden></ol>
     <button class="brass-btn big joker-btn" id="joker-btn" type="button" hidden data-i18n="play.playJoker"></button>
   </section>
 

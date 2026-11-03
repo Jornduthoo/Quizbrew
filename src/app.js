@@ -240,8 +240,9 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     const claimed = socket.handshake.query.teamId;
     if (typeof claimed === 'string' && TEAM_ID.test(claimed) && game.teams.has(claimed)) {
       teamId = claimed;
-      game.join(teamId, '', '', socket.id);
       socket.leave('lobby');
+      socket.join(`team:${teamId}`);
+      game.join(teamId, '', '', socket.id);
     } else {
       socket.emit('state', game.teamState(null));
     }
@@ -251,8 +252,10 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       if (typeof id !== 'string' || !TEAM_ID.test(id)) return cb({ error: 'error.generic' });
       const result = game.join(id, name, color, socket.id);
       if (result.ok) {
+        if (teamId && teamId !== id) { socket.leave(`team:${teamId}`); game.disconnect(socket.id); }
         teamId = id;
         socket.leave('lobby');
+        socket.join(`team:${id}`);
         socket.emit('state', game.teamState(id));
       }
       cb(result);

@@ -669,5 +669,9 @@
   "cloud.inside": "Pick a folder outside Quizbrew's own folder.",
   "cloud.typeIt": "The folder window did not open. Type the path of the folder instead.",
   "ai.lang.de": "German",
-  "ai.lang.es": "Spanish"
+  "ai.lang.es": "Spanish",
+  "play.joinTeam": "Already a team? Join your teammates",
+  "play.joinTeamHint": "Tap your team and play along on this phone. The first answer of the team counts, so talk it over first.",
+  "play.joinTeamSure": "Play along with {name} on this phone?",
+  "host.phones": "📱{n}"
 }
