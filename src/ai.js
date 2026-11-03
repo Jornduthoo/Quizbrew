@@ -106,6 +106,15 @@ const TYPE_HELP = {
   actItOut: 'one team acts out the answer without words, the others type what it is',
   photoHunt: 'teams take a photo with their phone for a fun task in the room, then vote for the best photo',
   whosWho: 'teams answer a personal question, then guess which team wrote which answer',
+  stakeIt: 'teams see only the category, bet points, then answer a multiple choice question; right wins the bet, wrong loses it',
+  localLegend: 'questions about the own town, club or pub of the players (the quizmaster checks every fact)',
+  clueLadder: 'who or what is this: clues appear one by one from very hard to easy, an early answer scores more',
+  fiveFacts: 'an open question with exactly five right keywords; every keyword found scores',
+  clipRecall: 'the teams watch a short video clip, then type as many details as they remember',
+  opponentsPick: 'the leading team picks one of three categories for the other teams; one multiple choice question per category',
+  headToHead: 'finale: the top two teams answer a fast multiple choice question, the other teams predict who wins',
+  clockBank: 'one team at a time answers out loud while its own clock runs; quick questions with one clear answer',
+  clockDuel: 'finale: the top two teams take turns answering out loud against their own clock; many quick questions',
   crowdMind: 'no right answer: teams score by giving the answer most other teams give',
 };
 

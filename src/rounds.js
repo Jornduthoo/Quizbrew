@@ -15,6 +15,7 @@
 //   level     - every team first picks easy, medium or hard and gets its own question (answer = { l, i })
 //   draw      - draw on the phone (answer = picture url)
 //   photo     - take a photo with the phone (answer = picture url)
+//   turn      - one team at a time answers out loud while its own clock runs; the quizmaster judges (clock rounds)
 //
 // vote: after the question every team votes on what the others made.
 //   best  - vote for the best entry (not your own); every vote is worth the points
@@ -23,6 +24,12 @@
 //
 // A type with its own score(entries, q, base, ctx) gets per team: answer, answeredAt, wager, mem (what the
 // round remembers about the team: streak, pot, out ...) and bank. It may return a new mem per team.
+//
+// wager: a step before the question.
+//   true    - every team bets points on the category
+//   level   - every team picks easy, medium or hard
+//   pick    - the leading team picks the category the others get
+//   predict - finale: the teams that do not play predict which finalist wins
 //
 // Scoring modes that the quizmaster picks per round (only for types with a right or wrong answer):
 //   points - right = the points of the question
@@ -33,7 +40,7 @@
 //   ladder - the earlier you answer while the picture or clues unfold, the more points
 
 const SCORINGS = ['points', 'speed', 'race', 'risk', 'time', 'ladder'];
-const TWISTS = ['double', 'lockdown', 'blackout', 'underdog'];
+const TWISTS = ['double', 'lockdown', 'blackout', 'underdog', 'mysteryCategory', 'suddenDeath', 'shrinkingOptions', 'lifeline', 'silentRound'];
 const FAMILIES = ['classic', 'visual', 'audio', 'speed', 'strategy', 'party', 'puzzle', 'special', 'clock'];
 
 // Lowercase, no accents, no punctuation, no leading "the/de/het/le/la".
@@ -187,6 +194,44 @@ function voteScore(entries, q, base, ctx) {
   }
   return entries.map(e => ({ points: pts.get(e.id), correct: right.get(e.id) }));
 }
+
+// Lists: every typed line is added to the team's list until time is up; "/" separates other spellings of an item.
+function listFound(given, q) {
+  const items = list(q.items).map(it => it.split('/').map(x => x.trim()).filter(Boolean));
+  const hit = new Set();
+  for (const g of given || []) {
+    const i = items.findIndex((alts, k) => !hit.has(k) && textMatches(g, { answer: alts[0], accept: alts.slice(1) }));
+    if (i >= 0) hit.add(i);
+  }
+  return [...hit];
+}
+
+const listType = (min, max) => ({
+  kind: 'list',
+  multi: true,
+  validate(q, fail) {
+    need.text(q, fail);
+    const n = list(q.items).length;
+    if (n < min || n > max) fail(`needs ${min} to ${max} right items`);
+  },
+  parse: (raw, q, team) => {
+    if (typeof raw !== 'string' || !raw.trim()) return undefined;
+    const have = (team && team.answer) || [];
+    if (have.length >= 60) return undefined;
+    const item = raw.trim().slice(0, 60);
+    if (have.some(x => normalize(x) === normalize(item))) return undefined;
+    return [...have, item];
+  },
+  publicQ: q => ({ total: list(q.items).length }),
+  revealQ: q => ({ items: list(q.items).map(it => it.split('/')[0].trim()), answerText: list(q.items).map(it => it.split('/')[0].trim()).join(', ') }),
+  found: listFound,
+  score(entries, q, base) {
+    return entries.map(e => {
+      const n = listFound(e.answer, q).length;
+      return { points: n * base, correct: n > 0, found: n };
+    });
+  },
+});
 
 const TYPES = [
   {
@@ -544,42 +589,10 @@ const TYPES = [
     fromAI: textType.fromAI,
   },
   {
-    id: 'listRush', family: 'speed', kind: 'list',
+    id: 'listRush', family: 'speed', ...listType(3, 200),
     defaults: { time: 60, points: 1 },
     fields: ['question', 'listItems', 'time', 'points'],
     scorings: [],
-    validate(q, fail) {
-      need.text(q, fail);
-      if (list(q.items).length < 3) fail('needs at least 3 right items');
-    },
-    // Every typed line is added to the team's list until time is up.
-    parse: (raw, q, team) => {
-      if (typeof raw !== 'string' || !raw.trim()) return undefined;
-      const have = (team && team.answer) || [];
-      if (have.length >= 60) return undefined;
-      const item = raw.trim().slice(0, 60);
-      if (have.some(x => normalize(x) === normalize(item))) return undefined;
-      return [...have, item];
-    },
-    multi: true,
-    publicQ: q => ({ total: list(q.items).length }),
-    revealQ: q => ({ items: list(q.items).map(it => it.split('/')[0].trim()), answerText: list(q.items).map(it => it.split('/')[0].trim()).join(', ') }),
-    // One point per item from the list (each item once; "/" separates other spellings).
-    found: (given, q) => {
-      const items = list(q.items).map(it => it.split('/').map(x => x.trim()).filter(Boolean));
-      const hit = new Set();
-      for (const g of given || []) {
-        const i = items.findIndex((alts, k) => !hit.has(k) && textMatches(g, { answer: alts[0], accept: alts.slice(1) }));
-        if (i >= 0) hit.add(i);
-      }
-      return [...hit];
-    },
-    score(entries, q, base) {
-      return entries.map(e => {
-        const n = this.found(e.answer, q).length;
-        return { points: n * base, correct: n > 0, found: n };
-      });
-    },
     aiShape: '{"question": "Name as many ... as you can", "items": ["item", "item / other spelling", "..."]}  (10 to 30 items)',
     fromAI: it => ({ question: str(it.question), items: list(it.items).slice(0, 60) }),
   },
@@ -692,6 +705,142 @@ const TYPES = [
     aiShape: '{"question": "a personal question teams answer about themselves, e.g. Our worst holiday ever was ..."}',
     fromAI: it => ({ question: str(it.question) }),
   },
+// ---------- wave 5: clocks, finales and the last specials ----------
+  {
+    id: 'stakeIt', family: 'strategy', ...choiceType, wager: true,
+    defaults: { time: 20, points: 3 },
+    fields: ['category', 'question', 'answers', 'image', 'time', 'points'],
+    scorings: [],
+    publicQ: q => ({ answers: q.answers, category: str(q.category) }),
+    // Bet on the category first. Right = + the bet, wrong or no answer = - the bet.
+    score: (entries, q) => entries.map(e => (e.answer === q.correct ? { points: e.wager, correct: true } : { points: -e.wager, correct: false })),
+    aiShape: '{"category": "category shown before betting", "question": "...", "answers": ["...", "...", "...", "..."], "correct": 0}',
+    fromAI: it => ({ ...choiceType.fromAI(it), category: str(it.category) }),
+  },
+  {
+    id: 'localLegend', family: 'special', kind: 'choice', judge: true,
+    kindOf: q => (Array.isArray(q.answers) && q.answers.length ? 'choice' : 'text'),
+    defaults: { time: 25, points: 1, scoring: 'points' },
+    fields: ['question', 'answerOrChoices', 'image', 'time', 'points'],
+    validate(q, fail) {
+      need.text(q, fail);
+      if (Array.isArray(q.answers) && q.answers.length) need.answers(q, fail); else need.answer(q, fail);
+    },
+    parse: (raw, q) => (Array.isArray(q.answers) && q.answers.length ? choiceType.parse(raw, q) : textType.parse(raw)),
+    isCorrect: (a, q) => (Array.isArray(q.answers) && q.answers.length ? a === q.correct : textMatches(a, q)),
+    publicQ: q => (Array.isArray(q.answers) && q.answers.length ? { answers: q.answers } : {}),
+    revealQ: q => (Array.isArray(q.answers) && q.answers.length ? choiceType.revealQ(q) : { answerText: q.answer }),
+    aiShape: '{"question": "a question about the town, club or pub (the quizmaster checks the facts)", "answer": "short answer", "accept": ["..."]}',
+    fromAI: textType.fromAI,
+  },
+  {
+    id: 'clueLadder', family: 'puzzle', ...textType,
+    defaults: { time: 50, points: 5, scoring: 'ladder' },
+    fields: ['clues', 'answer', 'time', 'points'],
+    validate(q, fail) {
+      need.answer(q, fail);
+      if (list(q.clues).length < 3 || list(q.clues).length > 6) fail('needs 3 to 6 clues');
+    },
+    steps: q => list(q.clues).length,
+    publicQ: q => ({ clues: list(q.clues), ladder: true }),
+    aiShape: '{"clues": ["very hard clue", "hard clue", "medium clue", "easy clue", "giveaway clue"], "answer": "who or what it is", "accept": ["..."]}  (5 clues about one person, place or thing, from hard to easy)',
+    fromAI: it => ({ clues: list(it.clues).slice(0, 6), answer: str(it.answer), accept: list(it.accept), question: '' }),
+  },
+  {
+    id: 'fiveFacts', family: 'classic', ...listType(3, 6),
+    defaults: { time: 45, points: 1 },
+    fields: ['question', 'listItems', 'time', 'points'],
+    scorings: [],
+    // One point per keyword; all of them = double.
+    score(entries, q, base) {
+      const total = list(q.items).length;
+      return entries.map(e => {
+        const n = listFound(e.answer, q).length;
+        return { points: n === total ? n * base * 2 : n * base, correct: n > 0, found: n };
+      });
+    },
+    aiShape: '{"question": "Name the five ...", "items": ["keyword", "keyword / other spelling", "...", "...", "..."]}  (exactly 5 keywords)',
+    fromAI: it => ({ question: str(it.question), items: list(it.items).slice(0, 6) }),
+  },
+  {
+    id: 'clipRecall', family: 'visual', ...listType(3, 30), media: 'video',
+    defaults: { time: 60, points: 1 },
+    fields: ['video', 'question', 'listItems', 'time', 'points'],
+    scorings: [],
+    validate(q, fail) {
+      if (!str(q.video)) fail('needs a video');
+      need.text(q, fail);
+      if (list(q.items).length < 3) fail('needs at least 3 details');
+    },
+    aiShape: '{"question": "What did you see? Name as many details as you can", "items": ["detail", "detail / other word", "..."], "clip": "description of the clip to film or find"}  (8 to 15 details that can be seen in the clip)',
+    fromAI: it => ({ question: str(it.question), items: list(it.items).slice(0, 30), videoHint: str(it.clip) }),
+  },
+  {
+    id: 'opponentsPick', family: 'strategy', kind: 'choice', wager: 'pick',
+    defaults: { time: 20, points: 2, scoring: 'points' },
+    fields: ['options', 'time', 'points'],
+    scorings: ['points', 'speed', 'risk'],
+    validate(q, fail) {
+      if (!Array.isArray(q.options) || q.options.length < 2 || q.options.length > 3) fail('needs 2 or 3 categories');
+      (q.options || []).forEach(o => { if (!str(o && o.category)) fail('has a category without a name'); need.text(o || {}, fail); need.answers(o || {}, fail); });
+    },
+    // The leading team picks one category; everyone else gets that question.
+    resolve: (q, pick) => ({ ...q, ...q.options[Math.min(q.options.length - 1, Math.max(0, pick || 0))] }),
+    parse: choiceType.parse,
+    isCorrect: choiceType.isCorrect,
+    publicQ: q => ({ answers: q.answers, category: str(q.category) }),
+    revealQ: q => (q.answers ? choiceType.revealQ(q) : { answerText: q.options.map(o => `${o.category}: ${o.answers[o.correct]}`).join(' · ') }),
+    aiShape: '{"options": [{"category": "...", "question": "...", "answers": ["...", "...", "...", "..."], "correct": 0}, {"category": "...", ...}, {"category": "...", ...}]}  (3 different categories, one question each, about as hard)',
+    fromAI: it => ({ options: (Array.isArray(it.options) ? it.options : []).slice(0, 3).map(o => ({ category: str(o && o.category), ...choiceType.fromAI(o || {}) })) }),
+  },
+  {
+    id: 'headToHead', family: 'special', ...choiceType, wager: 'predict', finale: true,
+    defaults: { time: 15, points: 2 },
+    fields: ['question', 'answers', 'image', 'time', 'points'],
+    scorings: [],
+    // Only the top two play. The fastest right finalist wins the question; every team that predicted the winner scores too.
+    score: (entries, q, base, ctx) => {
+      const f = ctx.finalists || [];
+      const right = entries.filter(e => f.includes(e.id) && e.answer === q.correct);
+      const winner = right.sort((a, b) => a.answeredAt - b.answeredAt)[0];
+      return entries.map(e => {
+        if (f.includes(e.id)) return winner && winner.id === e.id ? { points: base, correct: true } : { points: 0, correct: false };
+        const ok = !!winner && Number.isInteger(e.pick) && f[e.pick] === winner.id;
+        return { points: ok ? base : 0, correct: ok };
+      });
+    },
+  },
+  {
+    id: 'clockBank', family: 'clock', kind: 'turn', turns: 'bank', clock: 60,
+    defaults: { time: 10, points: 1 },
+    fields: ['question', 'answer', 'time', 'points'],
+    scorings: [],
+    validate(q, fail) { need.text(q, fail); need.answer(q, fail); },
+    parse: () => undefined,
+    publicQ: () => ({}),
+    revealQ: q => ({ answerText: q.answer }),
+    // One team at a time answers out loud while its own clock runs. Right = the points and extra seconds; at zero the team is out.
+    score: (entries, q, base, ctx) => entries.map(e => (e.id === ctx.turn && e.answer === 'right' ? { points: base, correct: true } : { points: 0, correct: false })),
+    aiShape: '{"question": "...", "answer": "short answer the quizmaster reads"}  (quick questions with one clear answer)',
+    fromAI: it => ({ question: str(it.question), answer: str(it.answer) }),
+  },
+  {
+    id: 'clockDuel', family: 'clock', kind: 'turn', turns: 'duel', clock: 45, finale: true,
+    defaults: { time: 10, points: 5 },
+    fields: ['question', 'answer', 'points'],
+    scorings: [],
+    validate(q, fail) { need.text(q, fail); need.answer(q, fail); },
+    parse: () => undefined,
+    publicQ: () => ({}),
+    revealQ: q => ({ answerText: q.answer }),
+    // The top two take turns; your clock runs until you answer right. Whoever still has time when the other runs out wins the points.
+    score: (entries, q, base, ctx) => {
+      const winner = ctx.duelWinner;
+      return entries.map(e => (winner && e.id === winner ? { points: base, correct: true } : { points: 0, correct: e.id === ctx.turn && e.answer === 'right' }));
+    },
+    aiShape: '{"question": "...", "answer": "short answer the quizmaster reads"}  (many quick questions with one clear answer; a duel uses a lot of them)',
+    fromAI: it => ({ question: str(it.question), answer: str(it.answer) }),
+  },
 ];
 
 const BY_ID = Object.fromEntries(TYPES.map(t => [t.id, t]));
@@ -702,6 +851,7 @@ for (const t of TYPES) {
 const get = id => BY_ID[id];
 const kindOf = (type, q) => (type.kindOf ? type.kindOf(q) : type.kind);
 const stepsOf = (type, q) => (type.steps ? type.steps(q) : type.effect ? 5 : 1);
+const isTurn = type => !!(type && type.turns);
 
 // Fill the defaults of the round type into a round, without changing what the quizmaster set.
 function withDefaults(round) {
@@ -721,8 +871,8 @@ function catalog() {
     families: FAMILIES,
     scorings: SCORINGS,
     twists: TWISTS,
-    types: TYPES.map(t => ({ id: t.id, family: t.family, kind: t.kindOf ? 'choiceOrText' : t.kind, fields: t.fields, defaults: t.defaults, scorings: t.scorings, wager: t.wager || false, effect: t.effect || null, media: t.media || null })),
+    types: TYPES.map(t => ({ id: t.id, family: t.family, kind: t.kindOf ? 'choiceOrText' : t.kind, fields: t.fields, defaults: t.defaults, scorings: t.scorings, wager: t.wager || false, effect: t.effect || null, media: t.media || null, finale: !!t.finale, clock: t.clock || null })),
   };
 }
 
-module.exports = { permutation, pointDistance, TYPES, SCORINGS, TWISTS, FAMILIES, get, kindOf, stepsOf, withDefaults, catalog, normalize, textMatches, scramble, list, str };
+module.exports = { isTurn, listFound, permutation, pointDistance, TYPES, SCORINGS, TWISTS, FAMILIES, get, kindOf, stepsOf, withDefaults, catalog, normalize, textMatches, scramble, list, str };

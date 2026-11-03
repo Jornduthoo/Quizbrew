@@ -68,7 +68,7 @@
       <span class="q-answered" id="q-answered"></span>
     </header>
     <div class="q-body">
-      <div class="q-media" id="q-media" hidden><img id="q-img" alt=""><canvas id="q-canvas" hidden></canvas><div class="pins" id="q-pins"></div><div class="sound-wave" id="q-wave" hidden><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      <div class="q-media" id="q-media" hidden><img id="q-img" alt=""><canvas id="q-canvas" hidden></canvas><video id="q-video" playsinline preload="auto" hidden></video><div class="pins" id="q-pins"></div><div class="sound-wave" id="q-wave" hidden><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
       <div class="q-main">
         <p class="q-category" id="q-category" hidden></p>
         <div class="q-board"><h1 id="q-text"></h1></div>
@@ -86,6 +86,7 @@
     <ol class="answers" id="answers"></ol>
     <ul class="team-answers" id="team-answers" hidden></ul>
     <ul class="round-board" id="round-board" hidden></ul>
+    <ol class="clock-board" id="clock-board" hidden></ol>
     <ul class="answered-dots" id="answered-dots"></ul>
     <div class="buzz-banner" id="buzz-banner" hidden></div>
   </section>
@@ -105,6 +106,7 @@
   <section id="v-wager" class="view center wager" hidden>
     <p class="round-kicker" id="wager-kicker"></p>
     <h1 class="neon wager-category" id="wager-category"></h1>
+    <ol class="pick-cards" id="pick-cards" hidden></ol>
     <p class="round-meta" id="wager-hint"></p>
     <ul class="answered-dots big" id="wager-dots"></ul>
   </section>

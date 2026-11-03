@@ -43,6 +43,14 @@
     <p class="phone-q" id="phone-q" hidden></p>
     <div class="choices" id="choices"></div>
     <button class="brass-btn big bank-btn" id="bank-btn" type="button" hidden></button>
+    <button class="ghost-btn lifeline-btn" id="lifeline-btn" type="button" hidden data-i18n="play.lifeline"></button>
+  </section>
+
+  <!-- Clock rounds: one team answers out loud while its clock runs -->
+  <section id="v-turn" class="view center" hidden>
+    <p class="label" id="turn-label"></p>
+    <div class="turn-clock" id="turn-clock"><span id="turn-num"></span></div>
+    <p class="sub" id="turn-sub"></p>
   </section>
 
   <!-- Type an answer (open, scramble, clues, closest number) -->
@@ -126,6 +134,7 @@
       <button class="brass-btn big" id="wager-send" type="button" data-i18n="play.placeBet"></button>
     </div>
     <div class="level-picks" id="level-picks" hidden></div>
+    <div class="level-picks pick-list" id="pick-list" hidden></div>
     <p class="sub" id="wager-note"></p>
   </section>
 

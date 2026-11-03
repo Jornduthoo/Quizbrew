@@ -1,5 +1,5 @@
 // The live quiz. One game runs at a time on a host.
-// Phases: idle -> lobby -> roundIntro -> [wager] -> question -> reveal -> (question ...) -> scoreboard -> (roundIntro ...) -> end
+// Phases: idle -> lobby -> roundIntro -> [wager] -> question -> [vote] -> reveal -> (question ...) -> scoreboard -> (roundIntro ...) -> end
 // The quizmaster drives the pace with next(); a question also reveals itself when time is up or every team answered.
 // What a question looks like and how it scores comes from its round type (rounds.js).
 // Errors are returned as i18n keys, never as screen text.
@@ -8,6 +8,7 @@ const { TEAM_COLORS } = require('./teams');
 const rounds = require('./rounds');
 
 const MAX_NAME = 20;
+const SHRINK_STEP = 5000; // shrinking options twist: one wrong answer disappears every 5 seconds
 
 // What a round remembers about a team between questions (streak, pot, out of the round ...).
 const freshMem = () => ({ streak: 0, pot: 0, out: false, banked: false });
@@ -37,8 +38,21 @@ class Game {
     this.ballot = null;
     this.actor = null;
     this.voteStartedAt = 0;
+    this.resetRoundState();
     this.teams.clear();
     this.previousRanks = {};
+  }
+
+  // Finales and clock rounds: who plays, whose turn it is, how much time every team has left.
+  resetRoundState() {
+    this.finalists = null;
+    this.picker = null;
+    this.resolved = null;
+    this.clocks = new Map();
+    this.turnTeam = null;
+    this.nextTurn = null;
+    this.duelWinner = null;
+    this.roundOver = false;
   }
 
   load(quiz) {
@@ -57,8 +71,9 @@ class Game {
     return this.round && rounds.get(this.round.type);
   }
 
+  // A round where a team picks the category plays the question of that category.
   get question() {
-    return this.round && this.round.questions[this.questionIndex];
+    return this.resolved || (this.round && this.round.questions[this.questionIndex]);
   }
 
   get kind() {
@@ -89,6 +104,7 @@ class Game {
       name: clean, color, score: 0, socketId, connected: true,
       answer: null, answeredAt: 0, correct: false, lastPoints: 0, away: false, blocked: false, wager: null,
       jokerRound: -1, mem: freshMem(), memNext: null, bank: false, buzzOut: false,
+      id: teamId, lifelineRound: -1, fifty: null, vote: null,
     });
     this.broadcast();
     return { ok: true, name: clean, color };
@@ -125,10 +141,13 @@ class Game {
       case 'wager':
         return this.startQuestion();
       case 'question':
+        // Clock rounds: moving on without a verdict counts as a pass (wrong).
+        if (this.type.turns) return this.judgeTurn(false);
         return this.reveal();
       case 'vote':
         return this.finishVote();
       case 'reveal':
+        if (this.roundOver) return this.showScoreboard();
         if (this.questionIndex + 1 < this.round.questions.length) return this.openQuestion(this.questionIndex + 1);
         return this.showScoreboard();
       case 'scoreboard':
@@ -144,6 +163,16 @@ class Game {
     this.questionIndex = -1;
     this.phase = 'roundIntro';
     for (const t of this.teams.values()) { t.mem = freshMem(); t.memNext = null; }
+    this.resetRoundState();
+    const type = this.type;
+    // Finales: the top two play.
+    if (type.finale) this.finalists = this.ranking().slice(0, 2).map(r => r.id);
+    if (type.turns) {
+      const players = type.turns === 'duel' ? this.finalists : [...this.teams.keys()];
+      for (const id of players) this.clocks.set(id, type.clock * 1000);
+      // In a duel the team in second place starts.
+      this.nextTurn = players[players.length - 1] || null;
+    }
     // Underdog twist: whoever is last when the round starts gets a boost.
     const ranking = this.ranking();
     const last = ranking.length > 1 ? ranking[ranking.length - 1].score : null;
@@ -162,12 +191,20 @@ class Game {
 
   openQuestion(index) {
     this.questionIndex = index;
+    this.resolved = null;
     this.overrides = new Map();
     this.buzz = null;
     this.ballot = null;
     // Act it out: the teams take turns, in the order they joined.
     const ids = [...this.teams.keys()];
     this.actor = this.type.actor && ids.length ? ids[(this.roundIndex + this.questionIndex) % ids.length] : null;
+    // Your pick: the leading team chooses the category for the others.
+    this.picker = this.type.wager === 'pick' && ids.length ? this.ranking()[0].id : null;
+    if (this.type.turns) {
+      this.turnTeam = this.whoseTurn();
+      this.duelWinner = null;
+      if (!this.turnTeam) { this.roundOver = true; return this.showScoreboard(); }
+    }
     const top = Math.max(...[...this.teams.values()].map(t => t.score));
     this.leaders = top > 0 ? [...this.teams.entries()].filter(([, t]) => t.score === top).map(([id]) => id) : [];
     for (const t of this.teams.values()) {
@@ -182,6 +219,7 @@ class Game {
       t.away = false;
       t.blocked = false;
       t.wager = null;
+      t.fifty = null;
     }
     this.clearTimer();
     if (this.type.wager) {
@@ -191,14 +229,45 @@ class Game {
     this.startQuestion();
   }
 
+  // Clock rounds: the next team with time left (in join order), or in a duel the team the last answer passed it to.
+  whoseTurn() {
+    const alive = id => this.teams.has(id) && (this.clocks.get(id) || 0) > 0;
+    if (this.type.turns === 'duel') return alive(this.nextTurn) ? this.nextTurn : null;
+    const ids = [...this.teams.keys()];
+    const from = ids.indexOf(this.turnTeam) + 1;
+    for (let k = 0; k < ids.length; k++) {
+      const id = ids[(from + k) % ids.length];
+      if (alive(id)) return id;
+    }
+    return null;
+  }
+
+  // Who may bet or pick in the wager step.
+  canWager(teamId) {
+    const mode = this.type.wager;
+    if (mode === 'pick') return teamId === this.picker;
+    if (mode === 'predict') return !(this.finalists || []).includes(teamId);
+    return true;
+  }
+
   maxWager(t) {
     if (this.type.wager === 'level') return 2;
+    if (this.type.wager === 'pick') return this.question.options.length - 1;
+    if (this.type.wager === 'predict') return 1;
     return Math.max(t.score, this.question.points);
   }
 
   // Out of this round (last team standing) or already banked (push your luck).
+  // Also: out after a mistake (sudden death), not a finalist, the team that picked, not your turn on the clock.
   sitsOut(t) {
-    return !!(this.type && this.type.sitsOut && this.type.sitsOut(t.mem));
+    const type = this.type;
+    if (!type) return false;
+    if (type.sitsOut && type.sitsOut(t.mem)) return true;
+    if (this.hasTwist('suddenDeath') && t.mem.out) return true;
+    if (this.finalists && !this.finalists.includes(t.id)) return true;
+    if (this.picker && this.picker === t.id && this.phase !== 'wager') return true;
+    if (type.turns && t.id !== this.turnTeam) return true;
+    return false;
   }
 
   done(t) {
@@ -207,19 +276,120 @@ class Game {
 
   setWager(teamId, amount) {
     const t = this.teams.get(teamId);
-    if (!t || this.phase !== 'wager' || !Number.isFinite(amount)) return false;
+    if (!t || this.phase !== 'wager' || !Number.isFinite(amount) || !this.canWager(teamId)) return false;
     t.wager = Math.max(0, Math.min(this.maxWager(t), Math.round(amount)));
     this.broadcast();
     return true;
   }
 
   startQuestion() {
-    for (const t of this.teams.values()) if (this.type.wager && t.wager === null) t.wager = 0;
+    const mode = this.type.wager;
+    if (mode === true || mode === 'level') for (const t of this.teams.values()) if (t.wager === null) t.wager = 0;
+    if (mode === 'pick') {
+      const p = this.teams.get(this.picker);
+      this.resolved = this.type.resolve(this.round.questions[this.questionIndex], p ? p.wager : 0);
+    }
     this.phase = 'question';
     this.questionStartedAt = this.clock.now();
     this.clearTimer();
-    this.timer = this.clock.setTimeout(() => this.reveal(), this.question.time * 1000);
+    if (this.type.turns) {
+      // Only the clock of the team whose turn it is runs.
+      this.timer = this.clock.setTimeout(() => this.turnTimeout(), this.clocks.get(this.turnTeam));
+    } else {
+      this.timer = this.clock.setTimeout(() => this.reveal(), this.question.time * 1000);
+    }
+    if (this.shrinks()) this.scheduleShrink();
     this.broadcast();
+  }
+
+  // Shrinking options twist: every few seconds one wrong answer disappears (the same ones after a reload).
+  shrinks() {
+    return this.hasTwist('shrinkingOptions') && this.kind === 'choice' && (this.question.answers || []).length > 2;
+  }
+
+  shrinkOrder() {
+    const q = this.question;
+    const n = q.answers.length;
+    return rounds.permutation(n, q.question + '|shrink').filter(i => i !== q.correct).slice(0, n - 2);
+  }
+
+  goneAt(ms) {
+    if (!this.shrinks()) return [];
+    const order = this.shrinkOrder();
+    return order.slice(0, Math.min(order.length, Math.floor(ms / SHRINK_STEP)));
+  }
+
+  scheduleShrink() {
+    const elapsed = this.clock.now() - this.questionStartedAt;
+    if (this.goneAt(elapsed).length >= this.shrinkOrder().length) return;
+    const wait = SHRINK_STEP - (elapsed % SHRINK_STEP);
+    this.tickTimer = this.clock.setTimeout(() => {
+      this.tickTimer = null;
+      if (this.phase !== 'question') return;
+      this.broadcast();
+      this.scheduleShrink();
+    }, wait);
+  }
+
+  // Answers a team can no longer pick: gone with the shrinking twist, or hidden by its own 50/50.
+  hiddenFor(t) {
+    if (this.phase !== 'question' || this.kind !== 'choice') return [];
+    const gone = this.goneAt(this.clock.now() - this.questionStartedAt);
+    return [...new Set([...gone, ...((t && t.fifty) || [])])];
+  }
+
+  // Lifeline twist: once per round a team may hide two wrong answers on its own phone.
+  canLifeline(t) {
+    return !!t && this.hasTwist('lifeline') && this.phase === 'question' && this.kind === 'choice' && (this.question.answers || []).length > 2
+      && t.lifelineRound !== this.roundIndex && t.answer === null && !this.sitsOut(t) && !t.blocked;
+  }
+
+  useLifeline(teamId) {
+    const t = this.teams.get(teamId);
+    if (!this.canLifeline(t)) return false;
+    const q = this.question;
+    const n = q.answers.length;
+    const gone = this.hiddenFor(t);
+    t.fifty = rounds.permutation(n, q.question + '|fifty').filter(i => i !== q.correct && !gone.includes(i)).slice(0, Math.max(1, n - 2 - gone.length));
+    t.lifelineRound = this.roundIndex;
+    this.broadcast();
+    return true;
+  }
+
+  // Clock rounds: the quizmaster says right or wrong; the clock of the team stops.
+  judgeTurn(right) {
+    const id = this.turnTeam;
+    const t = this.teams.get(id);
+    if (!t || t.answer !== null) return false;
+    const left = Math.max(0, this.clocks.get(id) - (this.clock.now() - this.questionStartedAt));
+    t.answer = right ? 'right' : 'wrong';
+    t.answeredAt = this.clock.now() - this.questionStartedAt;
+    this.endTurn(id, left + (right && this.type.turns === 'bank' ? this.question.time * 1000 : 0), right);
+    return true;
+  }
+
+  turnTimeout() {
+    const t = this.teams.get(this.turnTeam);
+    if (t && t.answer === null) t.answer = 'wrong';
+    this.endTurn(this.turnTeam, 0, false);
+  }
+
+  endTurn(id, left, right) {
+    this.clocks.set(id, left);
+    const alive = [...this.clocks.entries()].filter(([, ms]) => ms > 0).map(([x]) => x);
+    if (this.type.turns === 'duel') {
+      const other = this.finalists.find(x => x !== id) || null;
+      // Right: the other team gets the next question. Wrong: you keep the turn and your clock keeps running.
+      this.nextTurn = right && other ? other : id;
+      const last = this.questionIndex + 1 >= this.round.questions.length;
+      if (left <= 0) this.duelWinner = other;
+      else if (last) {
+        const [a, b] = this.finalists.map(x => this.clocks.get(x) || 0);
+        this.duelWinner = a === b ? null : a > b ? this.finalists[0] : this.finalists[1];
+      }
+      if (left <= 0 || last) this.roundOver = true;
+    } else if (!alive.length) this.roundOver = true;
+    this.reveal();
   }
 
   answer(teamId, raw) {
@@ -229,6 +399,7 @@ class Game {
     if (this.kind === 'buzz') return this.buzzIn(teamId, t);
     const value = this.type.parse(raw, this.question, t);
     if (value === undefined) return false;
+    if (this.kind === 'choice' && this.hiddenFor(t).includes(value)) return false;
     t.answer = value;
     t.answeredAt = this.clock.now() - this.questionStartedAt;
     // A list keeps filling until the time is up.
@@ -248,6 +419,7 @@ class Game {
   }
 
   judgeBuzz(right) {
+    if (this.phase === 'question' && this.type.turns) return this.judgeTurn(right);
     if (this.phase !== 'question' || !this.buzz) return false;
     const t = this.teams.get(this.buzz.teamId);
     const left = this.buzz.left;
@@ -295,7 +467,7 @@ class Game {
     const ids = [...this.teams.keys()];
     const entries = ids.map(id => {
       const t = this.teams.get(id);
-      return { id, answer: t.answer, answeredAt: t.answeredAt, wager: t.wager || 0, mem: t.mem, bank: t.bank, score: t.score - t.lastPoints, vote: t.vote };
+      return { id, answer: t.answer, answeredAt: t.answeredAt, wager: t.wager || 0, pick: t.wager, mem: t.mem, bank: t.bank, score: t.score - t.lastPoints, vote: t.vote };
     });
     const base = q.points;
     const timeMs = q.time * 1000;
@@ -304,6 +476,7 @@ class Game {
     if (type.score) {
       results = type.score(entries, q, base, {
         isRight, leaders: this.leaders, scoring: this.round.scoring, ballot: this.ballot, vote: type.vote, actor: this.actor,
+        finalists: this.finalists, turn: this.turnTeam, duelWinner: this.duelWinner,
         lastQuestion: this.questionIndex + 1 >= this.round.questions.length,
       });
     } else {
@@ -333,10 +506,18 @@ class Game {
     ids.forEach((id, i) => {
       const t = this.teams.get(id);
       let p = results[i].points;
+      let mem = results[i].mem || null;
+      // Shrinking options: the later you answer, the fewer answers were left and the fewer points you get.
+      if (p > 0 && this.shrinks()) {
+        const n = q.answers.length;
+        p = Math.max(1, Math.round(p * (n - this.goneAt(t.answeredAt).length) / n));
+      }
+      // Sudden death: the first mistake ends the round for this team.
+      if (this.hasTwist('suddenDeath') && !type.vote && !type.turns && !results[i].correct && !this.sitsOut(t)) mem = { ...(mem || t.mem), out: true };
       if (this.hasTwist('double')) p *= 2;
       if (t.jokerRound === this.roundIndex) p *= 2;
       if (this.hasTwist('underdog') && this.underdogs.has(id) && p > 0) p = Math.round(p * 1.5);
-      out.set(id, { points: p, correct: results[i].correct, mem: results[i].mem || null, found: results[i].found });
+      out.set(id, { points: p, correct: results[i].correct, mem, found: results[i].found });
     });
     return out;
   }
@@ -453,7 +634,9 @@ class Game {
 
   clearTimer() {
     if (this.timer) this.clock.clearTimeout(this.timer);
+    if (this.tickTimer) this.clock.clearTimeout(this.tickTimer);
     this.timer = null;
+    this.tickTimer = null;
   }
 
   // Ties share a rank: 10, 8, 8, 5 -> 1, 2, 2, 4.
@@ -472,7 +655,15 @@ class Game {
     if (this.phase === 'vote') return Math.max(0, this.voteTime() * 1000 - (this.clock.now() - this.voteStartedAt));
     if (this.phase !== 'question') return 0;
     if (this.buzz) return this.buzz.left;
+    if (this.type.turns) return this.clockLeft(this.turnTeam);
     return Math.max(0, this.question.time * 1000 - (this.clock.now() - this.questionStartedAt));
+  }
+
+  // Time left on a team's clock, counting the running turn.
+  clockLeft(id) {
+    const ms = this.clocks.get(id) || 0;
+    const running = this.phase === 'question' && id === this.turnTeam && this.teams.get(id) && this.teams.get(id).answer === null;
+    return running ? Math.max(0, ms - (this.clock.now() - this.questionStartedAt)) : ms;
   }
 
   // What everybody may see of the current question. The answer only comes with the reveal.
@@ -484,12 +675,14 @@ class Game {
       text: q.question || '',
       image: q.image || null,
       audio: q.audio || null,
+      video: q.video || null,
       start: Number(q.start) > 0 ? Number(q.start) : 0,
       end: Number(q.end) > 0 ? Number(q.end) : null,
       effect: type.effect || null,
       steps: rounds.stepsOf(type, q),
       time: q.time,
       points: q.points,
+      gone: this.phase === 'question' ? this.goneAt(this.clock.now() - this.questionStartedAt) : [],
       ...type.publicQ(q),
     };
   }
@@ -498,18 +691,22 @@ class Game {
     const q = this.question;
     const showQuestion = q && (this.phase === 'question' || this.phase === 'reveal' || this.phase === 'vote');
     const round = this.round;
+    const team = id => (this.teams.get(id) ? { name: this.teams.get(id).name, color: this.teams.get(id).color } : null);
+    // Mystery category: the round title only comes out with the last answer.
+    const mystery = this.hasTwist('mysteryCategory') && round.title && !(this.phase === 'reveal' && this.questionIndex + 1 >= round.questions.length) && this.phase !== 'scoreboard';
+    const pickQ = this.phase === 'wager' && this.type.wager === 'pick' ? q : null;
     return {
       phase: this.phase,
       title: this.quiz ? this.quiz.title : '',
       jokers: !!(this.quiz && this.quiz.jokers),
       round: round ? {
-        index: this.roundIndex, total: this.quiz.rounds.length, title: round.title, type: round.type,
+        index: this.roundIndex, total: this.quiz.rounds.length, title: mystery ? '? ? ?' : round.title, type: round.type, mystery: !!mystery,
         questions: round.questions.length, scoring: round.scoring, twists: round.twists,
       } : null,
       questionIndex: this.questionIndex,
       question: showQuestion ? this.publicQuestion() : null,
       category: this.phase === 'wager' ? (q.category || '') : null,
-      wagerMode: this.phase === 'wager' ? (this.type.wager === 'level' ? 'level' : 'bet') : null,
+      wagerMode: this.phase === 'wager' ? (this.type.wager === true ? 'bet' : this.type.wager) : null,
       levelBase: this.phase === 'wager' ? q.points : null,
       remaining: this.remaining(),
       reveal: this.phase === 'reveal' ? this.revealInfo() : null,
@@ -519,6 +716,16 @@ class Game {
       paused: !!this.buzz,
       vote: this.ballot && (this.phase === 'vote' || this.phase === 'reveal') ? { mode: this.type.vote, time: this.voteTime() } : null,
       actor: this.actor && this.teams.get(this.actor) ? { name: this.teams.get(this.actor).name, color: this.teams.get(this.actor).color } : null,
+      finalists: this.finalists ? this.finalists.map(team).filter(Boolean) : null,
+      // Your pick: who chooses, and from which categories.
+      pick: pickQ ? { by: team(this.picker), categories: pickQ.options.map(o => o.category), chosen: this.teams.get(this.picker) ? this.teams.get(this.picker).wager : null } : null,
+      // Clock rounds: every playing team's clock; only the clock of the team whose turn it is runs.
+      turn: this.type && this.type.turns && this.turnTeam ? team(this.turnTeam) : null,
+      clocks: this.type && this.type.turns && this.phase !== 'roundIntro' ? [...this.clocks.keys()].filter(id => this.teams.has(id)).map(id => ({
+        ...team(id), ms: this.clockLeft(id), active: id === this.turnTeam, running: this.phase === 'question' && id === this.turnTeam && this.teams.get(id).answer === null,
+        winner: id === this.duelWinner,
+      })) : null,
+      clockStart: this.type && this.type.turns ? this.type.clock * 1000 : null,
     };
   }
 
@@ -585,7 +792,8 @@ class Game {
         ? [...this.teams.values()].filter(t => t.answer !== null).map(t => ({ name: t.name, color: t.color, answer: t.answer }))
         : null,
       canJudge: this.phase === 'reveal' && this.canJudge(),
-      canJudgeBuzz: this.phase === 'question' && !!this.buzz,
+      canJudgeBuzz: this.phase === 'question' && (!!this.buzz || (!!this.type.turns && !!this.turnTeam)),
+      realTitle: this.round ? this.round.title : '',
       lastQuestion: !!this.round && this.questionIndex + 1 >= this.round.questions.length,
       lastRound: !!this.quiz && this.roundIndex + 1 >= this.quiz.rounds.length,
     };
@@ -601,6 +809,7 @@ class Game {
     if (!t) return state;
     // Pick your level: every team gets the question of the level it chose.
     if (state.question && this.type.teamQ) state.question = { ...state.question, ...this.type.teamQ(this.question, t) };
+    if (state.question && this.phase === 'question') state.question = { ...state.question, gone: this.hiddenFor(t) };
     const r = this.ranking().find(x => x.id === teamId);
     return {
       ...state,
@@ -626,6 +835,12 @@ class Game {
       ballot: this.publicBallot(teamId),
       voted: t.vote !== null,
       isActor: this.actor === teamId,
+      isPicker: this.picker === teamId,
+      isFinalist: !!this.finalists && this.finalists.includes(teamId),
+      myTurn: !!this.type && !!this.type.turns && this.turnTeam === teamId,
+      canWager: this.phase === 'wager' && this.canWager(teamId),
+      canLifeline: this.canLifeline(t),
+      lifelineUsed: t.lifelineRound === this.roundIndex,
       secret: this.actor === teamId && this.phase === 'question' ? this.question.answer : null,
       // Who's who: the teams you can choose from (by colour, never by id).
       teamsToMatch: this.phase === 'vote' && this.type.vote === 'match' ? [...this.teams.entries()].filter(([id]) => id !== teamId).map(([, x]) => ({ name: x.name, color: x.color })) : null,

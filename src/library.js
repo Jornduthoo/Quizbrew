@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const SEGMENT = /^[^\\/:*?"<>|\x00-\x1f]{1,80}$/;
 const MEDIA_TYPES = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'audio/mpeg': 'mp3', 'audio/ogg': 'ogg', 'audio/mp4': 'm4a', 'audio/wav': 'wav', 'video/mp4': 'mp4', 'video/webm': 'webm' };
 const ALIASES = { 'audio/x-m4a': 'm4a', 'audio/x-wav': 'wav', 'audio/wave': 'wav', 'audio/mp3': 'mp3', 'audio/webm': 'webm' };
-const MAX_MEDIA = 12 * 1024 * 1024;
+const MAX_MEDIA = 40 * 1024 * 1024; // short video clips fit
 
 function create(dataDir = path.join(__dirname, '..', 'data')) {
   const root = path.join(dataDir, 'library');

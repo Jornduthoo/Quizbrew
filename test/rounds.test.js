@@ -52,7 +52,7 @@ test('every round type, scoring mode, twist and family has a name in every langu
     for (const s of rounds.SCORINGS) assert.ok(d[`scoring.${s}`] && d[`scoring.${s}.desc`], `${code}: scoring.${s}`);
     for (const tw of rounds.TWISTS) assert.ok(d[`twist.${tw}`] && d[`twist.${tw}.desc`], `${code}: twist.${tw}`);
     for (const f of ['all', ...rounds.FAMILIES]) assert.ok(d[`family.${f}`], `${code}: family.${f}`);
-    for (const k of ['choice', 'trueFalse', 'text', 'number', 'choiceOrText', 'order', 'pairs', 'point', 'buzz', 'list', 'level', 'draw', 'photo']) assert.ok(d[`kind.${k}`], `${code}: kind.${k}`);
+    for (const k of ['choice', 'trueFalse', 'text', 'number', 'choiceOrText', 'order', 'pairs', 'point', 'buzz', 'list', 'level', 'draw', 'photo', 'turn']) assert.ok(d[`kind.${k}`], `${code}: kind.${k}`);
   }
 });
 
@@ -634,4 +634,214 @@ test('AI with a key: Claude, ChatGPT and Gemini over plain fetch', async t => {
   assert.equal(settings.get('geminiAutoModel'), 'gemini-9.0-flash');
   global.fetch = async () => ({ ok: false, status: 401, json: async () => ({ error: { message: 'API key not valid' } }) });
   await assert.rejects(helper.generateRound({ type: 'open', topic: 'x' }), /ai.badKey/);
+});
+
+// ---------- wave 5: clocks, finales and the last twists ----------
+
+const mc = (question, correct = 0) => ({ question, answers: ['a', 'b', 'c', 'd'], correct });
+
+test('stake it: bet on the category, right wins the bet, wrong loses it', () => {
+  const { game, ids, go } = play({ type: 'stakeIt', questions: [{ ...mc('Q'), category: 'Space', points: 4 }] });
+  go();
+  assert.equal(game.phase, 'wager');
+  assert.equal(game.common().category, 'Space');
+  game.setWager(ids[0], 3);
+  game.setWager(ids[1], 2);
+  go();
+  game.answer(ids[0], 0);
+  game.answer(ids[1], 1);
+  assert.equal(game.teams.get(ids[0]).score, 3);
+  assert.equal(game.teams.get(ids[1]).score, -2);
+});
+
+test('local legend: own questions, the picture is optional', () => {
+  const clean = validateQuiz({ rounds: [{ type: 'localLegend', questions: [{ question: 'Who founded our club?', answer: 'Marie' }] }] });
+  assert.equal(clean.rounds[0].questions[0].time, 25);
+  assert.throws(() => validateQuiz({ rounds: [{ type: 'localLegend', questions: [{ question: '' }] }] }), /no text/);
+});
+
+test('clue ladder: the earlier you get it, the more points', () => {
+  const { game, clock, ids, go } = play({ type: 'clueLadder', questions: [{ clues: ['c1', 'c2', 'c3', 'c4', 'c5'], answer: 'Paris', time: 50, points: 5 }] });
+  go();
+  game.answer(ids[0], 'paris');
+  clock.advance(41000);
+  game.answer(ids[1], 'Paris');
+  assert.equal(game.teams.get(ids[0]).score, 5);
+  assert.equal(game.teams.get(ids[1]).score, 1);
+});
+
+test('five facts: a point per keyword, all five doubles', () => {
+  const { game, clock, ids, go } = play({ type: 'fiveFacts', questions: [{ question: 'Name the five', items: ['one', 'two', 'three', 'four', 'five'] }] });
+  go();
+  for (const w of ['one', 'two', 'three', 'four', 'five']) game.answer(ids[0], w);
+  game.answer(ids[1], 'two');
+  game.answer(ids[1], 'nine');
+  clock.advance(45000);
+  assert.equal(game.teams.get(ids[0]).score, 10);
+  assert.equal(game.teams.get(ids[1]).score, 1);
+});
+
+test('clip recall: a video question with a list of details', () => {
+  const { game, clock, ids, go } = play({ type: 'clipRecall', questions: [{ video: '/media/aaaaaaaaaaaaaaaaaaaa.mp4', question: 'What did you see?', items: ['red car', 'dog', 'umbrella / brolly'] }] });
+  go();
+  assert.equal(game.screenState().question.video, '/media/aaaaaaaaaaaaaaaaaaaa.mp4');
+  game.answer(ids[0], 'brolly');
+  game.answer(ids[0], 'dog');
+  clock.advance(60000);
+  assert.equal(game.teams.get(ids[0]).score, 2);
+  assert.throws(() => validateQuiz({ rounds: [{ type: 'clipRecall', questions: [{ question: 'x', items: ['a', 'b', 'c'] }] }] }), /needs a video/);
+});
+
+test('your pick: the leader picks the category, the others play it', () => {
+  const options = [{ category: 'Art', ...mc('Art Q', 1) }, { category: 'Sport', ...mc('Sport Q', 2) }];
+  const { game, ids, go } = play({ type: 'opponentsPick', questions: [{ options }, { options }] }, { teams: ['A', 'B', 'C'] });
+  game.teams.get(ids[2]).score = 5;
+  go();
+  assert.equal(game.phase, 'wager');
+  assert.deepEqual(game.common().pick.categories, ['Art', 'Sport']);
+  assert.equal(game.common().pick.by.name, 'C');
+  assert.equal(game.setWager(ids[0], 1), false, 'only the leader picks');
+  assert.ok(game.setWager(ids[2], 1));
+  go();
+  assert.equal(game.question.question, 'Sport Q');
+  assert.equal(game.teamState(ids[2]).out, true);
+  assert.equal(game.answer(ids[2], 2), false);
+  game.answer(ids[0], 2);
+  game.answer(ids[1], 0);
+  assert.equal(game.phase, 'reveal');
+  assert.equal(game.teams.get(ids[0]).score, 2);
+  assert.equal(game.teams.get(ids[2]).score, 5);
+});
+
+test('head to head: the top two play, the others predict the winner', () => {
+  const { game, clock, ids, go } = play({ type: 'headToHead', questions: [mc('Q', 3)] }, { teams: ['A', 'B', 'C'] });
+  // Restart the round with standings: B first, C second.
+  game.teams.get(ids[1]).score = 9;
+  game.teams.get(ids[2]).score = 7;
+  game.startRound(0);
+  assert.deepEqual(game.finalists, [ids[1], ids[2]]);
+  go();
+  assert.equal(game.common().wagerMode, 'predict');
+  assert.equal(game.setWager(ids[1], 0), false, 'finalists do not predict');
+  assert.ok(game.setWager(ids[0], 1));
+  go();
+  assert.equal(game.answer(ids[0], 3), false, 'only finalists answer');
+  clock.advance(2000);
+  game.answer(ids[2], 3);
+  clock.advance(1000);
+  game.answer(ids[1], 3);
+  assert.equal(game.phase, 'reveal');
+  assert.equal(game.teams.get(ids[2]).lastPoints, 2);
+  assert.equal(game.teams.get(ids[1]).lastPoints, 0);
+  assert.equal(game.teams.get(ids[0]).lastPoints, 2, 'predicted the winner');
+});
+
+test('time bank: one team at a time on its own clock; right adds seconds, zero is out', () => {
+  const qs = Array.from({ length: 6 }, (_, i) => ({ question: 'Q' + i, answer: 'A', time: 10, points: 1 }));
+  const { game, clock, ids, go } = play({ type: 'clockBank', questions: qs });
+  go();
+  assert.equal(game.turnTeam, ids[0]);
+  assert.equal(game.answer(ids[1], 'x'), false);
+  clock.advance(5000);
+  game.judgeBuzz(true);
+  assert.equal(game.phase, 'reveal');
+  assert.equal(game.clocks.get(ids[0]), 65000);
+  assert.equal(game.teams.get(ids[0]).score, 1);
+  go();
+  assert.equal(game.turnTeam, ids[1]);
+  clock.advance(60000); // B runs out
+  assert.equal(game.phase, 'reveal');
+  assert.equal(game.clocks.get(ids[1]), 0);
+  go();
+  assert.equal(game.turnTeam, ids[0], 'B is out, A again');
+  clock.advance(3000);
+  game.judgeBuzz(false);
+  assert.equal(game.clocks.get(ids[0]), 62000);
+  assert.equal(game.teams.get(ids[0]).lastPoints, 0);
+});
+
+test('clock duel: right passes the turn, the first clock at zero loses', () => {
+  const qs = Array.from({ length: 20 }, (_, i) => ({ question: 'Q' + i, answer: 'A', points: 5 }));
+  const { game, clock, ids, go } = play({ type: 'clockDuel', questions: qs }, { teams: ['A', 'B', 'C'] });
+  game.teams.get(ids[0]).score = 10;
+  game.teams.get(ids[1]).score = 8;
+  game.startRound(0);
+  go();
+  assert.equal(game.turnTeam, ids[1], 'second place starts');
+  assert.equal(game.common().clocks.length, 2);
+  clock.advance(4000);
+  game.judgeBuzz(true);
+  go();
+  assert.equal(game.turnTeam, ids[0]);
+  clock.advance(10000);
+  game.judgeBuzz(false);
+  go();
+  assert.equal(game.turnTeam, ids[0], 'wrong keeps the turn');
+  clock.advance(40000);
+  assert.equal(game.phase, 'reveal');
+  assert.equal(game.duelWinner, ids[1]);
+  assert.equal(game.teams.get(ids[1]).score, 13);
+  go();
+  assert.equal(game.phase, 'scoreboard', 'the duel ends the round');
+});
+
+test('twist: sudden death ends the round for a team after its first mistake', () => {
+  const { game, ids, go } = play({ type: 'classic', twists: ['suddenDeath'], questions: [mc('Q1', 0), mc('Q2', 0), mc('Q3', 0)] });
+  go();
+  game.answer(ids[0], 0);
+  game.answer(ids[1], 1);
+  go();
+  assert.equal(game.teamState(ids[1]).out, true);
+  assert.equal(game.answer(ids[1], 0), false);
+  game.answer(ids[0], 0);
+  assert.equal(game.phase, 'reveal', 'the team that is out does not hold up the question');
+});
+
+test('twist: shrinking options remove wrong answers and lower the points', () => {
+  const { game, clock, ids, go } = play({ type: 'classic', twists: ['shrinkingOptions'], questions: [{ ...mc('Q', 2), points: 4, time: 30 }] });
+  go();
+  assert.deepEqual(game.screenState().question.gone, []);
+  clock.advance(5000);
+  const gone = game.screenState().question.gone;
+  assert.equal(gone.length, 1);
+  assert.ok(!gone.includes(2));
+  assert.equal(game.answer(ids[1], gone[0]), false, 'a gone answer can not be picked');
+  clock.advance(5000);
+  assert.equal(game.screenState().question.gone.length, 2);
+  clock.advance(10000);
+  assert.equal(game.screenState().question.gone.length, 2, 'one wrong answer stays');
+  game.answer(ids[0], 2);
+  game.answer(ids[1], 2);
+  assert.equal(game.teams.get(ids[0]).lastPoints, 2);
+});
+
+test('twist: lifeline hides two wrong answers once per round', () => {
+  const { game, ids, go } = play({ type: 'classic', twists: ['lifeline'], questions: [mc('Q1', 1), mc('Q2', 1)] });
+  go();
+  assert.ok(game.teamState(ids[0]).canLifeline);
+  assert.ok(game.useLifeline(ids[0]));
+  const hidden = game.teamState(ids[0]).question.gone;
+  assert.equal(hidden.length, 2);
+  assert.ok(!hidden.includes(1));
+  assert.deepEqual(game.teamState(ids[1]).question.gone, [], 'only on its own phone');
+  assert.equal(game.answer(ids[0], hidden[0]), false);
+  game.answer(ids[0], 1);
+  game.answer(ids[1], 1);
+  go();
+  assert.equal(game.teamState(ids[0]).canLifeline, false);
+  assert.equal(game.useLifeline(ids[0]), false);
+});
+
+test('twist: mystery category keeps the round title hidden until the last answer', () => {
+  const { game, ids, go } = play({ type: 'classic', title: 'Cheese', twists: ['mysteryCategory'], questions: [mc('Q1'), mc('Q2')] });
+  assert.equal(game.screenState().round.title, '? ? ?');
+  assert.equal(game.hostState().realTitle, 'Cheese');
+  go();
+  game.answer(ids[0], 0);
+  game.answer(ids[1], 0);
+  assert.equal(game.screenState().round.title, '? ? ?');
+  go();
+  game.answer(ids[0], 0);
+  game.answer(ids[1], 0);
+  assert.equal(game.screenState().round.title, 'Cheese');
 });

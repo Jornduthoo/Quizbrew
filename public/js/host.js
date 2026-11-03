@@ -46,7 +46,7 @@
     lobby: () => 'host.startQuiz',
     roundIntro: () => 'host.firstQuestion',
     wager: () => 'host.showQuestion',
-    question: s => (s.round && ['drawGuess', 'captionThis', 'bluffBank', 'photoHunt', 'whosWho'].includes(s.round.type) ? 'host.startVote' : 'host.reveal'),
+    question: s => (s.turn ? 'host.skipTurn' : s.round && ['drawGuess', 'captionThis', 'bluffBank', 'photoHunt', 'whosWho'].includes(s.round.type) ? 'host.startVote' : 'host.reveal'),
     vote: () => 'host.showVotes',
     reveal: s => (s.lastQuestion ? 'host.showScores' : 'host.nextQuestion'),
     scoreboard: s => (s.lastRound ? 'host.showWinner' : 'host.nextRound'),
@@ -83,9 +83,11 @@
       if (s.round.scoring) rules.push(t(`scoring.${s.round.scoring}`));
       s.round.twists.forEach(tw => rules.push(t(`twist.${tw}`)));
       preview.append(h('p', { class: 'hint' }, rules.join(' · ')));
+      if (s.round.mystery) preview.append(h('p', { class: 'answer-key' }, t('host.realTitle', { title: s.realTitle })));
     } else if (s.phase === 'wager') {
       kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('host.phase.wager')}`;
-      title.textContent = s.category || '';
+      title.textContent = s.pick ? t('host.picks', { name: s.pick.by ? s.pick.by.name : '' }) : s.wagerMode === 'predict' ? (s.finalists || []).map(f => f.name).join(` ${t('screen.vs')} `) : s.category || '';
+      if (s.pick) preview.append(h('ol', { class: 'mini-answers' }, s.pick.categories.map((c, i) => h('li', { class: s.pick.chosen === i ? 'key' : '' }, h('span', { class: 'letter' }, LETTERS[i]), c))));
       preview.append(h('p', { class: 'hint' }, t('host.wagered', { n: s.teams.filter(x => x.wagered).length, total: s.teams.length })));
       if (s.answerKey) preview.append(h('p', { class: 'answer-key' }, t('host.answerKey', { text: s.answerKey.answerText })));
     } else if (s.phase === 'vote') {
@@ -114,9 +116,15 @@
           h('button', { class: 'ghost-btn small', type: 'button', onclick: () => socket.emit('media', 'stop') }, t('host.stopSound'))));
       }
       const kind = q.kind;
-      if (s.canJudgeBuzz && s.buzz) {
-        preview.append(h('div', { class: 'buzz-judge', style: teamVar(s.buzz.color) },
-          h('span', { class: 'team-dot' }), h('strong', {}, t('host.buzzing', { name: s.buzz.name })),
+      // Clock rounds: every clock at a glance.
+      if (s.clocks) {
+        preview.append(h('ul', { class: 'host-clocks' }, s.clocks.map(c => h('li', { class: (c.active ? 'active' : '') + (c.ms <= 0 ? ' out' : ''), style: teamVar(c.color) },
+          h('span', { class: 'team-dot' }), c.name, h('strong', {}, (c.ms / 1000).toFixed(1) + ' s')))));
+      }
+      const holder = s.buzz || (s.phase === 'question' && s.turn);
+      if (s.canJudgeBuzz && holder) {
+        preview.append(h('div', { class: 'buzz-judge', style: teamVar(holder.color) },
+          h('span', { class: 'team-dot' }), h('strong', {}, t(s.buzz ? 'host.buzzing' : 'host.turnOf', { name: holder.name })),
           h('button', { class: 'brass-btn ok', type: 'button', onclick: () => socket.emit('buzzJudge', true) }, t('host.buzzRight')),
           h('button', { class: 'ghost-btn no', type: 'button', onclick: () => socket.emit('buzzJudge', false) }, t('host.buzzWrong'))));
       }

@@ -51,7 +51,6 @@
     picture: { glow: '#ff4fa3', icon: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 8"/>' },
     music: { glow: '#b07cff', icon: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>' },
     speed: { glow: '#a8ff3e', icon: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>' },
-    drawGuess: { glow: '#ff7a2e', icon: '<path d="M4 20l4-1L19 8l-3-3L5 16z"/><path d="M14 7l3 3"/>' },
     puzzle: { glow: '#2fe0b8', icon: '<path d="M4 7h4a2 2 0 1 1 4 0h4v4a2 2 0 1 1 0 4v5H4v-5a2 2 0 1 0 0-4z"/>' },
     trueFalse: { glow: '#5dff9a', icon: '<path d="M4 12l4 4 8-9"/><path d="M15 15l5 5M20 15l-5 5"/>' },
     closest: { glow: '#ffe94a', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/>' },
@@ -83,6 +82,15 @@
     actItOut: { glow: '#ff7a2e', icon: '<circle cx="12" cy="5" r="2.5"/><path d="M12 8v6M12 14l-4 6M12 14l4 6M6 10l6 1 6-3"/>' },
     photoHunt: { glow: '#3ee6ff', icon: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>' },
     whosWho: { glow: '#2fe0b8', icon: '<circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M3 19c0-3 2.5-5 5-5M21 19c0-3-2.5-5-5-5"/><path d="M11 16h2"/>' },
+    stakeIt: { glow: '#ffcf3c', icon: '<circle cx="9" cy="9" r="5"/><path d="M14.5 6.5a5 5 0 1 1-5 9"/><path d="M9 7v4M7.5 8.5h3"/>' },
+    localLegend: { glow: '#ff9a3c', icon: '<path d="M4 20h16"/><path d="M6 20V10l6-5 6 5v10"/><path d="M10 20v-5h4v5"/>' },
+    clueLadder: { glow: '#9dffd6', icon: '<path d="M7 3v18M17 3v18M7 7h10M7 12h10M7 17h10"/>' },
+    fiveFacts: { glow: '#5dff9a', icon: '<path d="M6 4h12v16H6z"/><path d="M9 8h6M9 12h6M9 16h3"/>' },
+    clipRecall: { glow: '#4f8bff', icon: '<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/>' },
+    opponentsPick: { glow: '#ff4fa3', icon: '<path d="M8 12V5a1.5 1.5 0 0 1 3 0v6"/><path d="M11 11V4a1.5 1.5 0 0 1 3 0v7M14 11V6a1.5 1.5 0 0 1 3 0v7c0 4-3 7-6 7s-5-2-6-5l-1.5-3a1.5 1.5 0 0 1 2.6-1.4L8 12"/>' },
+    headToHead: { glow: '#ff3d6e', icon: '<circle cx="6" cy="8" r="3"/><circle cx="18" cy="8" r="3"/><path d="M2 20c0-3 2-5 4-5M22 20c0-3-2-5-4-5M10 13l4 4M14 13l-4 4"/>' },
+    clockBank: { glow: '#3ee6ff', icon: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M10 2h4"/>' },
+    clockDuel: { glow: '#ff7a2e', icon: '<circle cx="7" cy="14" r="5"/><circle cx="17" cy="14" r="5"/><path d="M7 12v2h2M17 12v2h-2M6 5h2M16 5h2"/>' },
     crowdMind: { glow: '#3ee6ff', icon: '<circle cx="12" cy="7" r="3"/><circle cx="5" cy="10" r="2.2"/><circle cx="19" cy="10" r="2.2"/><path d="M7 20c0-3 2-5 5-5s5 2 5 5M1.5 19c0-2.5 1.5-4 3.5-4M22.5 19c0-2.5-1.5-4-3.5-4"/>' },
   };
   const roundTheme = type => ROUND_THEMES[type] || ROUND_THEMES.classic;

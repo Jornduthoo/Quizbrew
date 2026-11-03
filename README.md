@@ -72,13 +72,22 @@ Open http://localhost:3000/builder (or "Open quiz builder" on the quizmaster scr
 | `actItOut` | one team acts the secret out (it is only on their phone), the others type | right guess; actors score when anyone gets it |
 | `photoHunt` | take a photo for the task, then vote | points per vote |
 | `whosWho` | answer about your team, then match answers to teams | points per right match |
+| `stakeIt` | see the category, bet, then a multiple choice question | + or - your bet |
+| `localLegend` | your own questions about the town, club or pub (picture optional) | any |
+| `clueLadder` | who or what is it: clues from very hard to easy | ladder |
+| `fiveFacts` | an open question with five keywords | point per keyword, all five x2 |
+| `clipRecall` | watch a video clip, then type every detail you remember | point per detail |
+| `opponentsPick` | the leader picks the category for everyone else | any |
+| `headToHead` | finale: the top two race, the others predict the winner | winner and right predictions |
+| `clockBank` | one team at a time answers out loud on its own 60 s clock | points, right adds seconds |
+| `clockDuel` | finale: the top two take turns against their own clock | the last clock standing |
 
 Party rounds add a vote phase after the question: drawings and photos are stored in the library media folder, and nobody can vote for their own entry.
 
 Sound files (mp3, m4a, ogg, wav) are uploaded in the builder with a start and end second. Browsers only play sound after one click on the big screen; a button asks for it when needed.
 
 Scoring modes: `points`, `speed` (up to double for fast answers), `race` (only the fastest right team), `risk` (wrong costs points), `time` (seconds left), `ladder` (earlier is worth more).
-Twists per round: `double`, `lockdown` (leaving the page blocks the answer), `blackout` (question only on the TV), `underdog` (last team x1.5). A quiz with `"jokers": true` gives every team one joker (x2 on a round of its choice).
+Twists per round: `double`, `lockdown` (leaving the page blocks the answer), `blackout` (question only on the TV), `underdog` (last team x1.5), `mysteryCategory` (round title hidden until the last answer), `suddenDeath` (first mistake ends the round for that team), `shrinkingOptions` (a wrong answer disappears every 5 s, points drop), `lifeline` (one 50/50 per team per round), `silentRound` (no sound, no countdown digits). A quiz with `"jokers": true` gives every team one joker (x2 on a round of its choice).
 A phone that leaves the page during a question is always shown to the quizmaster.
 
 The definitions live in `src/rounds.js`; each type needs `round.<type>` and `round.<type>.desc` in the language files, a theme in `QB.ROUND_THEMES` and an AI hint in `src/ai.js`. Tests check all three.
