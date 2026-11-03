@@ -24,6 +24,7 @@ body[data-phase="roundIntro"] .bg-stage,
 body[data-phase="question"] .bg-play,
 body[data-phase="reveal"] .bg-play,
 body[data-phase="scoreboard"] .bg-board,
+body[data-phase="awards"] .bg-stage,
 body[data-phase="end"] .bg-finale { opacity: 1; animation-play-state: running; }
 @keyframes drift {
   from { transform: scale(1) translate(0, 0); }
@@ -427,3 +428,23 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .place1 .who .team-dot.photo { width: 2.3em; height: 2.3em; }
 .end { gap: 1.6vh; }
 .end-title { font-size: 3.7em; }
+
+/* Prizes of the night */
+.awards { gap: 4vh; }
+.awards-title { font-size: 3.6em; margin: 0; }
+.award-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 26vw); gap: 2.6vh 2vw; justify-content: center; }
+.award {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: .6vh;
+  padding: 2.6vh 1.4vw 2.4vh; border-radius: 1.4vw;
+  background: linear-gradient(170deg, rgb(var(--k-wood-7) / .95), rgb(var(--k-wood-9) / .95));
+  border: .18vw solid var(--c); box-shadow: 0 0 2.4vh color-mix(in srgb, var(--c) 45%, transparent), inset 0 0 3vh rgb(0 0 0 / .45);
+  opacity: 0; animation: award-in .8s cubic-bezier(.2, 1.4, .4, 1) forwards; animation-delay: var(--d);
+}
+@keyframes award-in { from { opacity: 0; transform: translateY(6vh) scale(.8) rotateX(30deg); } to { opacity: 1; transform: none; } }
+.aw-icon { font-size: 3.2em; line-height: 1; filter: drop-shadow(0 0 1.2vh var(--c)); }
+.aw-title { font-family: var(--display); letter-spacing: var(--display-track, 0); font-size: 1.5em; color: var(--brass-light); }
+.aw-team { display: flex; align-items: center; gap: .5em; font-size: 1.45em; font-weight: 800; color: var(--cream); text-shadow: 0 0 1.2vh var(--c); }
+.aw-team .team-dot { width: .9em; height: .9em; }
+.aw-team .team-dot.photo { width: 1.8em; height: 1.8em; }
+.aw-text { color: var(--muted); font-size: 1.05em; }
+.aw-team { flex-wrap: wrap; justify-content: center; }

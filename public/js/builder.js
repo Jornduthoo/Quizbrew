@@ -17,6 +17,7 @@
   let catalog = null;
   let library = { tree: { folders: [], quizzes: [] }, samples: [] };
   let current = null; // { path, quiz }
+  let stats = { plays: 0, q: {} }; // how the questions went on earlier nights
   let roundIndex = 0;
   let saveTimer = null;
   let saving = false;
@@ -165,6 +166,7 @@
       await refreshLibrary();
     } else current = { path, quiz };
     current.quiz.rounds = current.quiz.rounds || [];
+    stats = await api('GET', '/stats?path=' + encodeURIComponent(current.path)).catch(() => ({ plays: 0, q: {} }));
     roundIndex = 0;
     $('#welcome').hidden = true;
     $('#editor').hidden = false;
@@ -374,11 +376,21 @@
     return h('li', { class: 'q-card' },
       h('div', { class: 'q-top' },
         h('span', { class: 'q-num' }, i + 1),
+        statBadge(r, q, i),
         h('div', { class: 'q-tools' },
           h('button', { class: 'mini', title: t('builder.moveUp'), disabled: i === 0, onclick: () => { r.questions.splice(i - 1, 0, r.questions.splice(i, 1)[0]); changed(); renderRound(); } }, '▲'),
           h('button', { class: 'mini', title: t('builder.moveDown'), disabled: i === r.questions.length - 1, onclick: () => { r.questions.splice(i + 1, 0, r.questions.splice(i, 1)[0]); changed(); renderRound(); } }, '▼'),
           h('button', { class: 'mini kick', title: t('builder.deleteQuestion'), onclick: () => { r.questions.splice(i, 1); changed(); renderRound(); renderTimeline(); } }, '×'))),
       h('div', { class: 'q-fields' }, fields));
+  }
+
+  // After a quiz night: how many teams got this question right (same key as the game log: the question text).
+  function statBadge(r, q, i) {
+    const key = (q.question || '').trim() || `#${current.quiz.rounds.indexOf(r)}:${i}`;
+    const s = stats && stats.q && stats.q[key];
+    if (!s || !s.asked) return null;
+    const pct = Math.round((s.right / s.asked) * 100);
+    return h('span', { class: 'q-stat' + (pct < 25 ? ' hard' : pct > 85 ? ' easy' : ''), title: t('builder.statHint', { n: stats.plays }) }, t('builder.stat', { pct, n: s.asked }));
   }
 
   // replaceChildren turns null into the text "null"; leave empty parts out.

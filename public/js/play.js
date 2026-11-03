@@ -103,6 +103,12 @@
         if (['order', 'pairs', 'point'].includes(s.question.kind)) return renderBuild(s, fresh);
         return renderChoices(s, fresh);
       case 'reveal': return renderResult(s, fresh);
+      case 'awards': {
+        const mine = (s.awards || []).filter(a => a.team.name === s.team.name);
+        wait(t('play.awards'), mine.length ? '★' : '✦');
+        if (mine.length) $('#wait-quip').textContent = mine.map(a => t('play.youWon', { title: t(`award.${a.id}`) })).join(' · ');
+        return;
+      }
       case 'scoreboard':
       case 'end':
         wait(t(s.phase === 'end' ? 'play.finalPlace' : 'play.place', { n: s.team.rank, total: s.team.teams }), '#' + s.team.rank);

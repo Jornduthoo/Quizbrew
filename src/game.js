@@ -48,6 +48,8 @@ class Game {
     this.teams.clear();
     this.previousRanks = {};
     this.history = []; // snapshots before every step, for the quizmaster's undo
+    this.log = new Map(); // 'round:question' -> how every team did (awards, statistics)
+    this.rankHistory = []; // the ranks at every scoreboard
   }
 
   // Finales and clock rounds: who plays, whose turn it is, how much time every team has left.
@@ -178,6 +180,9 @@ class Game {
         return this.showScoreboard();
       case 'scoreboard':
         if (this.roundIndex + 1 < this.quiz.rounds.length) return this.startRound(this.roundIndex + 1);
+        this.phase = this.awards().length ? 'awards' : 'end';
+        return this.broadcast();
+      case 'awards':
         this.phase = 'end';
         return this.broadcast();
       default:
@@ -651,6 +656,7 @@ class Game {
 
   showScoreboard() {
     this.phase = 'scoreboard';
+    this.rankHistory[this.roundIndex] = Object.fromEntries(this.ranking().map(r => [r.id, r.rank]));
     this.broadcast();
     // Remember the ranks so the next scoreboard can show who moved up.
     this.previousRanks = Object.fromEntries(this.ranking().map(r => [r.id, r.rank]));
@@ -675,6 +681,7 @@ class Game {
       finalists: this.finalists, picker: this.picker, resolved: this.resolved, clocks: [...this.clocks],
       turnTeam: this.turnTeam, nextTurn: this.nextTurn, duelWinner: this.duelWinner, roundOver: this.roundOver,
       previousRanks: this.previousRanks, teams,
+      log: [...this.log], rankHistory: this.rankHistory,
     };
   }
 
@@ -690,6 +697,7 @@ class Game {
       finalists: s.finalists, picker: s.picker, resolved: s.resolved, clocks: new Map(s.clocks),
       turnTeam: s.turnTeam, nextTurn: s.nextTurn, duelWinner: s.duelWinner, roundOver: s.roundOver,
       previousRanks: s.previousRanks || {},
+      log: new Map(s.log || []), rankHistory: s.rankHistory || [],
     });
     const before = this.teams;
     this.teams = new Map(s.teams.map(([id, t]) => {
@@ -826,6 +834,7 @@ class Game {
       wagerMode: this.phase === 'wager' ? (this.type.wager === true ? 'bet' : this.type.wager) : null,
       levelBase: this.phase === 'wager' ? q.points : null,
       remaining: this.remaining(),
+      awards: this.phase === 'awards' ? this.awards() : null,
       reveal: this.phase === 'reveal' ? this.revealInfo() : null,
       correct: this.phase === 'reveal' ? (this.type.revealQ(q).correct ?? null) : null,
       // Buzzer: who holds the floor; the clock stands still meanwhile.
@@ -919,6 +928,7 @@ class Game {
       realTitle: this.round ? this.round.title : '',
       lastQuestion: !!this.round && this.questionIndex + 1 >= this.round.questions.length,
       lastRound: !!this.quiz && this.roundIndex + 1 >= this.quiz.rounds.length,
+      hasAwards: this.phase === 'scoreboard' && !!this.quiz && this.roundIndex + 1 >= this.quiz.rounds.length && this.awards().length > 0,
     };
   }
 
@@ -974,11 +984,73 @@ class Game {
   }
 
   broadcast() {
+    this.record();
     this.emit('host', 'state', this.hostState());
     this.emit('screen', 'state', this.screenState());
     this.emit('lobby', 'state', this.teamState(null));
     for (const [id, t] of this.teams) if (t.connected) this.emit(`team:${id}`, 'state', this.teamState(id));
     this.onChange();
+  }
+
+  // How every team did on the question that was just revealed (kept up to date when the quizmaster overrules).
+  record() {
+    if (this.phase !== 'reveal' || !this.question) return;
+    const q = this.question;
+    this.log.set(`${this.roundIndex}:${this.questionIndex}`, {
+      r: this.roundIndex, q: this.questionIndex, type: this.round.type,
+      key: (q.question || '').trim() || `#${this.roundIndex}:${this.questionIndex}`,
+      scored: !this.type.vote && !this.type.turns && !this.type.sitsOut,
+      time: (q.time || 0) * 1000,
+      teams: Object.fromEntries([...this.teams].map(([id, t]) => [id, { a: t.answer !== null, c: !!t.correct, p: t.lastPoints, ms: t.answeredAt }])),
+    });
+  }
+
+  // Fun prizes at the end of the night, worked out from the log. Each one only when someone really earned it.
+  awards() {
+    const ranking = this.ranking();
+    if (ranking.length < 2) return [];
+    const who = id => { const r = ranking.find(x => x.id === id); return r ? { name: r.name, color: r.color, photo: r.photo } : null; };
+    const entries = [...this.log.values()].sort((a, b) => a.r - b.r || a.q - b.q);
+    const scored = entries.filter(e => e.scored);
+    const ids = ranking.map(r => r.id);
+    const best = (score, better = (a, b) => a > b) => {
+      let top = null;
+      for (const id of ids) {
+        const v = score(id);
+        if (v === null) continue;
+        if (!top || better(v, top.v)) top = { id, v };
+      }
+      return top;
+    };
+    const out = [];
+    const add = (id, top) => { if (top) out.push({ id, team: who(top.id), n: top.v }); };
+    // Fastest fingers: the quickest right answers on average (at least two).
+    add('fastest', best(id => {
+      const ms = scored.map(e => e.teams[id]).filter(x => x && x.c && x.a && x.ms > 0).map(x => x.ms);
+      return ms.length >= 2 ? Math.round(ms.reduce((a, b) => a + b, 0) / ms.length / 100) / 10 : null;
+    }, (a, b) => a < b));
+    // Hot hand: the longest run of right answers.
+    add('streak', best(id => {
+      let run = 0, top = 0;
+      for (const e of scored) { const x = e.teams[id]; if (!x) continue; run = x.c ? run + 1 : 0; top = Math.max(top, run); }
+      return top >= 3 ? top : null;
+    }));
+    // Climber: the most places up since the first scoreboard.
+    const first = this.rankHistory.find(Boolean);
+    if (first) add('climber', best(id => (first[id] && first[id] - ranking.find(r => r.id === id).rank > 0 ? first[id] - ranking.find(r => r.id === id).rank : null)));
+    // Daredevil: the most points lost by daring (risk, bets, robbing the leader).
+    add('daredevil', best(id => {
+      const lost = -entries.reduce((sum, e) => sum + Math.min(0, (e.teams[id] || {}).p || 0), 0);
+      return lost > 0 ? lost : null;
+    }));
+    // Last second: the most answers in the final three seconds.
+    add('buzzer', best(id => {
+      const n = scored.filter(e => { const x = e.teams[id]; return x && x.a && e.time > 0 && e.time - x.ms <= 3000; }).length;
+      return n >= 2 ? n : null;
+    }));
+    // So close: fourth place, just off the podium.
+    if (ranking.length >= 4 && ranking[3].rank === 4) out.push({ id: 'almost', team: who(ranking[3].id), n: ranking[2].score - ranking[3].score });
+    return out;
   }
 }
 

@@ -97,7 +97,8 @@
     question: s => (s.turn ? 'host.skipTurn' : s.round && ['drawGuess', 'captionThis', 'bluffBank', 'photoHunt', 'whosWho'].includes(s.round.type) ? 'host.startVote' : 'host.reveal'),
     vote: () => 'host.showVotes',
     reveal: s => (s.lastQuestion ? 'host.showScores' : 'host.nextQuestion'),
-    scoreboard: s => (s.lastRound ? 'host.showWinner' : 'host.nextRound'),
+    scoreboard: s => (s.lastRound ? (s.hasAwards ? 'host.showAwards' : 'host.showWinner') : 'host.nextRound'),
+    awards: () => 'host.showWinner',
   };
 
   function render(s) {
@@ -226,6 +227,11 @@
     } else if (s.phase === 'scoreboard') {
       kicker.textContent = t('host.phase.scoreboard');
       title.textContent = t('screen.standingsAfter', { n: s.round.index + 1 });
+    } else if (s.phase === 'awards') {
+      kicker.textContent = t('host.phase.awards');
+      title.textContent = t('screen.awards');
+      preview.append(h('ul', { class: 'judge-list' }, s.awards.map(a => h('li', { class: 'judge-row', style: teamVar(a.team.color) },
+        QB.dot(a.team), h('span', { class: 'name' }, t(`award.${a.id}`)), h('span', { class: 'given' }, a.team.name)))));
     } else if (s.phase === 'end') {
       kicker.textContent = t('host.phase.end');
       title.textContent = s.ranking[0] ? t('host.winnerIs', { name: s.ranking[0].name }) : '';
