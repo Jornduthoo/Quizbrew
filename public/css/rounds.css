@@ -190,7 +190,8 @@ body.screen[data-kind="level"] .q-board h1 { font-size: 2.6em; }
 
 /* Round memory: pot, streak or out, per team. */
 .screen .round-board { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 1vh 1vw; }
-.screen .rb-team { display: flex; align-items: center; gap: .6vw; padding: .7vh 1.1vw; border-radius: 999px; background: rgba(0, 0, 0, .55); border: 2px solid var(--c); box-shadow: 0 0 12px color-mix(in srgb, var(--c) 40%, transparent); font-weight: 700; font-size: 1.1em; }
+.screen .round-board { gap: .5em .6em; }
+.screen .rb-team { display: flex; align-items: center; gap: .5em; padding: .35em .9em; border-radius: 999px; background: rgba(0, 0, 0, .55); border: 2px solid var(--c); box-shadow: 0 0 12px color-mix(in srgb, var(--c) 40%, transparent); font-weight: 700; font-size: 1.1em; }
 .screen .rb-val { color: var(--brass-light); font-weight: 800; }
 .screen .rb-val:empty { display: none; }
 .screen .rb-team.out { opacity: .35; filter: grayscale(.8); border-style: dashed; box-shadow: none; }
@@ -213,13 +214,22 @@ body.screen[data-kind="level"] .q-board h1 { font-size: 2.6em; }
 /* ---------- big screen: party rounds (wave 4) ---------- */
 body.screen[data-phase="vote"] .bg-stage { opacity: 1; animation-play-state: running; }
 body.screen[data-phase="vote"] .vignette { background: radial-gradient(ellipse at 50% 50%, rgb(var(--k-wood-9) / .45), rgb(var(--k-wood-9) / .92) 90%); }
-body.screen .vote { display: grid; grid-template-rows: auto auto 1fr; gap: 2.4vh; }
+body.screen .vote { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 2.4vh; }
 .screen .small-timer { width: auto; height: auto; min-width: 11vh; }
 .screen .small-timer span { font-size: 3em; font-weight: 800; color: var(--theme, var(--neon-amber)); text-shadow: 0 0 18px var(--theme, var(--neon-amber)); }
 .screen .vote-q { margin: 0; text-align: center; font-size: 2.6em; line-height: 1.15; }
-.screen .ballot-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2vh 2vw; align-content: center; min-height: 0; }
+.screen .ballot-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: max-content; gap: 2vh 2vw; align-content: center; min-height: 0; }
 .screen .ballot-grid.n3, .screen .ballot-grid.n5, .screen .ballot-grid.n6 { grid-template-columns: repeat(3, 1fr); }
 .screen .ballot-grid.n7, .screen .ballot-grid.n8 { grid-template-columns: repeat(4, 1fr); }
+/* More than 8 teams: more columns, and everything in a card sized in em so the whole grid can shrink to fit. */
+.screen .ballot-grid.many { grid-template-columns: repeat(var(--cols, 6), minmax(0, 1fr)); gap: 1.4vh 1.2vw; align-content: start; }
+.screen .ballot-grid.many .ballot-card { min-height: 0; padding: 2.9em .7em .7em; gap: .5em; border-radius: 14px; }
+.screen .ballot-grid.many .ballot-card.pic { padding: 2.9em .5em .5em; }
+.screen .ballot-grid.many .bc-text { font-size: 1.25em; }
+.screen .bc-by { max-width: 100%; white-space: nowrap; }
+.screen .ballot-card { min-width: 0; }
+.screen .ballot-grid.many img { max-height: 7em; }
+.screen .ballot-grid.many .bc-votes .team-dot { width: 1.1em; height: 1.1em; }
 .screen .ballot-card {
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2vh; min-height: 16vh; padding: 2.4vh 1.6vw 2vh; border-radius: 18px; text-align: center;
   background: rgba(0, 0, 0, .5); border: 3px solid var(--c, var(--theme, var(--brass))); box-shadow: 0 0 18px color-mix(in srgb, var(--c, var(--theme, var(--brass))) 40%, transparent);

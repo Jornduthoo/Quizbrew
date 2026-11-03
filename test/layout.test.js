@@ -18,8 +18,13 @@ const SCREENS = [
   { name: 'tv-browserbar', width: 1920, height: 940 },
   { name: 'laptop', width: 1366, height: 768 },
 ];
-const TEAMS = ['Ik ben geslaagd vrr', 'MegaMachtigeMuizen', 'Jorn', 'Voet', 'De Quizzende Kwissers', 'Team Tafel Nummer 7', 'Pubquizpiraten', 'Wablieft Wat Zegt Ge'];
-const COLORS = ['amber', 'pink', 'cyan', 'lime', 'violet', 'orange', 'red', 'teal'];
+// 8 teams by default; LAYOUT_TEAMS=18 (up to 24, one per colour) for a big night.
+const NAMES = ['Ik ben geslaagd vrr', 'MegaMachtigeMuizen', 'Jorn', 'Voet', 'De Quizzende Kwissers', 'Team Tafel Nummer 7', 'Pubquizpiraten', 'Wablieft Wat Zegt Ge',
+  'De Slimme Sloebers', 'Quiz Khalifa', 'Tafel 11', 'Les Cerveaux Fous', 'Die Besserwisser', 'Los Sabelotodos', 'Bier en Bitterballen', 'De Laatste Rij',
+  'Kwis Kwis Kwis', 'Antwoord 42', 'De Nerds van Nu', 'Smart Alecs', 'Mama Mia', 'Opa en de Kleinkids', 'Team Onverwacht', 'Wie Is Dit'];
+const TEAM_COUNT = Math.min(24, Number(process.env.LAYOUT_TEAMS) || 8);
+const TEAMS = NAMES.slice(0, TEAM_COUNT);
+const COLORS = require('../src/teams').TEAM_COLORS;
 const NO_MOTION = '*, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition: none !important; }';
 
 // Runs in the page: every visible block of the current view stays inside the screen and inside its own zone,
@@ -53,6 +58,19 @@ function problems() {
       if (!shown(el) || el.matches('.ta-name, .ta-answer, .name, .rb-name, .br-name, .team-chip, .ch, .w')) continue;
       if (el.scrollWidth > el.clientWidth + slack && el.clientWidth > 0 && getComputedStyle(el).overflowX !== 'visible') out.push(`${label(el)} is cut off on the side`);
       if (el.scrollHeight > el.clientHeight + slack && el.clientHeight > 0 && getComputedStyle(el).overflowY !== 'visible') out.push(`${label(el)} is cut off at the bottom`);
+    }
+  }
+  // Vote cards: the text and the team name stay inside the card and clear of the letter.
+  for (const card of view.querySelectorAll('.ballot-card')) {
+    if (!shown(card)) continue;
+    const c = box(card);
+    const letter = card.querySelector('.letter');
+    const l = letter && box(letter);
+    for (const el of card.querySelectorAll('.bc-text, .bc-by')) {
+      const e = box(el);
+      if (!e.height) continue;
+      if (e.top < c.top - slack || e.bottom > c.bottom + slack) out.push(`${label(el)} (${el.textContent.trim().slice(0, 30)}) sticks out of its card (${Math.round(e.top - c.top)}/${Math.round(c.bottom - e.bottom)})`);
+      else if (l && el.matches('.bc-text') && e.top < l.bottom - slack && e.left < l.right - slack) out.push(`${label(el)} (${el.textContent.trim().slice(0, 30)}) runs under the card letter`);
     }
   }
   for (let i = 0; i < zones.length; i++) {
@@ -97,7 +115,7 @@ function pageProblems() {
   return out;
 }
 
-test('big screen, phone, host and remote: no overlap, nothing sticks out, every round type with long texts and 8 teams', { skip: !chromium && 'Playwright is not installed', timeout: 900000 }, async t => {
+test('big screen, phone, host and remote: no overlap, nothing sticks out, every round type with long texts and many teams', { skip: !chromium && 'Playwright is not installed', timeout: 900000 }, async t => {
   const settingsData = { language: 'nl', sfx: false };
   const qb = createServer({ port: 0, settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } }, library: require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-'))), lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
@@ -194,7 +212,7 @@ test('big screen, phone, host and remote: no overlap, nothing sticks out, every 
       if (s.phase === 'question') {
         await check(step, true);
         // Team 'Jorn' answers first, so its phone shows the locked answer before the reveal.
-        for (const i of [2, 0, 1, 3, 4, 5, 6, 7]) {
+        for (const i of [2, ...teams.keys()].filter((x, k, all) => all.indexOf(x) === k)) {
           const q = teams[i].last && teams[i].last.question;
           if (q) teams[i].emit('answer', answerFor(q, i));
           if (i === 2) { await settle(); await checkOthers(`${step}-locked`); }
