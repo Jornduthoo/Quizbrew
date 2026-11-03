@@ -275,11 +275,15 @@
     QB.fit($('#vote-q'), { lines: 2, min: 0.5 });
     grid.style.fontSize = '';
     if (grid.offsetParent === null) return;
+    // A long entry gets smaller, so every card keeps the same size and nothing runs over the letter.
+    const texts = () => grid.querySelectorAll('.bc-text').forEach(el => QB.fit(el, { lines: 3, min: 0.5 }));
+    texts();
     let size = parseFloat(getComputedStyle(grid).fontSize);
     const min = size * 0.45;
     while (size > min && grid.scrollHeight > grid.clientHeight + 1) {
       size *= 0.93;
       grid.style.fontSize = size + 'px';
+      texts();
     }
     // Long team names stay on one line in their card.
     grid.querySelectorAll('.bc-by').forEach(el => QB.fit(el, { min: 0.4 }));
@@ -716,9 +720,8 @@
         reveal ? h('span', { class: 'bc-by' }, b.truth ? t('screen.theTruth') : b.by ? b.by.name : '') : null,
         reveal && mode !== 'match' ? h('span', { class: 'bc-votes' }, (b.votes || []).map(v => h('i', { class: 'team-dot', style: teamVar(v.color), title: v.name }))) : null);
     }));
-    // A long entry gets smaller, so every card keeps the same size and nothing runs over the letter.
-    grid.querySelectorAll('.bc-text').forEach(el => QB.fit(el, { lines: 3, min: 0.5 }));
-    fitBallot();
+    // The view may only be shown after this render, so measure on the next frame.
+    requestAnimationFrame(fitBallot);
     if (stopTimer) stopTimer();
     if (reveal) {
       $('#vote-time').textContent = '';

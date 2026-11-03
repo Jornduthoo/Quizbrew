@@ -218,7 +218,7 @@ body.screen .vote { display: grid; grid-template-rows: auto auto minmax(0, 1fr);
 .screen .small-timer { width: auto; height: auto; min-width: 11vh; }
 .screen .small-timer span { font-size: 3em; font-weight: 800; color: var(--theme, var(--neon-amber)); text-shadow: 0 0 18px var(--theme, var(--neon-amber)); }
 .screen .vote-q { margin: 0; text-align: center; font-size: 2.6em; line-height: 1.15; }
-.screen .ballot-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 2vh 2vw; align-content: center; min-height: 0; }
+.screen .ballot-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: max-content; gap: 2vh 2vw; align-content: center; min-height: 0; }
 .screen .ballot-grid.n3, .screen .ballot-grid.n5, .screen .ballot-grid.n6 { grid-template-columns: repeat(3, 1fr); }
 .screen .ballot-grid.n7, .screen .ballot-grid.n8 { grid-template-columns: repeat(4, 1fr); }
 /* More than 8 teams: more columns, and everything in a card sized in em so the whole grid can shrink to fit. */

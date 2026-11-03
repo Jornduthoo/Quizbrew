@@ -60,6 +60,19 @@ function problems() {
       if (el.scrollHeight > el.clientHeight + slack && el.clientHeight > 0 && getComputedStyle(el).overflowY !== 'visible') out.push(`${label(el)} is cut off at the bottom`);
     }
   }
+  // Vote cards: the text and the team name stay inside the card and clear of the letter.
+  for (const card of view.querySelectorAll('.ballot-card')) {
+    if (!shown(card)) continue;
+    const c = box(card);
+    const letter = card.querySelector('.letter');
+    const l = letter && box(letter);
+    for (const el of card.querySelectorAll('.bc-text, .bc-by')) {
+      const e = box(el);
+      if (!e.height) continue;
+      if (e.top < c.top - slack || e.bottom > c.bottom + slack) out.push(`${label(el)} (${el.textContent.trim().slice(0, 30)}) sticks out of its card (${Math.round(e.top - c.top)}/${Math.round(c.bottom - e.bottom)})`);
+      else if (l && el.matches('.bc-text') && e.top < l.bottom - slack && e.left < l.right - slack) out.push(`${label(el)} (${el.textContent.trim().slice(0, 30)}) runs under the card letter`);
+    }
+  }
   for (let i = 0; i < zones.length; i++) {
     for (let j = i + 1; j < zones.length; j++) {
       const a = box(zones[i]), b = box(zones[j]);
