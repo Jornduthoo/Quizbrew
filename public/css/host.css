@@ -146,11 +146,14 @@ body.remote .key-hint { display: none; }
 @media (max-width: 900px) {
   /* No entrance animation here: a transform would trap the fixed button bar inside the page. */
   body.host .view { padding: 16px 12px 120px; animation: none; }
-  body.host .stage { padding: 18px 16px; min-height: 0; }
+  /* No cut corners here either: a clip-path would also clip the fixed button bar away. */
+  body.host .stage { padding: 18px 16px; min-height: 0; clip-path: none; }
+  body.host .big-url { overflow-wrap: anywhere; }
   body.host .phase-title { font-size: 1.45em; }
   body.host .mini-answers { grid-template-columns: 1fr; }
-  body.host .controls { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; margin: 0; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); background: rgb(var(--k-wood-9) / .92); backdrop-filter: blur(8px); border-top: 1px solid rgb(var(--k-brass) / .35); flex-wrap: nowrap; }
-  body.host .brass-btn.next { flex: 1; min-width: 0; padding: .9em 1em; }
+  body.host .controls { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; margin: 0; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); background: rgb(var(--k-wood-9) / .92); backdrop-filter: blur(8px); border-top: 1px solid rgb(var(--k-brass) / .35); flex-wrap: wrap; gap: 8px; }
+  body.host .brass-btn.next { flex: 1 1 100%; min-width: 0; padding: .9em 1em; }
+  body.host .controls .ghost-btn { flex: 1 1 auto; }
   body.host .adjust { opacity: 1; }
   body.host .quiz-list { grid-template-columns: 1fr; }
   body.host .buzz-judge { flex-wrap: wrap; }
@@ -158,6 +161,8 @@ body.remote .key-hint { display: none; }
 }
 @media (max-width: 600px) {
   .top-actions { gap: 6px; min-width: 0; }
+  body.remote .topbar { flex-wrap: wrap; }
+  body.remote .top-actions { flex-wrap: wrap; justify-content: flex-end; }
   .lang select { max-width: 34vw; padding: .5em .5em; font-size: .9em; }
   .hero-tag { letter-spacing: .2em; font-size: .75em; }
 }

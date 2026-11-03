@@ -437,25 +437,28 @@
       h('button', { class: 'mini remove', type: 'button', title: t('builder.delete'), onclick: () => { draft.sponsors.splice(i, 1); drawVenue(); } }, '×'))));
     $('#sponsor-add').hidden = draft.sponsors.length >= 8;
   }
-  $('#venue-tile').addEventListener('click', () => {
-    draft = JSON.parse(JSON.stringify(brand));
-    $('#venue-name').value = draft.venue;
-    $('#venue-error').textContent = '';
-    drawVenue();
-    $('#venue-modal').showModal();
-  });
-  $('#venue-name').addEventListener('input', e => { draft.venue = e.target.value; });
-  $('#sponsor-add').addEventListener('click', () => { draft.sponsors.push({ name: '', line: '', logo: '' }); drawVenue(); });
-  $('#venue-modal [data-close]').addEventListener('click', () => $('#venue-modal').close());
-  $('#venue-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/host/brand', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) });
-      if (!res.ok) throw new Error('save');
-      brand = await res.json();
-      $('#venue-modal').close();
-    } catch { $('#venue-error').textContent = t('error.generic'); }
-  });
+  // The venue dialog lives on the laptop only (the remote has no venue tile).
+  if ($('#venue-tile')) {
+    $('#venue-tile').addEventListener('click', () => {
+      draft = JSON.parse(JSON.stringify(brand));
+      $('#venue-name').value = draft.venue;
+      $('#venue-error').textContent = '';
+      drawVenue();
+      $('#venue-modal').showModal();
+    });
+    $('#venue-name').addEventListener('input', e => { draft.venue = e.target.value; });
+    $('#sponsor-add').addEventListener('click', () => { draft.sponsors.push({ name: '', line: '', logo: '' }); drawVenue(); });
+    $('#venue-modal [data-close]').addEventListener('click', () => $('#venue-modal').close());
+    $('#venue-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      try {
+        const res = await fetch('/api/host/brand', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) });
+        if (!res.ok) throw new Error('save');
+        brand = await res.json();
+        $('#venue-modal').close();
+      } catch { $('#venue-error').textContent = t('error.generic'); }
+    });
+  }
 
   $('#autopilot').addEventListener('click', () => socket.emit('autopilot', !auto.on));
   $('#resume-go').addEventListener('click', () => socket.emit('resume', res => { if (res && res.error) alert(t(res.error)); }));
