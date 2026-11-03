@@ -241,3 +241,8 @@ body.builder { font-size: 15px; }
 .cloud-row { display: flex; gap: 8px; width: 100%; }
 .cloud-row input { flex: 1; min-width: 0; padding: .55em .8em; border-radius: 10px; border: 1.5px solid rgb(var(--k-brass-l) / .3); background: rgba(0, 0, 0, .35); color: var(--cream); font-family: ui-monospace, monospace; font-size: .9em; }
 .cloud-row button[hidden], .cloud-linked button[hidden] { display: none; }
+
+/* After a quiz night: how many teams got the question right. */
+.q-stat { padding: 3px 10px; border-radius: 999px; font-size: .82em; font-weight: 700; color: var(--cream); background: rgb(var(--k-brass) / .18); border: 1px solid rgb(var(--k-brass) / .5); }
+.q-stat.hard { background: rgb(255 80 90 / .16); border-color: rgb(255 80 90 / .6); }
+.q-stat.easy { background: rgb(80 230 150 / .14); border-color: rgb(80 230 150 / .55); }

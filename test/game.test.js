@@ -123,6 +123,44 @@ test('a full quiz: rounds, questions, reveal, scoreboard and end', () => {
   game.next();
   assert.equal(game.phase, 'scoreboard');
   assert.equal(game.hostState().lastRound, true);
+  // Two teams: at least the daredevil-free, streak-free night still has no prize unless someone earned one.
+  game.next();
+  if (game.phase === 'awards') game.next();
+  assert.equal(game.phase, 'end');
+});
+
+test('prizes at the end: fastest, streak, climber, last second and so close', () => {
+  const { game, clock } = setup();
+  game.load({ title: 'Long', rounds: [
+    { type: 'classic', title: 'R1', questions: [0, 1, 2].map(i => ({ question: 'A' + i, answers: ['a', 'b'], correct: 0, time: 10 })) },
+    { type: 'classic', title: 'R2', questions: [0, 1, 2].map(i => ({ question: 'B' + i, answers: ['a', 'b'], correct: 0, time: 10 })) },
+  ] });
+  ['A', 'B', 'C', 'D'].forEach((n, i) => game.join('team' + i + 'aaaa', n, ['amber', 'pink', 'cyan', 'lime'][i], 's' + i));
+  game.next(); // intro
+  for (let r = 0; r < 2; r++) {
+    game.next(); // question 1
+    for (let q = 0; q < 3; q++) {
+      // Round 1: A is right and fast; round 2: D catches up, B answers late.
+      clock.advance(1000);
+      game.answer('team0aaaa', r === 0 ? 0 : 1);
+      game.answer('team3aaaa', r === 1 ? 0 : 1);
+      game.answer('team2aaaa', 1);
+      clock.advance(7500);
+      game.answer('team1aaaa', 1);
+      assert.equal(game.phase, 'reveal');
+      game.next();
+    }
+    if (game.phase === 'scoreboard') game.next();
+  }
+  assert.equal(game.phase, 'awards');
+  const awards = Object.fromEntries(game.screenState().awards.map(a => [a.id, a]));
+  assert.equal(awards.fastest.team.name, 'A');
+  assert.equal(awards.fastest.n, 1);
+  assert.equal(awards.streak.team.name, 'A');
+  assert.equal(awards.streak.n, 3);
+  assert.equal(awards.buzzer.team.name, 'B');
+  assert.equal(awards.climber.team.name, 'D');
+  assert.equal(awards.almost, undefined, 'no fourth place when B and C share third');
   game.next();
   assert.equal(game.phase, 'end');
 });

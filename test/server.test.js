@@ -117,3 +117,37 @@ test('the remote link lets a phone drive the quiz; the run sheet stays on this l
   await once(bad, 'disconnect');
   bad.close();
 });
+
+test('the builder sees how every question went after a quiz night', async t => {
+  const qb = createServer({ port: 0, settings: memorySettings(), library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
+  const port = await qb.listen();
+  const url = `http://127.0.0.1:${port}`;
+  const sockets = [];
+  const open = query => { const s = connect(url, { query, transports: ['websocket'], forceNew: true }); sockets.push(s); return s; };
+  t.after(async () => { sockets.forEach(s => s.close()); await qb.close(); });
+
+  const quiz = { title: 'Stats', rounds: [{ type: 'classic', title: 'R', questions: [{ question: 'Two plus two?', answers: ['3', '4'], correct: 1, time: 10 }] }] };
+  const saved = await (await fetch(`${url}/api/host/library/quiz`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quiz }) })).json();
+  const host = open({ role: 'host' });
+  await new Promise(r => host.emit('load', { library: saved.path }, r));
+  const a = open({ role: 'player' });
+  const b = open({ role: 'player' });
+  await new Promise(r => a.emit('join', { teamId: 'aaaaaaaa111', name: 'A', color: 'amber' }, r));
+  await new Promise(r => b.emit('join', { teamId: 'bbbbbbbb222', name: 'B', color: 'pink' }, r));
+  const question = once(a, 'state', s => s.phase === 'question');
+  host.emit('next');
+  host.emit('next');
+  await question;
+  const reveal = once(host, 'state', s => s.phase === 'reveal');
+  a.emit('answer', 1);
+  b.emit('answer', 0);
+  await reveal;
+  const end = once(host, 'state', s => s.phase === 'end');
+  host.emit('next'); // scoreboard
+  host.emit('next'); // prizes or end
+  host.emit('next');
+  await end;
+  const stats = await (await fetch(`${url}/api/host/stats?path=${encodeURIComponent(saved.path)}`)).json();
+  assert.equal(stats.plays, 1);
+  assert.deepEqual(stats.q['Two plus two?'], { asked: 2, right: 1, answered: 2 });
+});

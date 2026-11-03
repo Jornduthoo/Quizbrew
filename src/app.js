@@ -54,14 +54,42 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     if (game.phase === 'idle') return;
     try {
       fs.mkdirSync(library.dataDir, { recursive: true });
-      fs.writeFileSync(liveFile, JSON.stringify({ savedAt: Date.now(), quiz: game.quiz, state: game.snapshot() }));
+      fs.writeFileSync(liveFile, JSON.stringify({ savedAt: Date.now(), ref: currentRef, quiz: game.quiz, state: game.snapshot() }));
     } catch (err) { console.error('Could not save the game:', err.message); }
   };
   const forgetLive = () => { clearTimeout(saveSoon); saveSoon = null; try { fs.unlinkSync(liveFile); } catch { /* nothing saved */ } };
   const readLive = () => { try { return JSON.parse(fs.readFileSync(liveFile, 'utf8')); } catch { return null; } };
+
+  // How every question went, summed over every night a quiz was played (data/stats.json). The builder shows it.
+  const statsFile = path.join(library.dataDir, 'stats.json');
+  const statsKey = ref => (ref && typeof ref === 'object' && ref.library ? 'lib:' + ref.library : ref ? 'sample:' + ref : null);
+  const readStats = () => { try { return JSON.parse(fs.readFileSync(statsFile, 'utf8')); } catch { return {}; } };
+  let currentRef = null;
+  let statsSaved = false;
+  const saveStats = () => {
+    statsSaved = true;
+    const key = statsKey(currentRef);
+    if (!key) return;
+    const all = readStats();
+    const mine = all[key] || { plays: 0, q: {} };
+    mine.plays += 1;
+    mine.updated = Date.now();
+    for (const e of game.log.values()) {
+      if (!e.scored) continue;
+      const teams = Object.values(e.teams);
+      const s = mine.q[e.key] || { asked: 0, right: 0, answered: 0 };
+      s.asked += teams.length;
+      s.right += teams.filter(x => x.c).length;
+      s.answered += teams.filter(x => x.a).length;
+      mine.q[e.key] = s;
+    }
+    all[key] = mine;
+    try { fs.writeFileSync(statsFile, JSON.stringify(all)); } catch (err) { console.error('Could not save the statistics:', err.message); }
+  };
   const game = new Game({
     emit: (target, event, payload) => io.to(target).emit(event, payload),
     onChange: () => {
+      if (game.phase === 'end' && !statsSaved) saveStats();
       if (game.phase === 'idle' || saveSoon) return;
       saveSoon = setTimeout(saveLive, 500);
       saveSoon.unref();
@@ -150,6 +178,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     return { url, qr: await QRCode.toString(url, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#1b0f08', light: '#0000' } }) };
   }));
   api.get('/catalog', handle(() => rounds.catalog()));
+  api.get('/stats', handle(req => readStats()[statsKey({ library: String(req.query.path || '') })] || { plays: 0, q: {} }));
   api.get('/library', handle(() => ({ tree: library.tree(), samples: quizzes.list() })));
   api.get('/library/quiz', handle(req => (req.query.sample ? quizzes.load(String(req.query.sample)) : library.read(String(req.query.path || '')))));
   api.put('/library/quiz', handle(req => library.save(req.body.path || null, req.body.quiz, { folder: req.body.folder || '' })));
@@ -235,6 +264,8 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       on('load', (ref, cb) => {
         try {
           game.load(quizFor(ref));
+          currentRef = ref;
+          statsSaved = false;
           cb && cb({ ok: true });
         } catch (err) {
           cb && cb({ error: 'error.quizInvalid', detail: err.message.replace(/^Invalid quiz: /, '') });
@@ -252,6 +283,8 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
         const saved = readLive();
         try {
           if (!saved) throw new Error('nothing saved');
+          currentRef = saved.ref || null;
+          statsSaved = false;
           game.resume(saved);
           cb && cb({ ok: true });
         } catch (err) {

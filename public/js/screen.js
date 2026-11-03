@@ -13,7 +13,7 @@
   let lobbyShown = false;
 
   // Ambient particles per phase.
-  const AMBIENT = { idle: 'lights', lobby: 'lights', roundIntro: 'stage', wager: 'stage', vote: 'stage', question: 'dust', reveal: 'dust', scoreboard: 'dust', end: 'embers' };
+  const AMBIENT = { awards: 'stage', idle: 'lights', lobby: 'lights', roundIntro: 'stage', wager: 'stage', vote: 'stage', question: 'dust', reveal: 'dust', scoreboard: 'dust', end: 'embers' };
   const cssColor = name => getComputedStyle(document.body).getPropertyValue(name).trim();
 
   socket.on('language', async lang => {
@@ -52,6 +52,7 @@
     else if (s.phase === 'question' || s.phase === 'reveal') renderQuestion(s, fresh);
     if (s.phase === 'wager') renderWager(s);
     if (s.phase === 'scoreboard' && fresh) renderScoreboard(s);
+    if (s.phase === 'awards' && fresh) renderAwards(s);
     if (s.phase === 'end' && fresh) renderEnd(s);
   }
 
@@ -529,6 +530,24 @@
       }
       return row;
     }));
+  }
+
+  // The prizes: one card every 1.8 seconds, each with a burst of light in the team colour.
+  const AWARD_ICON = { fastest: '⚡', streak: '🔥', climber: '🚀', daredevil: '🎲', buzzer: '⏱️', almost: '🤏' };
+  function renderAwards(s) {
+    split($('#awards-title'), t('screen.awards'));
+    const grid = $('#award-grid');
+    grid.style.setProperty('--n', s.awards.length);
+    grid.replaceChildren(...s.awards.map((a, i) => h('li', { class: 'award', style: `${teamVar(a.team.color)}; --d: ${1 + i * 1.8}s` },
+      h('span', { class: 'aw-icon' }, AWARD_ICON[a.id] || '★'),
+      h('span', { class: 'aw-title' }, t(`award.${a.id}`)),
+      h('span', { class: 'aw-team' }, QB.dot(a.team), a.team.name),
+      h('span', { class: 'aw-text' }, t(`award.${a.id}.text`, { n: a.n })))));
+    [...grid.children].forEach((card, i) => later(() => {
+      const b = card.getBoundingClientRect();
+      FX.glints({ x: b.left + b.width / 2, y: b.top, width: b.width, count: 40 });
+      FX.sparksAt(card, { color: cssColor('--team-' + s.awards[i].team.color) || '#ffb43c', count: 50 });
+    }, (1.3 + i * 1.8) * 1000));
   }
 
   function renderEnd(s) {
