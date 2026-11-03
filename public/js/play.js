@@ -102,6 +102,8 @@
       case 'end':
         wait(t(s.phase === 'end' ? 'play.finalPlace' : 'play.place', { n: s.team.rank, total: s.team.teams }), '#' + s.team.rank);
         renderStandings(s.standings);
+        // After the last question every player sees where the quiz came from.
+        $('#made-with').hidden = s.phase !== 'end';
         if (s.team.rank === 1) {
           const b = $('#wait-badge');
           b.classList.add('first');
@@ -433,6 +435,7 @@
     $('#wait-text').textContent = text;
     $('#wait-quip').textContent = '';
     $('#standings').hidden = true;
+    $('#made-with').hidden = true;
   }
 
   function renderStandings(rows) {

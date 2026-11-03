@@ -1,5 +1,7 @@
 {
   "app.name": "Quizbrew",
+  "brand.madeWith": "Gemacht mit",
+  "brand.yourOwn": "Dein eigener Quizabend? In Sekunden gebraut.",
   "error.noQuiz": "Noch kein Quiz. Warte auf den Quizmaster.",
   "error.alreadyStarted": "Das Quiz hat schon begonnen.",
   "error.nameEmpty": "Gib einen Teamnamen ein.",
