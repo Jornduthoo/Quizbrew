@@ -106,7 +106,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       res.sendStatus(404);
     }
   });
-  api.post('/media', express.raw({ type: () => true, limit: '12mb' }), handle(req => ({ url: library.addMedia(req.body, String(req.headers['content-type'] || '').split(';')[0]) })));
+  api.post('/media', express.raw({ type: () => true, limit: '40mb' }), handle(req => ({ url: library.addMedia(req.body, String(req.headers['content-type'] || '').split(';')[0]) })));
   api.get('/ai/settings', handle(() => ai.publicSettings()));
   api.put('/ai/settings', handle(req => ai.update(req.body)));
   api.post('/ai/prompt', handle(req => ({ prompt: req.body.whole ? Ai.quizPrompt(req.body) : Ai.roundPrompt(req.body) })));
@@ -210,6 +210,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     on('vote', choice => teamId && game.castVote(teamId, choice));
     on('wager', amount => teamId && game.setWager(teamId, Number(amount)));
     on('bank', () => teamId && game.bankPot(teamId));
+    on('lifeline', () => teamId && game.useLifeline(teamId));
     on('joker', () => teamId && game.playJoker(teamId));
     on('leftPage', () => teamId && game.leftPage(teamId));
     socket.on('disconnect', () => teamId && game.disconnect(socket.id));

@@ -304,6 +304,8 @@
     if (type.fields.includes('images')) { q.images = ['', '', '', '']; q.captions = ['', '', '', '']; q.correct = 0; }
     if (type.fields.includes('audio')) q.audio = '';
     if (type.fields.includes('listItems')) q.items = [];
+    if (type.fields.includes('video')) q.video = '';
+    if (type.fields.includes('options')) q.options = [0, 1, 2].map(() => ({ category: '', question: '', answers: ['', '', '', ''], correct: 0 }));
     if (type.fields.includes('levels')) q.levels = [0, 1, 2].map(() => ({ question: '', answers: ['', '', '', ''], correct: 0 }));
     return q;
   }
@@ -331,7 +333,7 @@
         type.scorings.map(s => h('option', { value: s, selected: r.scoring === s ? 'selected' : null }, t(`scoring.${s}`))))) : h('p', { class: 'hint small' }, t(`scoring.own.${r.type}`));
     const scoringHint = type.scorings.length ? h('p', { class: 'hint small' }, t(`scoring.${r.scoring || type.defaults.scoring}.desc`)) : null;
 
-    box.replaceChildren(
+    fill(box,
       h('header', { class: 're-head' },
         h('div', { class: 're-type' }, icon(r.type), h('div', {}, h('strong', {}, typeName(r.type)), h('p', { class: 'hint small' }, t(`round.${r.type}.desc`)))),
         h('div', { class: 're-actions' },
@@ -357,6 +359,8 @@
             const v = Number(e.target.value);
             if (v > 0) { r.questions.forEach(q => { q.time = v; }); changed(); renderRound(); }
           } }))),
+      type.kind === 'turn' ? h('p', { class: 'hint round-note' }, t('builder.f.clockNote', { n: type.clock })) : null,
+      type.finale ? h('p', { class: 'hint round-note' }, t('builder.f.finaleNote')) : null,
       h('ol', { class: 'q-list' }, r.questions.map((q, i) => questionCard(r, type, q, i))),
       h('div', { class: 'q-add' },
         h('button', { class: 'ghost-btn', onclick: () => { r.questions.push(newQuestion(type)); changed(); renderRound(); renderTimeline(); } }, t('builder.addQuestion'))));
@@ -426,6 +430,24 @@
     },
     image: (q, set) => mediaField(q, set),
     audio: (q, set) => audioField(q, set),
+    video: (q, set) => videoField(q, set),
+    // Your pick: two or three categories, each with its own question.
+    options: q => {
+      const wrap = h('div', { class: 'field wide level-edit' });
+      const draw = () => {
+        const opts = q.options || (q.options = []);
+        fill(wrap, h('span', {}, t('builder.f.options')),
+          opts.map((o, i) => h('div', { class: 'level-block', style: `--k: ${i}` },
+            h('div', { class: 'opt-head' },
+              input(t('builder.f.optionCategory'), o.category, v => { o.category = v; changed(); }, { el: { maxlength: 40 } }),
+              opts.length > 2 ? h('button', { class: 'mini kick', type: 'button', onclick: () => { opts.splice(i, 1); changed(); draw(); } }, '×') : null),
+            input(t('builder.f.question'), o.question, v => { o.question = v; changed(); }, { el: { maxlength: 200 } }),
+            answersEditor(o, (k, v) => { o[k] = v; changed(); }))),
+          opts.length < 3 ? h('button', { class: 'ghost-btn small', type: 'button', onclick: () => { opts.push({ category: '', question: '', answers: ['', '', '', ''], correct: 0 }); changed(); draw(); } }, t('builder.f.addOption')) : null);
+      };
+      draw();
+      return wrap;
+    },
     emoji: (q, set) => input(t('builder.f.emoji'), q.emoji, v => set('emoji', v), { cls: 'emoji-field', el: { maxlength: 40 } }),
     images: (q, set) => imagesField(q, set),
     items: (q, set) => listField(q, 'items', 3, 6, t('builder.f.items'), t('builder.f.itemsHint')),
@@ -445,7 +467,7 @@
         answersEditor(lv, (k, v) => { lv[k] = v; changed(); }))));
     },
     spot: (q, set) => spotField(q, set),
-    time: (q, set, type) => input(t('builder.f.time'), q.time, v => set('time', Number(v) || undefined), { cls: 'small-field', el: { type: 'number', min: 3, max: 600, placeholder: type.defaults.time } }),
+    time: (q, set, type) => input(t(type.kind === 'turn' ? 'builder.f.bonusTime' : 'builder.f.time'), q.time, v => set('time', Number(v) || undefined), { cls: 'small-field', el: { type: 'number', min: 3, max: 600, placeholder: type.defaults.time } }),
     points: (q, set, type) => input(t('builder.f.points'), q.points, v => set('points', Number(v) || undefined), { cls: 'small-field', el: { type: 'number', min: 1, max: 100, placeholder: type.defaults.points } }),
   };
 
@@ -514,6 +536,32 @@
         try { set('image', await upload(f)); } catch { alert(t('builder.uploadFailed')); }
         draw();
       };
+    };
+    draw();
+    return wrap;
+  }
+
+  // A short video clip for the big screen.
+  function videoField(q, set) {
+    const wrap = h('div', { class: 'field wide audio-field' });
+    const take = async f => {
+      if (!f || !f.type.startsWith('video/')) return;
+      wrap.classList.add('busy');
+      try { set('video', await upload(f)); } catch { alert(t('builder.uploadFailed')); }
+      wrap.classList.remove('busy');
+      draw();
+    };
+    const draw = () => {
+      const fileInput = h('input', { type: 'file', accept: 'video/mp4,video/webm', hidden: true, onchange: e => take(e.target.files[0]) });
+      fill(wrap, h('span', {}, t('builder.f.video')),
+        q.video ? h('div', { class: 'audio-row' }, h('video', { src: q.video, controls: true, preload: 'metadata', class: 'video-preview' }),
+          h('button', { class: 'mini kick', type: 'button', title: t('builder.f.removeVideo'), onclick: () => { set('video', ''); draw(); } }, '×'))
+          : h('label', { class: 'drop-zone' }, fileInput, h('span', {}, t('builder.f.addVideo'))),
+        q.videoHint ? h('p', { class: 'hint small' }, t('builder.f.videoHint', { clip: q.videoHint })) : null,
+        h('p', { class: 'hint small' }, t('builder.f.audioRights')));
+      wrap.ondragover = e => { e.preventDefault(); wrap.classList.add('drop'); };
+      wrap.ondragleave = () => wrap.classList.remove('drop');
+      wrap.ondrop = e => { e.preventDefault(); wrap.classList.remove('drop'); take(e.dataTransfer.files[0]); };
     };
     draw();
     return wrap;

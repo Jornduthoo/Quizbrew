@@ -37,7 +37,8 @@
   }).then(() => state && render(state, true));
 
   function render(s, force) {
-    const key = [s.phase, s.round && s.round.index, s.questionIndex, s.team ? 1 : 0, s.answer, s.blocked, s.wager, s.voted].join(':');
+    const key = [s.phase, s.round && s.round.index, s.questionIndex, s.team ? 1 : 0, s.answer, s.blocked, s.wager, s.voted, s.lifelineUsed].join(':');
+    document.body.classList.toggle('silent', !!(s.round && s.round.twists.includes('silentRound')));
     const fresh = force || key !== lastKey;
     if (key !== lastKey) window.scrollTo(0, 0);
     lastKey = key;
@@ -64,12 +65,18 @@
       case 'roundIntro':
         wait(t('play.getReady', { title: s.round.title || t(`round.${s.round.type}`) }));
         return renderJoker(s);
-      case 'wager': return renderWager(s, fresh);
+      case 'wager':
+        if (s.wagerMode === 'pick' && !s.canWager) return wait(t('play.leaderPicks', { name: s.pick && s.pick.by ? s.pick.by.name : '' }), '?');
+        if (s.wagerMode === 'predict' && !s.canWager) return wait(t('play.youreFinalist'), '★');
+        return renderWager(s, fresh);
       case 'vote':
         if (s.voted) return wait(t('play.voted'), '✓');
         return renderVote(s, fresh);
       case 'question':
         if (s.blocked) return wait(t('play.blocked'), '!');
+        if (s.question.kind === 'turn') return renderTurn(s);
+        if (s.out && s.isPicker) return wait(t('play.youPicked'), '★');
+        if (s.out && s.finalists && !s.isFinalist) return wait(t('play.watchFinal'), '★');
         if (s.out) return wait(t(s.round.type === 'pushYourLuck' ? 'play.bankedWait' : 'play.outOfRound'), s.round.type === 'pushYourLuck' ? '★' : '✗');
         if (s.banked) return wait(t('play.bankedNow', { n: s.pot }), '★');
         if (s.isActor) return renderActor(s);
@@ -122,10 +129,30 @@
 
   function renderWager(s, fresh) {
     showView('wager');
-    const level = s.wagerMode === 'level';
-    $('#wager-kicker').textContent = t(level ? 'screen.pickLevel' : 'play.wagerKicker');
-    $('#bet-box').hidden = level;
+    const mode = s.wagerMode;
+    const level = mode === 'level';
+    const choose = mode === 'pick' || mode === 'predict';
+    $('#wager-kicker').textContent = t(level ? 'screen.pickLevel' : mode === 'pick' ? 'play.pickFor' : mode === 'predict' ? 'play.predictKicker' : 'play.wagerKicker');
+    $('#bet-box').hidden = level || choose;
     $('#level-picks').hidden = !level;
+    $('#pick-list').hidden = !choose;
+    if (choose) {
+      // Your pick: a category for the others. Head to head: the finalist you back.
+      const opts = mode === 'pick' ? s.pick.categories.map(c => ({ label: c })) : (s.finalists || []).map(f => ({ label: f.name, color: f.color }));
+      $('#wager-category').textContent = mode === 'pick' ? t('round.opponentsPick') : (s.finalists || []).map(f => f.name).join(` ${t('screen.vs')} `);
+      // Redraw only for a new choice, so the buttons do not replay their entrance on every update.
+      const list = $('#pick-list');
+      if (list.children.length === opts.length && list.dataset.q === lastKey.split(':').slice(1, 3).join(':')) {
+        [...list.children].forEach((b, i) => b.classList.toggle('on', s.wager === i));
+      } else list.replaceChildren(...opts.map((o, i) => h('button', {
+        type: 'button', class: 'level-pick' + (s.wager === i ? ' on' : ''), style: `--k: ${i}` + (o.color ? `; ${teamVar(o.color)}` : ''),
+        onclick: () => { socket.emit('wager', i); if (navigator.vibrate) navigator.vibrate(20); },
+      }, o.color ? h('i', { class: 'team-dot' }) : null, h('strong', {}, o.label))));
+      list.dataset.q = lastKey.split(':').slice(1, 3).join(':');
+      const chosen = s.wager !== null && s.wager !== undefined ? opts[s.wager] : null;
+      $('#wager-note').textContent = chosen ? t(mode === 'pick' ? 'play.picked' : 'play.predicted', { name: chosen.label }) : '';
+      return;
+    }
     if (level) {
       $('#wager-category').textContent = s.category || t('round.pickYourLevel');
       $('#level-picks').replaceChildren(...[0, 1, 2].map(l => h('button', {
@@ -439,6 +466,10 @@
         },
       }, h('span', { class: 'letter' }, tf ? (i === 0 ? '✓' : '✗') : LETTERS[i]), h('span', { class: 'text' }, a))));
     }
+    // Shrinking options and the 50/50 lifeline: answers that are gone can not be tapped.
+    const gone = new Set(s.question.gone || []);
+    [...$('#choices').children].forEach((b, i) => { b.classList.toggle('gone', gone.has(i)); b.disabled = gone.has(i); });
+    $('#lifeline-btn').hidden = !s.canLifeline;
     const own = s.question.kind === 'level';
     $('#phone-q').hidden = !own;
     if (own) $('#phone-q').textContent = s.question.text;
@@ -449,6 +480,31 @@
       $('#q-time').textContent = Math.ceil(left / 1000);
     });
   }
+  $('#lifeline-btn').addEventListener('click', () => {
+    if (!confirm(t('play.lifelineConfirm'))) return;
+    socket.emit('lifeline');
+    if (navigator.vibrate) navigator.vibrate([20, 30, 20]);
+  });
+
+  // Clock rounds: your own clock big on the phone, or whose turn it is.
+  function renderTurn(s) {
+    showView('turn');
+    const mine = s.clocks && s.clocks.find(c => c.name === s.team.name);
+    const view = $('#v-turn');
+    view.classList.toggle('mine', !!s.myTurn);
+    view.style.cssText = s.turn ? teamVar(s.turn.color) : '';
+    $('#turn-label').textContent = s.myTurn ? t('play.yourTurn') : s.turn ? t('play.theirTurn', { name: s.turn.name }) : '';
+    $('#turn-clock').hidden = !mine;
+    $('#turn-sub').textContent = mine && mine.ms <= 0 ? t('play.clockOut') : '';
+    if (!mine) return;
+    const fmt = ms => (ms / 1000).toFixed(ms < 10000 ? 1 : 0);
+    $('#turn-num').textContent = fmt(mine.ms);
+    if (mine.running) {
+      if (navigator.vibrate) navigator.vibrate(60);
+      stopTimer = countdown(mine.ms, mine.ms, left => { $('#turn-num').textContent = fmt(left); });
+    }
+  }
+
   $('#bank-btn').addEventListener('click', () => {
     if (!confirm(t('play.bankConfirm', { n: state.pot }))) return;
     socket.emit('bank');
@@ -506,7 +562,8 @@
 
   function renderResult(s, fresh) {
     showView('reveal');
-    const answered = s.answer !== null && s.answer !== undefined;
+    const predictor = s.finalists && !s.isFinalist && s.wager !== null && s.wager !== undefined;
+    const answered = (s.answer !== null && s.answer !== undefined) || predictor;
     const right = !!s.wasCorrect;
     const icon = $('#result-icon');
     icon.className = 'result ' + (right ? 'good' : answered ? 'bad' : 'none');
@@ -519,6 +576,8 @@
     const k = s.question.kind;
     if (k === 'list') $('#result-text').textContent = t('play.found', { n: s.found || 0 });
     if (s.vote) $('#result-text').textContent = s.lastPoints > 0 ? t('play.votesWon', { n: s.lastPoints }) : t('play.noVotes');
+    if (k === 'turn' && !s.myTurn && !s.lastPoints) $('#result-text').textContent = s.turn ? t('play.theirTurn', { name: s.turn.name }) : '';
+    if (s.isPicker && !answered) $('#result-text').textContent = t('play.youPicked');
     const solution = s.round.type === 'bluffBank' ? t('play.truthWas', { text: s.reveal.answerText })
       : s.vote || s.round.type === 'actItOut' && s.isActor ? ''
         : k === 'list' ? ''

@@ -216,3 +216,7 @@ body.builder { font-size: 15px; }
 .level-block:nth-child(2) { --lv: var(--neon-amber); }
 .level-block:nth-child(3) { --lv: var(--neon-pink); }
 .level-tag { font-weight: 800; color: var(--lv); text-transform: uppercase; letter-spacing: .06em; font-size: .85em; }
+.opt-head { display: flex; align-items: end; gap: 8px; }
+.opt-head .field { flex: 1; }
+.video-preview { max-width: 320px; max-height: 180px; border-radius: 8px; background: #120a06; }
+.round-note { margin: 0 0 12px; padding: 8px 12px; border-left: 3px solid var(--glow, var(--brass)); background: rgba(0, 0, 0, .25); border-radius: 0 8px 8px 0; }

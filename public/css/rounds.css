@@ -234,6 +234,42 @@ body.revealed .ballot-card:not(.win) { opacity: .6; transform: scale(.97); }
 body.revealed .ballot-card.win { transform: scale(1.04); box-shadow: 0 0 40px var(--good); border-color: var(--good); }
 body.revealed .ballot-card.truth { --c: var(--good); }
 
+/* ---------- big screen: clocks, finales, twists (wave 5) ---------- */
+.screen .q-media video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #0b0503; }
+.screen .answer.gone { animation: none; opacity: .12; filter: grayscale(1) blur(1px); transform: scale(.94); transition: opacity .6s, filter .6s, transform .6s; }
+.screen .answer.gone .text { text-decoration: line-through; }
+body.screen.turns .timer, body.screen.turns .answered-dots, body.screen.turns .q-answered { visibility: hidden; }
+.screen .clock-board { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 1.6vh 1.6vw; }
+.screen .clock {
+  position: relative; display: grid; grid-template-rows: auto auto auto; justify-items: center; gap: .6vh; min-width: 15vw; padding: 1.6vh 1.6vw 1.4vh; border-radius: 20px;
+  background: rgba(0, 0, 0, .55); border: 3px solid color-mix(in srgb, var(--c) 45%, transparent); transition: transform .4s, box-shadow .4s, opacity .4s;
+}
+.screen .clk-name { display: flex; align-items: center; gap: .5vw; font-weight: 800; font-size: 1.2em; }
+.screen .clk-num { font-size: 3.4em; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; color: var(--cream); }
+.screen .clk-bar { width: 100%; height: 8px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.screen .clk-bar i { display: block; height: 100%; background: var(--c); box-shadow: 0 0 12px var(--c); }
+.screen .clock.active { transform: scale(1.12); border-color: var(--c); box-shadow: 0 0 34px color-mix(in srgb, var(--c) 70%, transparent), inset 0 0 22px color-mix(in srgb, var(--c) 25%, transparent); }
+.screen .clock.active .clk-num { color: #fff; text-shadow: 0 0 22px var(--c); }
+.screen .clock.urgent { animation: shake .4s linear infinite; }
+.screen .clock.urgent .clk-num { color: var(--bad); text-shadow: 0 0 22px var(--bad); }
+.screen .clock.out { opacity: .35; filter: grayscale(.8); border-style: dashed; }
+.screen .clock.winner { border-color: var(--good); box-shadow: 0 0 44px var(--good); }
+.screen .pick-cards { list-style: none; margin: 1vh 0 3vh; padding: 0; display: flex; gap: 2vw; justify-content: center; }
+.screen .pick-card {
+  min-width: 20vw; padding: 4vh 2vw; border-radius: 22px; text-align: center; font-size: 2.4em; font-weight: 800;
+  background: rgba(0, 0, 0, .5); border: 3px solid color-mix(in srgb, var(--theme, var(--brass)) 50%, transparent);
+  animation: tube-on .8s linear both; animation-delay: calc(.3s + var(--k) * .15s); transition: transform .5s, opacity .5s, box-shadow .5s;
+}
+.screen .pick-cards:has(.on) .pick-card:not(.on) { opacity: .3; transform: scale(.92); }
+.screen .pick-card.on { transform: scale(1.1); border-color: var(--theme, var(--brass)); box-shadow: 0 0 50px var(--theme, var(--brass)); color: #fff; }
+.screen .wager-category .finalist { color: #fff; text-shadow: 0 0 26px var(--c), 0 0 60px var(--c); }
+.screen .wager-category .vs { display: inline-block; margin: 0 2vw; font-size: .5em; color: var(--brass-light); vertical-align: middle; }
+/* Silent round: no digits, the light breathes instead. */
+body.silent #timer-num, body.silent #vote-time { visibility: hidden; }
+body.silent .timer { animation: silent-breathe 2.4s ease-in-out infinite; }
+body.silent.urgent .timer { animation-duration: .8s; }
+@keyframes silent-breathe { 50% { filter: drop-shadow(0 0 26px var(--theme, var(--neon-amber))) brightness(1.5); } }
+
 /* ---------- phone ---------- */
 .phone .choices.tf { grid-template-rows: 1fr 1fr; }
 .phone .choices.tf .choice:nth-child(1) { --a: #5dff9a; }
@@ -349,6 +385,21 @@ body.revealed .ballot-card.truth { --c: var(--good); }
 .phone .match-team { padding: 6px 12px; border-radius: 999px; font: inherit; font-weight: 700; color: var(--cream); background: transparent; border: 2px solid color-mix(in srgb, var(--c) 60%, transparent); cursor: pointer; }
 .phone .match-team.on { background: var(--c); color: #1a0e08; box-shadow: 0 0 14px var(--c); }
 
+/* Clock rounds, picks and lifelines (wave 5) */
+.phone .choice.gone { opacity: .15; filter: grayscale(1); pointer-events: none; transform: scale(.96); transition: opacity .5s, transform .5s; }
+.phone .lifeline-btn { margin-top: 12px; align-self: center; font-weight: 800; letter-spacing: .08em; border-color: var(--neon-cyan, #3ee6ff); color: var(--neon-cyan, #3ee6ff); box-shadow: 0 0 14px rgba(62, 230, 255, .35); }
+.phone .turn-clock {
+  width: min(64vw, 260px); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; margin: 4vh 0 2vh;
+  border: 6px solid color-mix(in srgb, var(--c, var(--me)) 50%, transparent); background: radial-gradient(circle, rgba(0, 0, 0, .3), rgba(0, 0, 0, .7));
+}
+.phone .turn-clock span { font-size: 4em; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--cream); }
+.phone #v-turn.mine .turn-clock { border-color: var(--me); box-shadow: 0 0 40px var(--me), inset 0 0 30px color-mix(in srgb, var(--me) 35%, transparent); animation: pulse-glow 1.6s ease-in-out infinite; }
+.phone #v-turn.mine .turn-clock span { color: #fff; text-shadow: 0 0 22px var(--me); }
+.phone #v-turn.mine #turn-label { font-size: 1.5em; color: #fff; text-shadow: 0 0 18px var(--me); }
+.phone .pick-list .level-pick { justify-content: center; gap: 10px; }
+.phone .pick-list .level-pick:has(.team-dot) { --lv: var(--c); }
+body.silent .mini-head span:last-child, body.silent #turn-num { visibility: hidden; }
+
 /* ---------- quizmaster ---------- */
 .host .card-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .host .card-actions a, .host .builder-card a { text-decoration: none; color: var(--cream); }
@@ -383,3 +434,7 @@ body.revealed .ballot-card.truth { --c: var(--good); }
 .host .mini-answers.levels li { font-size: .95em; }
 .host .ballot-mini li { align-items: center; }
 .host .ballot-thumb { width: 90px; height: 64px; object-fit: contain; border-radius: 6px; background: #120a06; }
+.host .host-clocks { list-style: none; padding: 0; margin: 8px 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.host .host-clocks li { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: rgba(0, 0, 0, .35); border: 1px solid color-mix(in srgb, var(--c) 50%, transparent); }
+.host .host-clocks li.active { border-color: var(--c); box-shadow: 0 0 10px var(--c); }
+.host .host-clocks li.out { opacity: .4; }

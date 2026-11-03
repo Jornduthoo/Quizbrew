@@ -97,7 +97,9 @@
     const reveal = s.phase === 'reveal';
     const kind = q.kind;
     const typed = kind === 'text' || kind === 'number';
-    const listed = typed || ['point', 'order', 'pairs', 'list', 'level', 'buzz'].includes(kind);
+    const listed = typed || ['point', 'order', 'pairs', 'list', 'level', 'buzz', 'turn'].includes(kind);
+    const silent = s.round.twists.includes('silentRound');
+    document.body.classList.toggle('silent', silent);
     $('#q-count').textContent = t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
     $('#q-answered').textContent = t('screen.answeredCount', { n: s.answered, total: s.teams.length });
     const wasRevealed = document.body.classList.contains('revealed');
@@ -105,7 +107,7 @@
     document.body.dataset.kind = kind;
 
     if (fresh) {
-      const text = s.round.type === 'actItOut' ? t('screen.actTitle') : q.kind === 'level' ? t('screen.ownLevel') : q.scrambled ? t('screen.unscramble') : q.text || (q.clues ? t('screen.findLink') : q.emoji ? t('screen.emojiWhat') : q.audio ? t('screen.listen') : q.images ? t('screen.oddOne') : q.image ? t('screen.whatIsThis') : '');
+      const text = s.round.type === 'actItOut' ? t('screen.actTitle') : q.ladder ? t('screen.whoAmI') : q.kind === 'level' ? t('screen.ownLevel') : q.scrambled ? t('screen.unscramble') : q.text || (q.clues ? t('screen.findLink') : q.emoji ? t('screen.emojiWhat') : q.audio ? t('screen.listen') : q.images ? t('screen.oddOne') : q.image ? t('screen.whatIsThis') : '');
       split($('#q-text'), text, 'word');
       const words = text.split(/\s+/).length;
       $('#q-text').parentElement.classList.toggle('long', text.length > 90);
@@ -144,6 +146,11 @@
         $('#q-category').hidden = false;
         $('#q-category').textContent = q.hint;
       }
+      // Finales: who plays against whom.
+      if (s.finalists && s.finalists.length === 2 && kind !== 'turn') {
+        $('#q-category').hidden = false;
+        $('#q-category').textContent = `${s.finalists[0].name} ${t('screen.vs')} ${s.finalists[1].name}`;
+      }
       // Act it out: who is on stage.
       if (s.actor) {
         $('#q-category').hidden = false;
@@ -152,12 +159,13 @@
       $('#q-clues').hidden = !q.clues;
       if (q.clues) $('#q-clues').replaceChildren(...q.clues.map((c, i) => h('li', { class: 'clue', style: `--k: ${i}` }, h('span', { class: 'clue-pts' }), h('span', {}, c))));
       const own = { bluffBank: 'screen.bluffNow', captionThis: 'screen.captionNow', whosWho: 'screen.aboutUs', actItOut: 'screen.guessAct' }[s.round.type];
-      const hintKey = own || { draw: 'screen.drawNow', photo: 'screen.photoNow', text: 'screen.typeAnswer', number: 'screen.typeNumber', point: 'screen.tapSpot', order: 'screen.putInOrder', pairs: 'screen.makePairs', buzz: 'screen.buzzNow', list: 'screen.listGo', level: 'screen.answerOnPhone' }[kind];
+      const hintKey = kind === 'turn' || s.finalists ? null : own || { draw: 'screen.drawNow', photo: 'screen.photoNow', text: 'screen.typeAnswer', number: 'screen.typeNumber', point: 'screen.tapSpot', order: 'screen.putInOrder', pairs: 'screen.makePairs', buzz: 'screen.buzzNow', list: 'screen.listGo', level: 'screen.answerOnPhone' }[kind];
       $('#q-typehint').hidden = !hintKey;
       $('#q-typehint').textContent = hintKey ? t(hintKey, { n: q.total }) : '';
       $('#q-list').hidden = true;
       $('#q-levels').hidden = !q.levels;
-      Media.start(q, q.time * 1000 - s.remaining);
+      if (!silent) Media.start(q, q.time * 1000 - s.remaining);
+      startVideo(q, reveal);
       $('#q-wave').hidden = !q.audio;
       if (!q.audio) $('#sound-gate').hidden = true;
     }
@@ -175,6 +183,16 @@
       }));
     }
 
+    // Shrinking options: the answers that are gone fade out.
+    const gone = new Set(q.gone || []);
+    [...$('#answers').children].forEach((li, i) => {
+      if (gone.has(i) && !li.classList.contains('gone')) { li.classList.add('gone'); FX.sparksAt(li, { color: cssColor('--bad') || '#ff5a5a', count: 30 }); }
+      if (!gone.has(i)) li.classList.remove('gone');
+    });
+
+    // Clock rounds: every team's clock, the one whose turn it is runs.
+    renderClocks(s);
+
     // Round memory: pots, streaks and who is out.
     const board = $('#round-board');
     board.hidden = !s.board;
@@ -188,11 +206,14 @@
     // Buzzer: the team that has the floor, big and in its colour.
     const banner = $('#buzz-banner');
     const hadBuzz = !banner.hidden;
-    banner.hidden = !s.buzz;
-    if (s.buzz) {
-      banner.style.cssText = teamVar(s.buzz.color);
-      banner.replaceChildren(h('span', { class: 'bz-name' }, s.buzz.name), h('span', { class: 'bz-sub' }, t('screen.buzzed')));
-      if (!hadBuzz) later(() => FX.sparksAt(banner, { color: cssColor('--team-' + s.buzz.color), count: 80, speed: 1.4 }), 100);
+    // Clock duel: the winner gets the banner at the end.
+    const duelWinner = reveal && s.clocks && s.clocks.find(c => c.winner);
+    const holder = s.buzz || duelWinner;
+    banner.hidden = !holder;
+    if (holder) {
+      banner.style.cssText = teamVar(holder.color);
+      banner.replaceChildren(h('span', { class: 'bz-name' }, holder.name), h('span', { class: 'bz-sub' }, s.buzz ? t('screen.buzzed') : t('screen.winsDuel')));
+      if (!hadBuzz) later(() => FX.sparksAt(banner, { color: cssColor('--team-' + holder.color), count: duelWinner ? 140 : 80, speed: 1.4 }), 100);
     }
 
     // Choice and true/false: light up the right answer.
@@ -277,6 +298,7 @@
     });
     while (dots.children.length > s.teams.length) dots.lastChild.remove();
 
+    if (kind === 'turn') return;
     if (stopTimer) stopTimer();
     const total = q.time * 1000;
     const ring = $('#timer-ring');
@@ -325,14 +347,57 @@
     });
   }
 
+  // A video clip plays once on the big screen (with sound when the browser allows it).
+  function startVideo(q, reveal) {
+    const v = $('#q-video');
+    v.hidden = !q.video;
+    if (!q.video) { v.pause(); v.removeAttribute('src'); return; }
+    if (v.getAttribute('src') !== q.video) v.src = q.video;
+    if (reveal) return;
+    v.currentTime = 0;
+    v.muted = document.body.classList.contains('silent');
+    v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+  }
+
+  function renderClocks(s) {
+    const board = $('#clock-board');
+    board.hidden = !s.clocks;
+    document.body.classList.toggle('turns', !!s.clocks);
+    if (!s.clocks) return;
+    if (stopTimer) { stopTimer(); stopTimer = null; }
+    const fmt = ms => (ms / 1000).toFixed(ms < 10000 ? 1 : 0);
+    board.replaceChildren(...s.clocks.map(c => h('li', { class: 'clock' + (c.active ? ' active' : '') + (c.ms <= 0 ? ' out' : '') + (c.winner ? ' winner' : ''), style: teamVar(c.color) },
+      h('span', { class: 'clk-name' }, h('i', { class: 'team-dot' }), c.name),
+      h('span', { class: 'clk-num', 'data-ms': c.ms }, c.ms <= 0 ? '0' : fmt(c.ms)),
+      h('span', { class: 'clk-bar' }, h('i', { style: `width: ${Math.min(100, (c.ms / s.clockStart) * 100)}%` })))));
+    const live = s.clocks.find(c => c.running);
+    if (s.phase === 'question' && s.turn) {
+      $('#q-typehint').hidden = false;
+      $('#q-typehint').textContent = t('screen.turnNow', { name: s.turn.name });
+    }
+    if (!live) return;
+    const el = board.querySelector('.clock.active');
+    const num = el.querySelector('.clk-num');
+    const bar = el.querySelector('.clk-bar i');
+    if (stopTimer) stopTimer();
+    stopTimer = countdown(live.ms, live.ms, left => {
+      num.textContent = fmt(left);
+      bar.style.width = Math.min(100, (left / s.clockStart) * 100) + '%';
+      const urgent = left < 5000 && left > 0;
+      el.classList.toggle('urgent', urgent);
+      document.body.classList.toggle('urgent', urgent);
+    });
+  }
+
   function renderMedia(q) {
     const box = $('#q-media');
     const img = $('#q-img');
-    box.hidden = !q.image && !q.audio;
+    box.hidden = !q.image && !q.audio && !q.video;
+    box.classList.toggle('video', !!q.video);
     box.classList.toggle('silhouette', q.effect === 'silhouette');
     box.classList.toggle('map', q.kind === 'point');
     box.classList.toggle('audio-only', !q.image && !!q.audio);
-    document.body.classList.toggle('has-media', !!q.image || !!q.audio);
+    document.body.classList.toggle('has-media', !!q.image || !!q.audio || !!q.video);
     img.style.animation = 'none';
     if (q.image) img.src = q.image;
     else img.removeAttribute('src');
@@ -384,10 +449,36 @@
   }
 
   function renderWager(s) {
-    const level = s.wagerMode === 'level';
+    const mode = s.wagerMode;
+    const level = mode === 'level';
+    const cards = $('#pick-cards');
+    cards.hidden = mode !== 'pick';
+    $('#wager-dots').hidden = mode === 'pick';
+    if (mode === 'pick') {
+      // Your pick: the categories, and which one the leader chose.
+      $('#wager-kicker').textContent = t('screen.picks', { name: s.pick.by ? s.pick.by.name : '' });
+      $('#wager-hint').textContent = t('screen.pickHint');
+      $('#wager-category').replaceChildren();
+      const was = cards.dataset.chosen;
+      cards.replaceChildren(...s.pick.categories.map((c, i) => h('li', { class: 'pick-card' + (s.pick.chosen === i ? ' on' : ''), style: `--k: ${i}` }, c)));
+      if (s.pick.chosen !== null && String(s.pick.chosen) !== was) later(() => { const on = cards.querySelector('.on'); if (on) FX.sparksAt(on, { color: cssColor('--theme'), count: 80 }); }, 50);
+      cards.dataset.chosen = s.pick.chosen === null ? '' : String(s.pick.chosen);
+      return;
+    }
+    if (mode === 'predict') {
+      $('#wager-kicker').textContent = t('screen.predict');
+      $('#wager-hint').textContent = t('screen.predictHint');
+      const [a, b] = s.finalists || [];
+      $('#wager-category').replaceChildren(...[a, b].filter(Boolean).flatMap((f, i) => [
+        i ? h('span', { class: 'vs' }, t('screen.vs')) : null,
+        h('span', { class: 'finalist', style: teamVar(f.color) }, f.name)].filter(Boolean)));
+      const names = new Set((s.finalists || []).map(f => f.name));
+      $('#wager-dots').replaceChildren(...s.teams.filter(team => !names.has(team.name)).map(team => h('li', { class: 'dot' + (team.wagered ? ' on' : ''), style: teamVar(team.color), title: team.name })));
+      return;
+    }
     $('#wager-kicker').textContent = t(level ? 'screen.pickLevel' : 'screen.placeBets');
     $('#wager-hint').textContent = t(level ? 'screen.levelHint' : 'screen.betHint');
-    split($('#wager-category'), s.category || t(level ? 'round.pickYourLevel' : 'round.jackpot'));
+    split($('#wager-category'), s.category || t(level ? 'round.pickYourLevel' : `round.${s.round.type}`));
     $('#wager-dots').replaceChildren(...s.teams.map(team => h('li', { class: 'dot' + (team.wagered ? ' on' : ''), style: teamVar(team.color), title: team.name })));
   }
 
