@@ -33,6 +33,21 @@
     addEventListener('pageshow', retry);
   }
 
+  // Anti-cheat notices: a team left the quiz page, or came back. On the laptop and on the remote.
+  socket.on('alert', n => {
+    if (!n || !I18n.dict['app.name']) return;
+    const stack = $('#alerts');
+    const text = n.kind === 'back'
+      ? t('host.alertBack', { name: n.name, n: n.seconds })
+      : t(n.blocked ? 'host.alertBlocked' : 'host.alertLeft', { name: n.name }) + (n.count > 1 ? ' ' + t('host.alertTimes', { n: n.count }) : '');
+    const toast = h('div', { class: 'alert ' + n.kind, style: teamVar(n.color), role: 'alert' }, h('span', { class: 'icon' }, n.kind === 'back' ? '↩' : '👀'), h('span', {}, text));
+    stack.prepend(toast);
+    if (n.kind === 'left' && navigator.vibrate) navigator.vibrate(200);
+    setTimeout(() => toast.classList.add('out'), n.kind === 'back' ? 5000 : 9000);
+    setTimeout(() => toast.remove(), n.kind === 'back' ? 5600 : 9600);
+    while (stack.children.length > 5) stack.lastChild.remove();
+  });
+
   QB.info().then(info => {
     languages = info.languages;
     joinInfo = info;
