@@ -203,7 +203,7 @@
         const key = s.phase === 'reveal' ? s.correct : s.answerKey && s.answerKey.correct;
         const answers = kind === 'trueFalse' ? [t('play.true'), t('play.false')] : q.answers;
         preview.append(h('ol', { class: 'mini-answers' }, answers.map((a, i) => h('li', { class: i === key ? 'key' : '', style: `--a: var(--ans-${i})` },
-          h('span', { class: 'letter' }, kind === 'trueFalse' ? (i === 0 ? '✓' : '✗') : LETTERS[i]), a,
+          h('span', { class: 'letter', 'data-shape': kind === 'trueFalse' ? null : i }, kind === 'trueFalse' ? (i === 0 ? '✓' : '✗') : LETTERS[i]), a,
           s.phase === 'reveal' && s.counts ? h('span', { class: 'n' }, s.counts[i]) : null))));
         // After the reveal: every team's pick, and ✓ / ✗ to overrule it.
         if (s.judgeList) {

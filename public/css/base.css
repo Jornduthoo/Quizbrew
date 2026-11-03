@@ -280,3 +280,15 @@ h1, h2, .display { font-family: var(--display); font-weight: 400; font-synthesis
   box-shadow: 0 0 .6em var(--c, var(--brass)), inset 0 0 0 1px rgb(0 0 0 / .35);
   vertical-align: middle;
 }
+
+/* Colour-blind friendly: every answer colour also has its own shape (triangle, diamond, circle, square). */
+.letter[data-shape] { position: relative; }
+.letter[data-shape]::after {
+  content: ''; position: absolute; right: .14em; bottom: .14em;
+  width: .36em; height: .36em;
+  background: currentColor;
+}
+.letter[data-shape="0"]::after { clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.letter[data-shape="1"]::after { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.letter[data-shape="2"]::after { border-radius: 50%; }
+.letter[data-shape="3"]::after { width: .3em; height: .3em; right: .17em; bottom: .17em; }

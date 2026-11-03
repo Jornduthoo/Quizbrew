@@ -177,7 +177,7 @@
       $('#answers').className = 'answers' + (kind === 'trueFalse' ? ' tf' : '') + (q.images ? ' images' : '');
       $('#answers').replaceChildren(...answers.map((a, i) => h('li', { class: 'answer', style: kind === 'trueFalse' ? `--k: ${i}` : `--a: var(--ans-${i}); --k: ${i}` },
         q.images ? h('img', { class: 'answer-img', src: q.images[i], alt: '' }) : null,
-        h('span', { class: 'letter' }, kind === 'trueFalse' ? (i === 0 ? '✓' : '✗') : LETTERS[i]),
+        h('span', { class: 'letter', 'data-shape': kind === 'trueFalse' ? null : i }, kind === 'trueFalse' ? (i === 0 ? '✓' : '✗') : LETTERS[i]),
         h('span', { class: 'text' }, a),
         h('span', { class: 'count' }))));
       $('#q-emoji').hidden = !q.emoji;

@@ -718,5 +718,6 @@
   "screen.break": "Pauze",
   "screen.breakSub": "Benen strekken, snack halen. We zijn terug over",
   "screen.breakOver": "Terug naar je plaats!",
-  "play.break": "Pauze! Terug over {time}"
+  "play.break": "Pauze! Terug over {time}",
+  "play.bigText": "Grotere tekst"
 }

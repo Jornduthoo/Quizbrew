@@ -718,5 +718,6 @@
   "screen.break": "Descanso",
   "screen.breakSub": "Estirad las piernas, picad algo. Volvemos en",
   "screen.breakOver": "¡Todos a sus sitios!",
-  "play.break": "¡Descanso! Volvemos en {time}"
+  "play.break": "¡Descanso! Volvemos en {time}",
+  "play.bigText": "Texto más grande"
 }

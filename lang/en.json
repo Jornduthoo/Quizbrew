@@ -718,5 +718,6 @@
   "screen.break": "Break",
   "screen.breakSub": "Stretch your legs, grab a snack. We're back in",
   "screen.breakOver": "Back to your seats!",
-  "play.break": "Break! Back in {time}"
+  "play.break": "Break! Back in {time}",
+  "play.bigText": "Bigger text"
 }

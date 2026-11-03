@@ -718,5 +718,6 @@
   "screen.break": "Pause",
   "screen.breakSub": "Dégourdissez-vous les jambes, prenez un en-cas. On reprend dans",
   "screen.breakOver": "Tout le monde à sa place !",
-  "play.break": "Pause ! Reprise dans {time}"
+  "play.break": "Pause ! Reprise dans {time}",
+  "play.bigText": "Texte plus grand"
 }
