@@ -46,6 +46,16 @@ test('host, screen and phone play a question together', async t => {
   const bad = await new Promise(r => phone.emit('join', { teamId: 'x', name: 'Owls', color: 'amber' }, r));
   assert.equal(bad.error, 'error.generic');
 
+  // Reactions reach the big screen with the team colour; nonsense and a flood are dropped.
+  const reacts = [];
+  screen.on('react', x => reacts.push(x));
+  phone.emit('react', 99);
+  phone.emit('react', 'boom');
+  phone.emit('react', 1);
+  phone.emit('react', 2);
+  await new Promise(r => setTimeout(r, 200));
+  assert.deepEqual(reacts, [{ i: 1, color: 'amber' }]);
+
   const question = once(phone, 'state', s => s.phase === 'question');
   host.emit('next');
   host.emit('next');

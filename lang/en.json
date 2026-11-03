@@ -710,5 +710,6 @@
   "award.almost.text": "Just {n} point off the podium|Just {n} points off the podium",
   "builder.stat": "{pct}% right · {n} teams",
   "builder.statHint": "From {n} quiz night|From {n} quiz nights",
-  "host.sfx": "Sound effects on the big screen (on/off)"
+  "host.sfx": "Sound effects on the big screen (on/off)",
+  "play.react": "Send a reaction to the big screen"
 }

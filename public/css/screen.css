@@ -448,3 +448,19 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .aw-team .team-dot.photo { width: 1.8em; height: 1.8em; }
 .aw-text { color: var(--muted); font-size: 1.05em; }
 .aw-team { flex-wrap: wrap; justify-content: center; }
+
+/* ---------- Reactions from the phones: emoji that float up and fade ---------- */
+.reactions { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 40; }
+.reaction {
+  position: absolute; bottom: -1.2em;
+  font-size: 5.6vh; line-height: 1;
+  filter: drop-shadow(0 0 .35em var(--c)) drop-shadow(0 .1em .15em rgba(0, 0, 0, .6));
+  animation: react-rise var(--rise, 3s) cubic-bezier(.25, .6, .4, 1) forwards;
+  will-change: transform, opacity;
+}
+@keyframes react-rise {
+  0% { transform: translate(0, 0) scale(.4) rotate(0); opacity: 0; }
+  12% { transform: translate(calc(var(--drift) * .15), -8vh) scale(1.15) rotate(var(--spin)); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translate(var(--drift), -62vh) scale(.9) rotate(calc(var(--spin) * -1)); opacity: 0; }
+}

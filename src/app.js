@@ -239,6 +239,8 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     res.json({ url, qr, language: language(), languages: i18n.LANGUAGES, look: look(), looks: LOOKS, mode: mode(), modes: MODES, colors: TEAM_COLORS });
   });
 
+  const REACTIONS = 5; // the length of QB.REACTIONS in public/js/common.js
+
   io.on('connection', socket => {
     const role = socket.handshake.query.role;
     const on = (event, fn) => socket.on(event, (...args) => {
@@ -373,6 +375,16 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       const m = teamId && typeof data === 'string' && data.length < 1.5e6 && /^data:(image\/(?:webp|png|jpeg));base64,(.+)$/.exec(data);
       if (!m) return;
       try { game.setPhoto(teamId, library.addMedia(Buffer.from(m[2], 'base64'), m[1])); } catch { /* not a picture */ }
+    });
+    // A reaction (an index into the emoji list on the phones) floats up on the big screen.
+    // At most one every 600 ms per phone, so a crowd of thumbs cannot flood the screen.
+    let lastReact = 0;
+    on('react', i => {
+      const team = teamId && game.teams.get(teamId);
+      const now = Date.now();
+      if (!team || !Number.isInteger(i) || i < 0 || i >= REACTIONS || now - lastReact < 600) return;
+      lastReact = now;
+      io.to('screen').emit('react', { i, color: team.color });
     });
     socket.on('disconnect', () => teamId && game.disconnect(socket.id));
   });

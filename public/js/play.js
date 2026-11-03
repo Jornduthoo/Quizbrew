@@ -1,6 +1,6 @@
 // The phone. One sentence, one button at a time.
 (function () {
-  const { $, h, showView, LETTERS, teamVar, countdown, CROWN } = QB;
+  const { $, h, showView, LETTERS, REACTIONS, teamVar, countdown, CROWN } = QB;
   const store = {
     get: k => { try { return localStorage.getItem(k); } catch { return null; } },
     set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
@@ -47,6 +47,8 @@
     if (stopTimer) { stopTimer(); stopTimer = null; }
 
     renderStage(s);
+    $('#react-bar').hidden = !s.team || !REACT_PHASES.includes(s.phase);
+    document.body.classList.toggle('reacting', !$('#react-bar').hidden);
     const bar = $('#team-bar');
     bar.hidden = !s.team;
     if (s.team) {
@@ -516,6 +518,22 @@
   addEventListener('resize', fitStage);
   $('#stage-tap').addEventListener('click', () => { $('#stage').classList.add('big'); fitStage(); });
   $('#stage-close').addEventListener('click', () => { $('#stage').classList.remove('big'); fitStage(); });
+
+  // Reactions: tap an emoji and it floats up on the big screen. Not during a question, so nobody is distracted.
+  const REACT_PHASES = ['lobby', 'roundIntro', 'reveal', 'scoreboard', 'awards', 'end'];
+  REACTIONS.forEach((emoji, i) => {
+    const b = h('button', { type: 'button', class: 'react-btn' }, emoji);
+    b.addEventListener('click', () => {
+      if (b.classList.contains('cool')) return;
+      socket.emit('react', i);
+      b.classList.remove('sent');
+      void b.offsetWidth;
+      b.classList.add('sent', 'cool');
+      setTimeout(() => b.classList.remove('cool'), 600);
+      if (navigator.vibrate) navigator.vibrate(15);
+    });
+    $('#react-bar').append(b);
+  });
 
   // Join a team that is already in: this phone then plays along with that team.
   function renderTeamPick(teams) {
