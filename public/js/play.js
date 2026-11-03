@@ -76,6 +76,7 @@
         $('#photo-later').textContent = t(s.team.photo ? 'play.teamPhotoChange' : 'play.teamPhotoLater');
         return;
       case 'roundIntro':
+        if (s.round.tiebreak) return wait(t(s.isFinalist ? 'play.tiebreakYou' : 'play.watchTiebreak'), '!');
         wait(t('play.getReady', { title: s.round.title || t(`round.${s.round.type}`) }));
         return renderJoker(s);
       case 'wager':
@@ -89,7 +90,7 @@
         if (s.blocked) return wait(t('play.blocked'), '!');
         if (s.question.kind === 'turn') return renderTurn(s);
         if (s.out && s.isPicker) return wait(t('play.youPicked'), '★');
-        if (s.out && s.finalists && !s.isFinalist) return wait(t('play.watchFinal'), '★');
+        if (s.out && s.finalists && !s.isFinalist) return wait(t(s.round.tiebreak ? 'play.watchTiebreak' : 'play.watchFinal'), '★');
         if (s.out) return wait(t(s.round.type === 'pushYourLuck' ? 'play.bankedWait' : 'play.outOfRound'), s.round.type === 'pushYourLuck' ? '★' : '✗');
         if (s.banked) return wait(t('play.bankedNow', { n: s.pot }), '★');
         if (s.isActor) return renderActor(s);
@@ -115,6 +116,7 @@
         renderStandings(s.standings);
         // After the last question every player sees where the quiz came from.
         $('#made-with').hidden = s.phase !== 'end';
+        if (s.phase === 'end') renderEndExtras(s);
         if (s.team.rank === 1) {
           const b = $('#wait-badge');
           b.classList.add('first');
@@ -125,6 +127,131 @@
         return;
       default:
     }
+  }
+
+  // End of the quiz: five stars for the quiz, and the result as a picture to share.
+  function renderEndExtras(s) {
+    $('#end-extras').hidden = false;
+    const key = 'qb.rated.' + s.title;
+    let mine = 0;
+    try { mine = Number(localStorage.getItem(key)) || 0; } catch { /* private mode */ }
+    $('#stars').replaceChildren(...[1, 2, 3, 4, 5].map(n => h('button', {
+      type: 'button', class: 'star' + (n <= mine ? ' on' : ''), 'aria-label': t('play.stars', { n }),
+      onclick: () => {
+        socket.emit('rate', n);
+        try { localStorage.setItem(key, String(n)); } catch { /* private mode */ }
+        if (navigator.vibrate) navigator.vibrate(30);
+        renderEndExtras(s);
+      },
+    }, '★')));
+  }
+
+  let shareUrl = null;
+  $('#share-btn').addEventListener('click', async () => {
+    if (!state || !state.team) return;
+    const blob = await resultCard(state);
+    if (!blob) return;
+    if (shareUrl) URL.revokeObjectURL(shareUrl);
+    shareUrl = URL.createObjectURL(blob);
+    $('#share-img').src = shareUrl;
+    $('#share-save').href = shareUrl;
+    const file = new File([blob], 'quizbrew.png', { type: 'image/png' });
+    const native = $('#share-native');
+    native.hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
+    native.onclick = () => navigator.share({ files: [file] }).catch(() => {});
+    $('#share-sheet').hidden = false;
+  });
+  $('#share-close').addEventListener('click', () => { $('#share-sheet').hidden = true; });
+
+  // The result card: the look's background, the team, its place and score, and where it came from.
+  async function resultCard(s) {
+    const W = 1080;
+    const H = 1350;
+    const c = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    const g = c.getContext('2d');
+    const css = getComputedStyle(document.documentElement);
+    const display = css.getPropertyValue('--display').trim() || 'serif';
+    const color = getComputedStyle(document.body).getPropertyValue('--team-' + s.team.color).trim() || '#f0b93a';
+    const img = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+    const bgUrl = (css.getPropertyValue('--bg-phone').match(/url\(['"]?([^'")]+)/) || [])[1];
+    const [bg, logo, photo] = await Promise.all([
+      bgUrl ? img(bgUrl) : null, img('/img/logo.webp'), s.team.photo ? img(s.team.photo) : null,
+      document.fonts ? document.fonts.load(`80px ${display}`).catch(() => {}) : null,
+    ]);
+    g.fillStyle = '#140b06';
+    g.fillRect(0, 0, W, H);
+    if (bg) {
+      const k = Math.max(W / bg.width, H / bg.height);
+      g.drawImage(bg, (W - bg.width * k) / 2, (H - bg.height * k) / 2, bg.width * k, bg.height * k);
+    }
+    const fade = g.createLinearGradient(0, 0, 0, H);
+    fade.addColorStop(0, 'rgba(10,5,2,.5)');
+    fade.addColorStop(0.5, 'rgba(10,5,2,.7)');
+    fade.addColorStop(1, 'rgba(10,5,2,.9)');
+    g.fillStyle = fade;
+    g.fillRect(0, 0, W, H);
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    // Shrink a text until it fits.
+    const fit = (text, size, font, max) => {
+      let n = size;
+      g.font = font.replace('{n}', n);
+      while (g.measureText(text).width > max && n > 20) { n -= 4; g.font = font.replace('{n}', n); }
+    };
+    if (logo) { const lw = 520; g.drawImage(logo, (W - lw) / 2, 60, lw, lw * logo.height / logo.width); }
+    g.fillStyle = '#f3e6cf';
+    fit(s.title, 46, '600 {n}px Bricolage, sans-serif', W - 160);
+    g.fillText(s.title, W / 2, 345);
+    // The place in a ring of the team colour; with a team photo the place sits on a small badge.
+    const cy = 590;
+    const r = 170;
+    g.save();
+    g.shadowColor = color;
+    g.shadowBlur = 60;
+    g.beginPath(); g.arc(W / 2, cy, r, 0, Math.PI * 2);
+    g.fillStyle = color; g.fill();
+    g.restore();
+    const place = '#' + s.team.rank;
+    if (photo) {
+      g.save();
+      g.beginPath(); g.arc(W / 2, cy, r - 14, 0, Math.PI * 2); g.clip();
+      const k = Math.max((r * 2) / photo.width, (r * 2) / photo.height);
+      g.drawImage(photo, W / 2 - photo.width * k / 2, cy - photo.height * k / 2, photo.width * k, photo.height * k);
+      g.restore();
+      const bx = W / 2 + r * 0.75;
+      const by = cy + r * 0.75;
+      g.beginPath(); g.arc(bx, by, 72, 0, Math.PI * 2);
+      g.fillStyle = color; g.fill();
+      g.fillStyle = '#1b0f08';
+      fit(place, 70, `{n}px ${display}`, 110);
+      g.fillText(place, bx, by + 4);
+    } else {
+      g.fillStyle = '#1b0f08';
+      fit(place, 170, `{n}px ${display}`, r * 1.55);
+      g.fillText(place, W / 2, cy + 8);
+    }
+    g.save();
+    g.shadowColor = color;
+    g.shadowBlur = 30;
+    g.fillStyle = '#fff6e6';
+    fit(s.team.name, 110, `{n}px ${display}`, W - 140);
+    g.fillText(s.team.name, W / 2, 880);
+    g.restore();
+    g.fillStyle = color;
+    g.font = '700 58px Bricolage, sans-serif';
+    g.fillText(t('screen.points', { n: s.team.score }), W / 2, 990);
+    g.fillStyle = '#f3e6cf';
+    g.font = '500 42px Bricolage, sans-serif';
+    g.fillText(t('play.finalPlace', { n: s.team.rank, total: s.team.teams }), W / 2, 1065);
+    g.fillStyle = 'rgba(243,230,207,.7)';
+    g.font = '500 34px Bricolage, sans-serif';
+    g.fillText(new Date().toLocaleDateString(I18n.lang, { day: 'numeric', month: 'long', year: 'numeric' }), W / 2, 1125);
+    g.fillStyle = '#e8c27a';
+    fit(`${t('brand.madeWith')} Quizbrew · ${t('host.tagline')}`, 36, '600 {n}px Bricolage, sans-serif', W - 120);
+    g.fillText(`${t('brand.madeWith')} Quizbrew · ${t('host.tagline')}`, W / 2, 1265);
+    return new Promise(res => c.toBlob(res, 'image/png'));
   }
 
   // The badge after locking in: the letter, true/false, or what was typed.
@@ -447,6 +574,7 @@
     $('#wait-quip').textContent = '';
     $('#standings').hidden = true;
     $('#made-with').hidden = true;
+    $('#end-extras').hidden = true;
     $('#photo-later').hidden = true;
   }
 
@@ -700,6 +828,9 @@
       : k === 'trueFalse' ? t('play.statementWas', { text: t(s.correct === 0 ? 'play.true' : 'play.false') })
         : t('play.solutionWas', { text: s.reveal.answerText + (s.reveal.unit ? ' ' + s.reveal.unit : '') });
     if (fresh) $('#result-quip').textContent = QB.quip(right ? 'correct' : answered ? 'wrong' : 'late');
+    const fact = s.reveal && s.reveal.fact;
+    $('#result-fact').hidden = !fact;
+    $('#result-fact').textContent = fact ? `${t('screen.didYouKnow')} ${fact}` : '';
     $('#result-sub').textContent = s.lastPoints > 0 ? t('play.pointsWon', { n: s.lastPoints })
       : s.lastPoints < 0 ? `${t('play.pointsLost', { n: -s.lastPoints })} · ${solution}` : solution;
     if (fresh && navigator.vibrate) navigator.vibrate(right ? [40, 60, 40] : 120);

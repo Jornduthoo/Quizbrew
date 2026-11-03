@@ -448,3 +448,17 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .aw-team .team-dot.photo { width: 1.8em; height: 1.8em; }
 .aw-text { color: var(--muted); font-size: 1.05em; }
 .aw-team { flex-wrap: wrap; justify-content: center; }
+
+/* Raffle: a dark curtain over the screen, one big reel in the middle. */
+.raffle { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3vh; background: radial-gradient(circle at 50% 45%, rgb(30 16 8 / .94), rgb(6 3 1 / .97)); animation: rise .4s ease both; }
+.raffle-kicker { margin: 0; font-size: 3em; font-weight: 800; }
+.raffle-reel { min-width: 46vw; padding: 4vh 4vw; border-radius: 28px; background: linear-gradient(180deg, var(--wood-600), var(--wood-800)); box-shadow: inset 0 4px 0 var(--brass), 0 0 0 4px var(--brass), 0 0 60px rgb(0 0 0 / .7); display: grid; place-items: center; }
+.raffle-slot { display: grid; place-items: center; min-height: 18vh; font-weight: 800; color: var(--cream); }
+.raffle-slot.tick { animation: raffle-tick .12s ease-out; }
+@keyframes raffle-tick { from { transform: translateY(-.35em); opacity: .4; } }
+.raffle-num { font-family: var(--display); font-size: 9em; line-height: 1; }
+.raffle-team { display: flex; align-items: center; gap: .5em; font-size: 4.5em; }
+.raffle-team .team-dot { width: .9em; height: .9em; }
+.raffle.landed .raffle-reel { box-shadow: inset 0 4px 0 var(--brass), 0 0 0 4px var(--brass-light), 0 0 90px rgb(var(--k-amber) / .7); }
+.raffle.landed .raffle-slot { animation: pop-in .6s cubic-bezier(.2, 1.4, .4, 1) both; text-shadow: 0 0 24px rgb(var(--k-amber) / .8); }
+.raffle-sub { margin: 0; min-height: 1.4em; font-size: 2em; color: var(--brass-light); font-family: var(--display); }

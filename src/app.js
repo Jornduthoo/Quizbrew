@@ -104,7 +104,67 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       };
     }
   }
+  game.language = language();
   const ai = Ai.create(settings);
+
+  // Raffle: the quizmaster draws a team or a ticket number; the big screen spins it out. Winners are not drawn twice.
+  let raffleWinners = [];
+  const raffleView = () => ({ winners: raffleWinners });
+  function drawRaffle({ mode, from, to } = {}) {
+    let pool;
+    if (mode === 'tickets') {
+      const lo = Math.max(1, Math.floor(Number(from) || 1));
+      const hi = Math.min(lo + 9999, Math.floor(Number(to) || 0));
+      if (!(hi >= lo)) return { error: 'raffle.range' };
+      const taken = new Set(raffleWinners.filter(w => w.number).map(w => w.number));
+      pool = [];
+      for (let n = lo; n <= hi; n++) if (!taken.has(n)) pool.push({ number: n });
+    } else {
+      const taken = new Set(raffleWinners.filter(w => w.name).map(w => w.name));
+      pool = [...game.teams.values()].filter(t => !taken.has(t.name)).map(t => ({ name: t.name, color: t.color, photo: t.photo || null }));
+    }
+    if (!pool.length) return { error: 'raffle.empty' };
+    const winner = pool[crypto.randomInt(pool.length)];
+    raffleWinners.push(winner);
+    // A handful of other candidates for the spinning reel on the big screen.
+    const reel = Array.from({ length: Math.min(24, pool.length * 3) }, () => pool[crypto.randomInt(pool.length)]);
+    io.to('screen').emit('raffle', { mode: mode === 'tickets' ? 'tickets' : 'teams', winner, reel, prize: raffleWinners.length });
+    io.to('host').emit('raffleState', raffleView());
+    return { ok: true, winner };
+  }
+
+  // Stars from the phones at the end of the quiz: one rating per team, the last one counts.
+  // The average per quiz is kept in data/ratings.json, so the quiz list can show it.
+  const ratingsFile = path.join(library.dataDir, 'ratings.json');
+  const readRatings = () => { try { return JSON.parse(fs.readFileSync(ratingsFile, 'utf8')); } catch { return {}; } };
+  let ratings = new Map();
+  let ratedQuiz = null;
+  const ratingView = () => {
+    const all = [...ratings.values()];
+    return { count: all.length, avg: all.length ? Math.round(all.reduce((a, b) => a + b, 0) / all.length * 10) / 10 : null };
+  };
+  function rate(teamId, stars) {
+    const n = Math.round(Number(stars));
+    if (game.phase !== 'end' || !game.teams.has(teamId) || !(n >= 1 && n <= 5)) return false;
+    if (ratedQuiz !== game.quiz) { ratings = new Map(); ratedQuiz = game.quiz; }
+    ratings.set(teamId, n);
+    const view = ratingView();
+    try {
+      const all = readRatings();
+      all[game.quiz.title] = { avg: view.avg, count: view.count, at: Date.now() };
+      fs.mkdirSync(library.dataDir, { recursive: true });
+      fs.writeFileSync(ratingsFile, JSON.stringify(all, null, 2));
+    } catch (err) { console.error('Could not save the rating:', err.message); }
+    io.to('host').emit('rating', view);
+    return true;
+  }
+  // A short name for the phone that passed the connection test: "iPhone · Safari".
+  const deviceName = ua => {
+    const s = String(ua || '');
+    const os = /iPhone/.test(s) ? 'iPhone' : /iPad/.test(s) ? 'iPad' : /Android/.test(s) ? 'Android' : /Windows/.test(s) ? 'Windows' : /Mac OS/.test(s) ? 'Mac' : '';
+    const browser = /SamsungBrowser/.test(s) ? 'Samsung Internet' : /Edg\//.test(s) ? 'Edge' : /Firefox|FxiOS/.test(s) ? 'Firefox' : /CriOS|Chrome/.test(s) ? 'Chrome' : /Safari/.test(s) ? 'Safari' : '';
+    return [os, browser].filter(Boolean).join(' · ') || '?';
+  };
 
   // My quiz folder in OneDrive or Google Drive: at start, every minute, and a few seconds after every change here.
   const cloud = Cloud.create({ dataDir: library.dataDir, settings });
@@ -143,6 +203,8 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     res.sendFile(path.join(pub, 'print.html'));
   });
   app.get('/screen', (req, res) => res.sendFile(path.join(pub, 'screen.html')));
+  // The connection test: a phone that opens this page has reached the quiz laptop.
+  app.get('/check', (req, res) => res.sendFile(path.join(pub, 'check.html')));
   app.get('/play', (req, res) => res.sendFile(path.join(pub, 'play.html')));
   app.get('/builder', (req, res) => {
     if (!canHost(req.socket.remoteAddress)) return res.redirect('/play');
@@ -176,6 +238,11 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   api.get('/remote', handle(async () => {
     const url = `${baseUrl()}/remote?key=${remoteKey}`;
     return { url, qr: await QRCode.toString(url, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#1b0f08', light: '#0000' } }) };
+  }));
+  // The connection test for the quizmaster: a QR code to /check and the addresses of this laptop.
+  api.get('/check', handle(async () => {
+    const url = `${baseUrl()}/check`;
+    return { url, addresses: lanAddresses(), qr: await QRCode.toString(url, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#1b0f08', light: '#0000' } }) };
   }));
   api.get('/catalog', handle(() => rounds.catalog()));
   api.get('/stats', handle(req => readStats()[statsKey({ library: String(req.query.path || '') })] || { plays: 0, q: {} }));
@@ -257,9 +324,11 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       if (!canHost(socket.handshake.address) && !isRemote(socket.handshake.query.key)) return socket.disconnect(true);
       socket.join('host');
       socket.emit('state', game.hostState());
+      socket.emit('raffleState', raffleView());
+      if (ratedQuiz === game.quiz) socket.emit('rating', ratingView());
       on('quizzes', cb => {
         const flat = (node, out = []) => { node.quizzes.forEach(q => out.push(q)); node.folders.forEach(f => flat(f, out)); return out; };
-        cb({ samples: quizzes.list(), library: flat(library.tree()).sort((a, b) => b.modified - a.modified) });
+        cb({ samples: quizzes.list(), library: flat(library.tree()).sort((a, b) => b.modified - a.modified), ratings: readRatings() });
       });
       on('load', (ref, cb) => {
         try {
@@ -297,6 +366,9 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       });
       on('discard', () => { game.resumable = null; forgetLive(); game.broadcast(); });
       on('kick', teamId => game.kick(String(teamId)));
+      on('raffle', (opts, cb) => { const r = drawRaffle(opts); if (typeof cb === 'function') cb(r); });
+      on('raffleHide', () => io.to('screen').emit('raffle', null));
+      on('raffleReset', () => { raffleWinners = []; io.to('host').emit('raffleState', raffleView()); });
       on('score', ({ teamId, delta } = {}) => game.adjustScore(String(teamId), Number(delta)));
       on('look', name => {
         if (!LOOKS.includes(name)) return;
@@ -311,8 +383,16 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       on('language', code => {
         if (!i18n.isSupported(code)) return;
         settings.set('language', code);
+        game.language = code;
         io.emit('language', code);
       });
+      return;
+    }
+
+    // A phone doing the connection test: tell the quizmaster it got through.
+    if (role === 'check') {
+      io.to('host').emit('checkHit', { device: deviceName(socket.handshake.headers['user-agent']), at: Date.now() });
+      socket.emit('checked');
       return;
     }
 
@@ -363,6 +443,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     on('lifeline', () => teamId && game.useLifeline(teamId));
     on('joker', () => teamId && game.playJoker(teamId));
     on('leftPage', () => teamId && game.leftPage(teamId));
+    on('rate', stars => teamId && rate(teamId, stars));
     // Team photo: a small square picture from the phone (the phone makes it small first).
     on('photo', data => {
       const m = teamId && typeof data === 'string' && data.length < 1.5e6 && /^data:(image\/(?:webp|png|jpeg));base64,(.+)$/.exec(data);

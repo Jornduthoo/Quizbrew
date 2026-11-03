@@ -64,22 +64,80 @@
   if (!remote) {
     $('#remote-tile').addEventListener('click', e => { e.stopPropagation(); $('#remote-btn').click(); scrollTo({ top: 0, behavior: 'smooth' }); });
     $('#remote-btn').addEventListener('click', async () => {
-      const pop = $('#remote-pop');
-      pop.hidden = !pop.hidden;
-      if (pop.hidden || $('#remote-qr').innerHTML) return;
+      if (!togglePop('#remote-pop') || $('#remote-qr').innerHTML) return;
       const r = await fetch('/api/host/remote').then(x => x.json());
       $('#remote-qr').innerHTML = r.qr;
       $('#remote-url').textContent = r.url;
     });
   }
 
+  // The pop-ups in the top bar: one at a time.
+  const pops = ['#remote-pop', '#check-pop', '#raffle-pop'];
+  const togglePop = sel => {
+    const el = document.querySelector(sel);
+    if (!el) return false;
+    const open = el.hidden;
+    pops.forEach(p => { const x = document.querySelector(p); if (x) x.hidden = true; });
+    el.hidden = !open;
+    return open;
+  };
+
+  // Connection test: every phone that opens the QR link shows up here.
+  if ($('#check-btn')) {
+    $('#check-btn').addEventListener('click', async () => {
+      if (!togglePop('#check-pop') || $('#check-qr').innerHTML) return;
+      const r = await fetch('/api/host/check').then(x => x.json());
+      $('#check-qr').innerHTML = r.qr;
+      $('#check-addr').textContent = t('host.checkAddress', { url: r.url });
+      // No phone after 20 seconds: open the tips.
+      setTimeout(() => { if (!$('#check-hits').children.length) $('#check-tips').open = true; }, 20000);
+    });
+    socket.on('checkHit', hit => {
+      const time = new Date(hit.at).toLocaleTimeString(I18n.lang, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      $('#check-hits').prepend(h('li', {}, h('span', { class: 'ok' }, '✓'), ` ${hit.device} `, h('span', { class: 'hint' }, time)));
+      $('#check-status').textContent = t('host.checkOk', { n: $('#check-hits').children.length });
+      $('#check-status').classList.add('good');
+    });
+  }
+
+  // Raffle: teams or ticket numbers; the big screen spins it out.
+  if ($('#raffle-btn')) {
+    let raffleMode = 'teams';
+    $('#raffle-btn').addEventListener('click', () => togglePop('#raffle-pop'));
+    $('#raffle-mode').addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      raffleMode = b.dataset.mode;
+      [...$('#raffle-mode').children].forEach(x => x.classList.toggle('on', x === b));
+      $('#raffle-range').hidden = raffleMode !== 'tickets';
+    });
+    $('#raffle-draw').addEventListener('click', () => {
+      $('#raffle-error').textContent = '';
+      socket.emit('raffle', { mode: raffleMode, from: $('#raffle-from').value, to: $('#raffle-to').value }, r => {
+        if (r && r.error) $('#raffle-error').textContent = t(r.error);
+      });
+    });
+    $('#raffle-hide').addEventListener('click', () => socket.emit('raffleHide'));
+    $('#raffle-reset').addEventListener('click', () => socket.emit('raffleReset'));
+    socket.on('raffleState', ({ winners }) => {
+      $('#raffle-winners').replaceChildren(...winners.map((w, i) => h('li', { style: w.color ? teamVar(w.color) : null },
+        h('span', { class: 'hint' }, t('screen.rafflePrize', { n: i + 1 })), ' ', w.name ? [QB.dot(w), ' ', w.name] : t('screen.raffleTicket', { n: w.number }))));
+      $('#raffle-reset').hidden = !winners.length;
+    });
+  }
+
+  // Stars from the phones at the end.
+  let rating = null;
+  socket.on('rating', r => { rating = r; if (state) render(state); });
+
   function loadQuizzes() {
-    socket.emit('quizzes', ({ samples, library }) => {
+    socket.emit('quizzes', ({ samples, library, ratings = {} }) => {
       const card = (q, ref, edit) => h('li', { class: 'quiz-card panel' },
         h('img', { class: 'quiz-icon', src: '/img/icons/quiz.webp', alt: '' }),
         h('div', { class: 'quiz-info' },
           h('h3', {}, q.title || q.name),
-          h('p', {}, t('host.quizMeta', { rounds: q.rounds, questions: q.questions }))),
+          h('p', {}, t('host.quizMeta', { rounds: q.rounds, questions: q.questions }),
+            ratings[q.title] && ratings[q.title].count ? h('span', { class: 'quiz-rating' }, ` · ★ ${Number(ratings[q.title].avg).toFixed(1)}`) : null)),
         h('div', { class: 'card-actions' },
           h('button', { class: 'brass-btn', onclick: () => socket.emit('load', ref, res => { if (res && res.error) alert(t('error.quizInvalid') + '\n' + (res.detail || '')); }) }, t('host.open')),
           edit && !remote ? h('a', { class: 'ghost-btn', href: '/builder?open=' + encodeURIComponent(edit) }, t('host.edit')) : null,
@@ -96,7 +154,7 @@
     wager: () => 'host.showQuestion',
     question: s => (s.turn ? 'host.skipTurn' : s.round && ['drawGuess', 'captionThis', 'bluffBank', 'photoHunt', 'whosWho'].includes(s.round.type) ? 'host.startVote' : 'host.reveal'),
     vote: () => 'host.showVotes',
-    reveal: s => (s.lastQuestion ? 'host.showScores' : 'host.nextQuestion'),
+    reveal: s => (s.round && s.round.tiebreak ? 'host.showWinner' : s.lastQuestion ? 'host.showScores' : 'host.nextQuestion'),
     scoreboard: s => (s.lastRound ? (s.hasAwards ? 'host.showAwards' : 'host.showWinner') : 'host.nextRound'),
     awards: () => 'host.showWinner',
   };
@@ -235,6 +293,7 @@
     } else if (s.phase === 'end') {
       kicker.textContent = t('host.phase.end');
       title.textContent = s.ranking[0] ? t('host.winnerIs', { name: s.ranking[0].name }) : '';
+      preview.append(h('p', { class: 'rating-live' }, rating && rating.count ? t('host.ratingLive', { avg: rating.avg.toFixed(1), n: rating.count }) : t('host.ratingWait')));
     }
 
     renderTeams(s);

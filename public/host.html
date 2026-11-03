@@ -16,6 +16,8 @@
     <div class="top-actions">
       <span class="join-url" id="join-url" data-i18n-attr="title:host.joinAddress"></span>
       <a class="ghost-btn" href="/screen" target="quizbrew-screen" data-i18n="host.openScreen"></a>
+      <button class="ghost-btn" id="check-btn" type="button" data-i18n="host.check"></button>
+      <button class="ghost-btn" id="raffle-btn" type="button" data-i18n="host.raffle"></button>
       <button class="ghost-btn" id="remote-btn" type="button" data-i18n="host.remote"></button>
       <label class="lang mode-pick">
         <span class="sr" data-i18n="host.mode"></span>
@@ -39,6 +41,49 @@
       <h3 data-i18n="host.remoteTitle"></h3>
       <p class="hint" data-i18n="host.remoteHint"></p>
       <p class="remote-url" id="remote-url"></p>
+    </div>
+  </div>
+
+  <!-- Connection test: scan with any phone before the guests arrive -->
+  <div class="remote-pop check-pop panel" id="check-pop" hidden>
+    <div class="qr-mini" id="check-qr"></div>
+    <div class="check-body">
+      <h3 data-i18n="host.checkTitle"></h3>
+      <p class="hint" data-i18n="host.checkHint"></p>
+      <p class="check-status" id="check-status" data-i18n="host.checkWaiting"></p>
+      <ul class="check-hits" id="check-hits"></ul>
+      <details class="check-tips" id="check-tips">
+        <summary data-i18n="host.checkTipsTitle"></summary>
+        <ol>
+          <li data-i18n="host.checkTip1"></li>
+          <li data-i18n="host.checkTip2"></li>
+          <li data-i18n="host.checkTip3"></li>
+          <li data-i18n="host.checkTip4"></li>
+        </ol>
+        <p class="remote-url" id="check-addr"></p>
+      </details>
+    </div>
+  </div>
+
+  <!-- Raffle: draw a team or a ticket number on the big screen -->
+  <div class="remote-pop raffle-pop panel" id="raffle-pop" hidden>
+    <div class="raffle-body">
+      <h3 data-i18n="host.raffleTitle"></h3>
+      <div class="seg" id="raffle-mode">
+        <button type="button" class="on" data-mode="teams" data-i18n="host.raffleTeams"></button>
+        <button type="button" data-mode="tickets" data-i18n="host.raffleTickets"></button>
+      </div>
+      <div class="raffle-range" id="raffle-range" hidden>
+        <label><span data-i18n="host.raffleFrom"></span> <input type="number" id="raffle-from" value="1" min="1" inputmode="numeric"></label>
+        <label><span data-i18n="host.raffleTo"></span> <input type="number" id="raffle-to" value="100" min="1" inputmode="numeric"></label>
+      </div>
+      <div class="raffle-actions">
+        <button class="brass-btn" id="raffle-draw" type="button" data-i18n="host.raffleDraw"></button>
+        <button class="ghost-btn" id="raffle-hide" type="button" data-i18n="host.raffleHide"></button>
+      </div>
+      <p class="error" id="raffle-error" role="alert"></p>
+      <ol class="raffle-winners" id="raffle-winners"></ol>
+      <button class="ghost-btn small" id="raffle-reset" type="button" data-i18n="host.raffleReset" hidden></button>
     </div>
   </div>
 

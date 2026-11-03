@@ -260,3 +260,22 @@ body.staged .view.center { min-height: calc(100dvh - 56.25vw - 80px); }
 .photo-later { margin-top: 10px; }
 .team-bar .team-dot.photo { width: 30px; height: 30px; }
 .st-name .team-dot.photo { width: 1.5em; height: 1.5em; margin-right: 4px; }
+
+/* "Did you know" under the result. */
+.fact { margin: 10px 0 0; max-width: 22em; padding: 10px 14px; border-radius: 12px; background: rgb(0 0 0 / .45); border: 1px solid var(--brass); color: var(--cream); font-size: .95em; line-height: 1.35; text-align: center; animation: rise .6s ease both .8s; }
+
+/* End of the quiz: stars and the share button. */
+.end-extras { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 10px; width: min(100%, 360px); }
+.end-extras[hidden] { display: none; }
+.stars { display: flex; gap: 6px; }
+.star { width: 52px; height: 52px; border: 0; border-radius: 50%; background: rgb(0 0 0 / .35); color: rgb(var(--k-brass-l) / .35); font-size: 32px; line-height: 1; cursor: pointer; transition: transform .15s, color .15s; }
+.star.on { color: var(--brass-light); text-shadow: 0 0 12px rgb(var(--k-amber) / .7); }
+.star:active { transform: scale(.9); }
+.share-btn { width: 100%; margin-top: 6px; }
+.badge.bad { background: var(--bad, #ff5a5a); }
+/* The result card, big, ready to hold and save. */
+.share-sheet { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 18px; background: rgb(10 5 2 / .92); animation: rise .3s ease both; }
+.share-sheet[hidden] { display: none; }
+.share-sheet img { max-width: 100%; max-height: 68vh; border-radius: 16px; box-shadow: 0 0 0 2px var(--brass), 0 10px 40px rgb(0 0 0 / .6); }
+.share-sheet .hint { margin: 0; color: var(--muted); text-align: center; }
+.share-sheet .build-actions { flex-wrap: wrap; justify-content: center; }

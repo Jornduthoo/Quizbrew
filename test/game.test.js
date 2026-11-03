@@ -126,12 +126,79 @@ test('a full quiz: rounds, questions, reveal, scoreboard and end', () => {
   // Two teams: at least the daredevil-free, streak-free night still has no prize unless someone earned one.
   game.next();
   if (game.phase === 'awards') game.next();
+  // 1 - 1: a tie on the podium, so one tie-break question first.
+  assert.equal(game.phase, 'roundIntro');
+  assert.ok(game.round.tiebreak);
+  game.next();
+  assert.equal(game.phase, 'question');
+  game.answer('team1aaaa', 0);
+  game.answer('team2aaaa', game.question.answer);
+  assert.equal(game.phase, 'reveal');
+  game.next();
   assert.equal(game.phase, 'end');
+  assert.deepEqual(game.ranking().map(r => [r.name, r.rank]), [['B', 1], ['A', 2]]);
+});
+
+test('tie-break: only tied podium teams play, no points, the closest goes first', () => {
+  const { game } = setup();
+  game.language = 'nl';
+  game.load({ title: 'Tie', rounds: [{ type: 'classic', questions: [{ question: 'Q', answers: ['a', 'b'], correct: 0, time: 10 }] }] });
+  ['A', 'B', 'C', 'D', 'E'].forEach((n, i) => game.join('team' + i + 'aaaa', n, ['amber', 'pink', 'cyan', 'lime', 'violet'][i], 's' + i));
+  game.next(); game.next();
+  // A, B and C are right (1 point each): three share first place. D and E share fourth: no tie-break for them.
+  ['team0aaaa', 'team1aaaa', 'team2aaaa'].forEach(id => game.answer(id, 0));
+  ['team3aaaa', 'team4aaaa'].forEach(id => game.answer(id, 1));
+  game.next(); // scoreboard
+  game.next();
+  if (game.phase === 'awards') game.next();
+  assert.equal(game.phase, 'roundIntro');
+  assert.deepEqual(game.screenState().round.tiebreak.map(t => t.name), ['A', 'B', 'C']);
+  assert.equal(game.screenState().round.title, 'Schiftingsvraag!');
+  assert.equal(game.screenState().round.total, 1, 'the tie-break is not counted as a round');
+  assert.equal(game.playJoker('team0aaaa'), false);
+  game.next();
+  const q = game.question;
+  assert.ok(q.question.length > 10, 'a built-in question in the language of the evening');
+  assert.equal(game.answer('team3aaaa', 5), false, 'a team that is not tied sits out');
+  game.answer('team0aaaa', q.answer + 10);
+  game.answer('team1aaaa', q.answer - 3);
+  game.answer('team2aaaa', q.answer + 10);
+  assert.equal(game.phase, 'reveal');
+  assert.equal(game.teamState('team1aaaa').wasCorrect, true);
+  game.next();
+  assert.equal(game.phase, 'end');
+  const ranking = game.ranking();
+  assert.deepEqual(ranking.map(r => [r.name, r.rank, r.score]), [['B', 1, 1], ['A', 2, 1], ['C', 2, 1], ['D', 4, 0], ['E', 4, 0]]);
+  // Undo back to the question and the tie-break round is not added twice.
+  game.back(); game.back();
+  assert.equal(game.quiz.rounds.filter(r => r.tiebreak).length, 1);
+});
+
+test('tie-break: the quiz can bring its own question, or switch it off', () => {
+  const { game } = setup();
+  game.load({ title: 'Own', tiebreak: { question: 'How tall is our pub sign?', answer: 3.5, unit: 'm' }, rounds: [{ type: 'classic', questions: [{ question: 'Q', answers: ['a', 'b'], correct: 0, time: 10 }] }] });
+  game.join('team1aaaa', 'A', 'amber', 's1');
+  game.join('team2aaaa', 'B', 'pink', 's2');
+  game.next(); game.next(); game.next(); game.next();
+  game.next();
+  if (game.phase === 'awards') game.next();
+  assert.equal(game.phase, 'roundIntro');
+  game.next();
+  assert.equal(game.question.question, 'How tall is our pub sign?');
+  assert.equal(game.screenState().question.unit, 'm');
+
+  const off = setup().game;
+  off.load({ title: 'Off', tiebreak: false, rounds: [{ type: 'classic', questions: [{ question: 'Q', answers: ['a', 'b'], correct: 0, time: 10 }] }] });
+  off.join('team1aaaa', 'A', 'amber', 's1');
+  off.join('team2aaaa', 'B', 'pink', 's2');
+  off.next(); off.next(); off.next(); off.next(); off.next();
+  if (off.phase === 'awards') off.next();
+  assert.equal(off.phase, 'end');
 });
 
 test('prizes at the end: fastest, streak, climber, last second and so close', () => {
   const { game, clock } = setup();
-  game.load({ title: 'Long', rounds: [
+  game.load({ title: 'Long', tiebreak: false, rounds: [
     { type: 'classic', title: 'R1', questions: [0, 1, 2].map(i => ({ question: 'A' + i, answers: ['a', 'b'], correct: 0, time: 10 })) },
     { type: 'classic', title: 'R2', questions: [0, 1, 2].map(i => ({ question: 'B' + i, answers: ['a', 'b'], correct: 0, time: 10 })) },
   ] });

@@ -231,6 +231,12 @@
     const quiz = current.quiz;
     $('#quiz-title').value = quiz.title || '';
     $('#quiz-jokers').checked = !!quiz.jokers;
+    $('#quiz-tiebreak').checked = quiz.tiebreak !== false;
+    const own = quiz.tiebreak && typeof quiz.tiebreak === 'object' ? quiz.tiebreak : {};
+    $('#tb-question').value = own.question || '';
+    $('#tb-answer').value = Number.isFinite(own.answer) ? own.answer : '';
+    $('#tb-unit').value = own.unit || '';
+    $('#tiebreak-own').hidden = quiz.tiebreak === false;
     renderMeta();
     renderTimeline();
     renderRound();
@@ -238,6 +244,18 @@
 
   $('#quiz-title').addEventListener('input', e => { current.quiz.title = e.target.value; changed(); });
   $('#quiz-jokers').addEventListener('change', e => { current.quiz.jokers = e.target.checked; changed(); });
+  // Tie-break: off, a built-in question (true), or the quiz's own question.
+  function readTiebreak() {
+    if (!$('#quiz-tiebreak').checked) current.quiz.tiebreak = false;
+    else {
+      const question = $('#tb-question').value.trim();
+      const answer = Number($('#tb-answer').value);
+      current.quiz.tiebreak = question && $('#tb-answer').value !== '' && Number.isFinite(answer) ? { question, answer, unit: $('#tb-unit').value.trim() } : true;
+    }
+    $('#tiebreak-own').hidden = current.quiz.tiebreak === false;
+    changed();
+  }
+  ['#quiz-tiebreak', '#tb-question', '#tb-answer', '#tb-unit'].forEach(sel => $(sel).addEventListener(sel === '#quiz-tiebreak' ? 'change' : 'input', readTiebreak));
 
   // Rough time of the evening: every question plus the reveal, plus intro and scoreboard per round.
   function estimateMinutes(quiz) {
@@ -373,6 +391,8 @@
   function questionCard(r, type, q, i) {
     const set = (k, v) => { q[k] = v; changed(); };
     const fields = type.fields.map(f => (FIELD[f] ? FIELD[f](q, set, type, r) : null)).flat();
+    // Every question may get a short "did you know" line for after the answer.
+    fields.push(input(t('builder.f.fact'), q.fact, v => set('fact', v), { cls: 'wide', el: { maxlength: 200, placeholder: t('builder.f.factHint') } }));
     return h('li', { class: 'q-card' },
       h('div', { class: 'q-top' },
         h('span', { class: 'q-num' }, i + 1),

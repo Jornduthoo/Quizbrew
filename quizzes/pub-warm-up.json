@@ -6,22 +6,22 @@
       "type": "classic",
       "title": "General Knowledge",
       "questions": [
-        { "question": "Which planet is known as the Red Planet?", "answers": ["Venus", "Mars", "Jupiter", "Mercury"], "correct": 1, "time": 20 },
-        { "question": "How many legs does a spider have?", "answers": ["6", "8", "10", "12"], "correct": 1, "time": 15 },
-        { "question": "What is the main ingredient of guacamole?", "answers": ["Avocado", "Pea", "Cucumber", "Lime"], "correct": 0, "time": 15 },
-        { "question": "Which ocean is the largest?", "answers": ["Atlantic", "Indian", "Arctic", "Pacific"], "correct": 3, "time": 20 },
-        { "question": "In which country did the beer style 'pilsner' originate?", "answers": ["Germany", "Belgium", "Czech Republic", "Netherlands"], "correct": 2, "time": 20 },
-        { "question": "What is the chemical symbol for gold?", "answers": ["Go", "Gd", "Au", "Ag"], "correct": 2, "time": 15 }
+        { "question": "Which planet is known as the Red Planet?", "answers": ["Venus", "Mars", "Jupiter", "Mercury"], "correct": 1, "time": 20, "fact": "Mars looks red because its dust is full of iron oxide: rust." },
+        { "question": "How many legs does a spider have?", "answers": ["6", "8", "10", "12"], "correct": 1, "time": 15, "fact": "Most spiders also have eight eyes, but many still see poorly." },
+        { "question": "What is the main ingredient of guacamole?", "answers": ["Avocado", "Pea", "Cucumber", "Lime"], "correct": 0, "time": 15, "fact": "An avocado is botanically a large berry with one seed." },
+        { "question": "Which ocean is the largest?", "answers": ["Atlantic", "Indian", "Arctic", "Pacific"], "correct": 3, "time": 20, "fact": "The Pacific is bigger than all the land on Earth put together." },
+        { "question": "In which country did the beer style 'pilsner' originate?", "answers": ["Germany", "Belgium", "Czech Republic", "Netherlands"], "correct": 2, "time": 20, "fact": "The first pilsner was brewed in the city of Plzeň in 1842." },
+        { "question": "What is the chemical symbol for gold?", "answers": ["Go", "Gd", "Au", "Ag"], "correct": 2, "time": 15, "fact": "Au comes from aurum, the Latin word for gold." }
       ]
     },
     {
       "type": "classic",
       "title": "Around the World",
       "questions": [
-        { "question": "What is the capital of Canada?", "answers": ["Toronto", "Ottawa", "Vancouver", "Montreal"], "correct": 1, "time": 20 },
-        { "question": "Which river flows through Paris?", "answers": ["Rhine", "Loire", "Seine", "Danube"], "correct": 2, "time": 15 },
-        { "question": "How many countries share a land border with Belgium?", "answers": ["3", "4", "5", "6"], "correct": 1, "time": 20 },
-        { "question": "On which continent is the Sahara desert?", "answers": ["Asia", "Africa", "Australia"], "correct": 1, "time": 15 }
+        { "question": "What is the capital of Canada?", "answers": ["Toronto", "Ottawa", "Vancouver", "Montreal"], "correct": 1, "time": 20, "fact": "Ottawa was chosen as capital by Queen Victoria in 1857." },
+        { "question": "Which river flows through Paris?", "answers": ["Rhine", "Loire", "Seine", "Danube"], "correct": 2, "time": 15, "fact": "The Seine runs about 775 km from Burgundy to the English Channel." },
+        { "question": "How many countries share a land border with Belgium?", "answers": ["3", "4", "5", "6"], "correct": 1, "time": 20, "fact": "France, the Netherlands, Germany and Luxembourg." },
+        { "question": "On which continent is the Sahara desert?", "answers": ["Asia", "Africa", "Australia"], "correct": 1, "time": 15, "fact": "The Sahara is about as big as the United States." }
       ]
     }
   ]

@@ -29,6 +29,39 @@
     Media.replay();
   });
   socket.on('state', s => { state = s; if (I18n.dict['app.name']) render(s); });
+  socket.on('raffle', r => showRaffle(r));
+
+  // Raffle: the reel runs fast, slows down and stops on the winner.
+  let raffleTimer = 0;
+  function showRaffle(r) {
+    clearTimeout(raffleTimer);
+    const box = $('#raffle');
+    box.hidden = !r;
+    box.classList.remove('landed');
+    if (!r) return;
+    const slot = $('#raffle-slot');
+    const item = x => (x.number ? h('span', { class: 'raffle-num' }, x.number) : h('span', { class: 'raffle-team', style: teamVar(x.color) }, QB.dot(x), h('span', {}, x.name)));
+    $('#raffle-kicker').textContent = t('screen.rafflePrize', { n: r.prize });
+    $('#raffle-sub').textContent = '';
+    const reel = [...r.reel, r.winner];
+    let i = 0;
+    let wait = 60;
+    const step = () => {
+      slot.replaceChildren(item(reel[i]));
+      slot.classList.remove('tick'); void slot.offsetWidth; slot.classList.add('tick');
+      if (i === reel.length - 1) {
+        box.classList.add('landed');
+        $('#raffle-sub').textContent = r.mode === 'tickets' ? t('screen.raffleTicket', { n: r.winner.number }) : t('screen.raffleWinner');
+        FX.sparksAt(slot, { color: r.winner.color ? cssColor('--team-' + r.winner.color) : cssColor('--brass-light'), count: 120, speed: 1.4 });
+        return;
+      }
+      i++;
+      // Slower and slower towards the end.
+      if (i > reel.length - 9) wait *= 1.35;
+      raffleTimer = setTimeout(step, wait);
+    };
+    step();
+  }
 
   QB.info().then(i => {
     $('#qr').innerHTML = i.qr;
@@ -93,14 +126,14 @@
     const theme = roundTheme(s.round.type);
     $('#ri-icon').innerHTML = theme.icon;
     $('#ri-art').src = '/img/icons/' + (s.round.family || 'classic') + '.webp';
-    $('#round-kicker').textContent = t('screen.roundOf', { n: s.round.index + 1, total: s.round.total });
+    $('#round-kicker').textContent = s.round.tiebreak ? s.round.tiebreak.map(x => x.name).join(' · ') : t('screen.roundOf', { n: s.round.index + 1, total: s.round.total });
     split($('#round-title'), s.round.title || t(`round.${s.round.type}`));
     $('#ri-type').textContent = t(`round.${s.round.type}`);
     // How this round scores, and its twists, so every team knows the rules before it starts.
     const rules = [t('screen.questionsInRound', { n: s.round.questions })];
     if (s.round.scoring && s.round.scoring !== 'points') rules.push(t(`scoring.${s.round.scoring}`));
     s.round.twists.forEach(tw => rules.push(t(`twist.${tw}`)));
-    $('#round-meta').textContent = rules.join(' · ');
+    $('#round-meta').textContent = s.round.tiebreak ? t('screen.tiebreakRule') : rules.join(' · ');
     // Restart the CSS animations for this round.
     const v = $('#v-roundIntro');
     v.classList.remove('play'); void v.offsetWidth; v.classList.add('play');
@@ -237,6 +270,11 @@
       li.classList.toggle('wrong', reveal && i !== s.correct);
       li.querySelector('.count').textContent = reveal && s.counts ? t('screen.teamsChose', { n: s.counts[i] }) : '';
     });
+
+    // A "did you know" line after the answer.
+    const fact = reveal && s.reveal && s.reveal.fact;
+    $('#q-fact').hidden = !fact;
+    if (fact) $('#q-fact-text').textContent = fact;
 
     // Typed answers: the solution on the board and every team's answer below it.
     const sol = $('#q-solution');

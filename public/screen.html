@@ -89,6 +89,7 @@
     <ul class="round-board" id="round-board" hidden></ul>
     <ol class="clock-board" id="clock-board" hidden></ol>
     <ul class="answered-dots" id="answered-dots"></ul>
+    <p class="q-fact" id="q-fact" hidden><span class="fact-label" data-i18n="screen.didYouKnow"></span> <span id="q-fact-text"></span></p>
     <div class="buzz-banner" id="buzz-banner" hidden></div>
   </section>
 
@@ -133,6 +134,13 @@
     <p class="end-quip" id="end-quip"></p>
     <p class="made-with"><span data-i18n="brand.madeWith"></span><img src="/img/logo.webp" alt="Quizbrew" width="720" height="326"><span class="made-own" data-i18n="brand.yourOwn"></span></p>
   </section>
+
+  <!-- Raffle: a reel that spins and lands on the winner, over whatever is on screen -->
+  <div class="raffle" id="raffle" hidden>
+    <p class="raffle-kicker neon" id="raffle-kicker"></p>
+    <div class="raffle-reel"><div class="raffle-slot" id="raffle-slot"></div></div>
+    <p class="raffle-sub" id="raffle-sub"></p>
+  </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/i18n.js"></script>

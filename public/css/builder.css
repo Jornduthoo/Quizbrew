@@ -246,3 +246,9 @@ body.builder { font-size: 15px; }
 .q-stat { padding: 3px 10px; border-radius: 999px; font-size: .82em; font-weight: 700; color: var(--cream); background: rgb(var(--k-brass) / .18); border: 1px solid rgb(var(--k-brass) / .5); }
 .q-stat.hard { background: rgb(255 80 90 / .16); border-color: rgb(255 80 90 / .6); }
 .q-stat.easy { background: rgb(80 230 150 / .14); border-color: rgb(80 230 150 / .55); }
+
+/* Own tie-break question, folded away under the quiz settings. */
+.tiebreak-own { margin-top: 10px; }
+.tiebreak-own summary { cursor: pointer; color: var(--brass-light); font-weight: 650; }
+.tiebreak-fields { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-top: 8px; }
+@media (max-width: 700px) { .tiebreak-fields { grid-template-columns: 1fr; } }

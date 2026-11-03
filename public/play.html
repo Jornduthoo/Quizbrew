@@ -54,6 +54,12 @@
     <p class="quip" id="wait-quip"></p>
     <button class="ghost-btn photo-later" id="photo-later" type="button" hidden data-i18n="play.teamPhotoLater"></button>
     <ol class="standings" id="standings" hidden></ol>
+    <!-- End of the quiz: stars for the quiz and a picture of the result to share. -->
+    <div class="end-extras" id="end-extras" hidden>
+      <p class="label" data-i18n="play.rateQuiz"></p>
+      <div class="stars" id="stars"></div>
+      <button class="brass-btn big share-btn" id="share-btn" type="button" data-i18n="play.share"></button>
+    </div>
     <p class="made-with" id="made-with" hidden><span data-i18n="brand.madeWith"></span><img src="/img/logo.webp" alt="Quizbrew" width="720" height="326"><span class="made-own" data-i18n="brand.yourOwn"></span></p>
     <button class="brass-btn big joker-btn" id="joker-btn" type="button" hidden data-i18n="play.playJoker"></button>
   </section>
@@ -165,7 +171,19 @@
     <p class="say big" id="result-text"></p>
     <p class="sub" id="result-sub"></p>
     <p class="quip" id="result-quip"></p>
+    <p class="fact" id="result-fact" hidden></p>
   </section>
+
+  <!-- The result card: hold it to save or share it (sharing straight away needs a secure page, so it is a bonus). -->
+  <div class="share-sheet" id="share-sheet" hidden>
+    <img id="share-img" alt="">
+    <p class="hint" data-i18n="play.shareHint"></p>
+    <div class="build-actions">
+      <button class="brass-btn big" id="share-native" type="button" data-i18n="play.shareNow" hidden></button>
+      <a class="ghost-btn" id="share-save" download="quizbrew.png" data-i18n="play.shareSave"></a>
+      <button class="ghost-btn" id="share-close" type="button" data-i18n="builder.close"></button>
+    </div>
+  </div>
 
   <div class="team-bar" id="team-bar" hidden><span class="team-dot" id="bar-dot"></span><span id="bar-name"></span><span class="bar-score" id="bar-score"></span></div>
   <div class="offline" id="offline" hidden data-i18n="play.reconnecting"></div>
