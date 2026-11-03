@@ -299,6 +299,10 @@
     if (type.fields.includes('answer') || type.fields.includes('answerOrChoices')) q.answer = '';
     if (type.fields.includes('number')) q.answer = null;
     if (type.fields.includes('clues')) q.clues = ['', '', '', ''];
+    if (type.fields.includes('items')) q.items = ['', '', '', ''];
+    if (type.fields.includes('pairs')) q.pairs = [['', ''], ['', ''], ['', ''], ['', '']];
+    if (type.fields.includes('images')) { q.images = ['', '', '', '']; q.captions = ['', '', '', '']; q.correct = 0; }
+    if (type.fields.includes('audio')) q.audio = '';
     return q;
   }
 
@@ -417,6 +421,12 @@
       return wrap;
     },
     image: (q, set) => mediaField(q, set),
+    audio: (q, set) => audioField(q, set),
+    emoji: (q, set) => input(t('builder.f.emoji'), q.emoji, v => set('emoji', v), { cls: 'emoji-field', el: { maxlength: 40 } }),
+    images: (q, set) => imagesField(q, set),
+    items: (q, set) => listField(q, 'items', 3, 6, t('builder.f.items'), t('builder.f.itemsHint')),
+    pairs: (q, set) => pairsField(q, set),
+    spot: (q, set) => spotField(q, set),
     time: (q, set, type) => input(t('builder.f.time'), q.time, v => set('time', Number(v) || undefined), { cls: 'small-field', el: { type: 'number', min: 3, max: 600, placeholder: type.defaults.time } }),
     points: (q, set, type) => input(t('builder.f.points'), q.points, v => set('points', Number(v) || undefined), { cls: 'small-field', el: { type: 'number', min: 1, max: 100, placeholder: type.defaults.points } }),
   };
@@ -469,7 +479,7 @@
         wrap.classList.add('busy');
         try { set('image', await upload(f)); } catch { alert(t('builder.uploadFailed')); }
         wrap.classList.remove('busy');
-        draw();
+        if (q.spot !== undefined || typeOf(current.quiz.rounds[roundIndex].type).fields.includes('spot')) renderRound(); else draw();
       } });
       wrap.replaceChildren(h('span', {}, t('builder.f.image')),
         q.image ? h('div', { class: 'thumb' }, h('img', { src: q.image, alt: '' }), h('button', { class: 'mini kick', type: 'button', title: t('builder.f.removeImage'), onclick: () => { set('image', ''); draw(); } }, '×'))
@@ -488,6 +498,125 @@
       };
     };
     draw();
+    return wrap;
+  }
+
+  // A sound file with an optional start and end second; the AI may have suggested which song to use.
+  function audioField(q, set) {
+    const wrap = h('div', { class: 'field wide audio-field' });
+    const draw = () => {
+      const fileInput = h('input', { type: 'file', accept: 'audio/*', hidden: true, onchange: async e => {
+        const f = e.target.files[0];
+        if (!f) return;
+        wrap.classList.add('busy');
+        try { set('audio', await upload(f)); } catch { alert(t('builder.uploadFailed')); }
+        wrap.classList.remove('busy');
+        draw();
+      } });
+      const player = q.audio ? h('audio', { src: q.audio, controls: true, preload: 'metadata' }) : null;
+      wrap.replaceChildren(h('span', {}, t('builder.f.audio')),
+        q.audio ? h('div', { class: 'audio-row' }, player,
+          h('button', { class: 'ghost-btn small', type: 'button', onclick: () => { set('start', Math.floor(player.currentTime)); draw(); } }, t('builder.f.startHere')),
+          h('button', { class: 'mini kick', type: 'button', title: t('builder.f.removeAudio'), onclick: () => { set('audio', ''); draw(); } }, '×'))
+          : h('label', { class: 'drop-zone' }, fileInput, h('span', {}, t('builder.f.addAudio'))),
+        q.audio ? h('div', { class: 'audio-row' },
+          input(t('builder.f.start'), q.start, v => set('start', Number(v) || 0), { cls: 'small-field', el: { type: 'number', min: 0, step: 1 } }),
+          input(t('builder.f.end'), q.end, v => set('end', Number(v) || undefined), { cls: 'small-field', el: { type: 'number', min: 0, step: 1, placeholder: t('builder.f.endAll') } })) : null,
+        q.audioHint ? h('p', { class: 'hint small' }, t('builder.f.audioHint', { song: q.audioHint })) : null,
+        h('p', { class: 'hint small' }, t('builder.f.audioRights')));
+      wrap.ondragover = e => { e.preventDefault(); wrap.classList.add('drop'); };
+      wrap.ondragleave = () => wrap.classList.remove('drop');
+      wrap.ondrop = async e => {
+        e.preventDefault();
+        wrap.classList.remove('drop');
+        const f = e.dataTransfer.files[0];
+        if (!f || !f.type.startsWith('audio/')) return;
+        try { set('audio', await upload(f)); } catch { alert(t('builder.uploadFailed')); }
+        draw();
+      };
+    };
+    draw();
+    if (q.audio === undefined) q.audio = '';
+    return wrap;
+  }
+
+  // Three or four pictures, one is the odd one out.
+  function imagesField(q, set) {
+    const wrap = h('div', { class: 'field wide' });
+    const name = 'o' + Math.random().toString(36).slice(2);
+    const draw = () => {
+      const imgs = q.images || (q.images = ['', '', '', '']);
+      q.captions = q.captions || imgs.map(() => '');
+      wrap.replaceChildren(h('span', {}, t('builder.f.images')),
+        h('div', { class: 'image-grid' }, imgs.map((src, i) => {
+          const fileInput = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: async e => {
+            const f = e.target.files[0];
+            if (!f) return;
+            try { imgs[i] = await upload(f); changed(); } catch { alert(t('builder.uploadFailed')); }
+            draw();
+          } });
+          return h('div', { class: 'image-slot' + (q.correct === i ? ' right' : '') },
+            src ? h('img', { src, alt: '' }) : h('label', { class: 'drop-zone' }, fileInput, h('span', {}, LETTERS[i] + ' +')),
+            h('label', { class: 'slot-row' },
+              h('input', { type: 'radio', name, checked: q.correct === i ? 'checked' : null, onchange: () => { set('correct', i); draw(); } }),
+              h('input', { value: q.captions[i] || '', maxlength: 40, placeholder: t('builder.f.caption'), oninput: e => { q.captions[i] = e.target.value; changed(); } }),
+              src ? h('button', { class: 'mini kick', type: 'button', onclick: () => { imgs[i] = ''; changed(); draw(); } }, '×') : null));
+        })),
+        h('p', { class: 'hint small' }, t('builder.f.oddHint')));
+    };
+    if (!Number.isInteger(q.correct)) q.correct = 0;
+    draw();
+    return wrap;
+  }
+
+  // A list of short texts (items in the right order).
+  function listField(q, key, min, max, label, hint) {
+    const wrap = h('div', { class: 'field wide' });
+    const draw = () => {
+      const items = q[key] || (q[key] = Array.from({ length: min + 1 }, () => ''));
+      wrap.replaceChildren(h('span', {}, label),
+        h('ol', { class: 'clue-list' }, items.map((c, i) => h('li', {},
+          h('input', { value: c, maxlength: 80, oninput: e => { items[i] = e.target.value; changed(); } }),
+          items.length > min ? h('button', { class: 'mini kick', type: 'button', onclick: () => { items.splice(i, 1); changed(); draw(); } }, '×') : null))),
+        items.length < max ? h('button', { class: 'ghost-btn small', type: 'button', onclick: () => { items.push(''); changed(); draw(); } }, t('builder.f.addItem')) : null,
+        h('p', { class: 'hint small' }, hint));
+    };
+    draw();
+    return wrap;
+  }
+
+  function pairsField(q) {
+    const wrap = h('div', { class: 'field wide' });
+    const draw = () => {
+      const pairs = q.pairs || (q.pairs = [['', ''], ['', ''], ['', ''], ['', '']]);
+      wrap.replaceChildren(h('span', {}, t('builder.f.pairs')),
+        h('div', { class: 'pair-list' }, pairs.map((p, i) => h('div', { class: 'pair-row' },
+          h('input', { value: p[0], maxlength: 60, oninput: e => { p[0] = e.target.value; changed(); } }),
+          h('span', { class: 'pair-eq' }, '='),
+          h('input', { value: p[1], maxlength: 60, oninput: e => { p[1] = e.target.value; changed(); } }),
+          pairs.length > 3 ? h('button', { class: 'mini kick', type: 'button', onclick: () => { pairs.splice(i, 1); changed(); draw(); } }, '×') : null))),
+        pairs.length < 5 ? h('button', { class: 'ghost-btn small', type: 'button', onclick: () => { pairs.push(['', '']); changed(); draw(); } }, t('builder.f.addPair')) : null,
+        h('p', { class: 'hint small' }, t('builder.f.pairsHint')));
+    };
+    draw();
+    return wrap;
+  }
+
+  // Click the right spot on the map (the question's picture).
+  function spotField(q, set) {
+    const wrap = h('div', { class: 'field wide' });
+    const draw = () => {
+      if (!q.image) { wrap.replaceChildren(h('span', {}, t('builder.f.spot')), h('p', { class: 'hint small' }, t('builder.f.spotNeedsMap'))); return; }
+      const pin = q.spot ? h('span', { class: 'spot-pin', style: `left: ${q.spot.x * 100}%; top: ${q.spot.y * 100}%` }) : null;
+      const map = h('div', { class: 'spot-map', onclick: e => {
+        const b = e.currentTarget.getBoundingClientRect();
+        set('spot', { x: Math.round(((e.clientX - b.left) / b.width) * 1000) / 1000, y: Math.round(((e.clientY - b.top) / b.height) * 1000) / 1000 });
+        draw();
+      } }, h('img', { src: q.image, alt: '' }), pin);
+      wrap.replaceChildren(h('span', {}, t('builder.f.spot')), map, input(t('builder.f.spotName'), q.answer, v => set('answer', v), { el: { maxlength: 60 } }), h('p', { class: 'hint small' }, t('builder.f.spotHint')));
+    };
+    draw();
+    wrap.redraw = draw;
     return wrap;
   }
 

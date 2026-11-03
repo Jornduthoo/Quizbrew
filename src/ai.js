@@ -81,6 +81,18 @@ const TYPE_HELP = {
   scramble: 'the letters of a word are shuffled; teams find the word',
   commonThread: 'clues appear one by one from hard to easy; teams find what links them',
   jackpot: 'teams bet points after seeing only the category, then answer one hard open question',
+  music: 'a music fragment plays; teams name the artist or title',
+  introSprint: 'the intro of a song plays in growing bursts; the earlier a team names it, the more points',
+  rewind: 'a song plays backwards; teams name it',
+  soundCheck: 'a sound plays (animal, machine, place); teams say what it is',
+  lyricGap: 'a line of a song with one word missing; teams type the missing word',
+  pixelFog: 'a picture starts as big blocks and gets sharper; teams name what it is',
+  silhouette: 'only the black outline of a picture is shown; teams name it',
+  oddOneOut: 'four pictures, one does not belong; teams pick it',
+  emoji: 'a row of emoji spells out a film, song, saying or place; teams type it',
+  orderUp: 'teams put 4 items in the right order (by year, size, distance...)',
+  pairUp: 'teams match 4 items on the left to 4 items on the right',
+  mapDrop: 'teams tap a spot on a map; the closest pin wins',
 };
 
 // ---------- reading the AI's answer ----------

@@ -68,11 +68,14 @@
       <span class="q-answered" id="q-answered"></span>
     </header>
     <div class="q-body">
-      <div class="q-media" id="q-media" hidden><img id="q-img" alt=""></div>
+      <div class="q-media" id="q-media" hidden><img id="q-img" alt=""><canvas id="q-canvas" hidden></canvas><div class="pins" id="q-pins"></div><div class="sound-wave" id="q-wave" hidden><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
       <div class="q-main">
         <p class="q-category" id="q-category" hidden></p>
         <div class="q-board"><h1 id="q-text"></h1></div>
+        <div class="emoji-row" id="q-emoji" hidden></div>
         <div class="tiles" id="q-tiles" hidden></div>
+        <ol class="order-list" id="q-items" hidden></ol>
+        <div class="pair-cols" id="q-pairs" hidden></div>
         <ol class="clues" id="q-clues" hidden></ol>
         <p class="type-hint" id="q-typehint" hidden></p>
         <div class="q-solution" id="q-solution" hidden></div>
@@ -108,6 +111,8 @@
   <script src="/js/i18n.js"></script>
   <script src="/js/fx.js"></script>
   <script src="/js/common.js"></script>
+  <button class="sound-gate" id="sound-gate" hidden data-i18n="screen.enableSound"></button>
+  <script src="/js/media.js"></script>
   <script src="/js/screen.js"></script>
 </body>
 </html>

@@ -154,6 +154,8 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
         }
       });
       on('judge', ({ teamId, correct } = {}) => game.judge(String(teamId), !!correct));
+      // Play the sound of the question again (or stop it) on the big screen.
+      on('media', action => { if (['replay', 'stop'].includes(action)) io.to('screen').emit('media', action); });
       on('next', () => game.next());
       on('stop', () => game.stop());
       on('kick', teamId => game.kick(String(teamId)));

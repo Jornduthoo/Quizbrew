@@ -1,5 +1,7 @@
 // The big screen on the TV or projector. It only shows; the quizmaster drives it from /host.
 (function () {
+  const { Media, pixelate } = QBMedia;
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) / Math.SQRT2;
   const { $, h, showView, LETTERS, teamVar, countdown, roundTheme, CROWN, split, countUp, later, clearLater } = QB;
   const socket = io({ query: { role: 'screen' } });
   let state = null;
@@ -15,6 +17,14 @@
     await I18n.load(lang);
     if (state) render(state, true);
   });
+  socket.on('media', action => (action === 'replay' ? Media.replay() : Media.stop()));
+  // Browsers only play sound after a click on the page: show a button for that once.
+  Media.onBlocked(() => { $('#sound-gate').hidden = false; });
+  $('#sound-gate').addEventListener('click', async () => {
+    $('#sound-gate').hidden = true;
+    await Media.unlock();
+    Media.replay();
+  });
   socket.on('state', s => { state = s; if (I18n.dict['app.name']) render(s); });
 
   QB.info().then(i => {
@@ -28,7 +38,7 @@
     // Re-render only what changed, so animations play once.
     const key = [s.phase === 'reveal' ? 'question' : s.phase, s.round && s.round.index, s.questionIndex].join(':');
     const fresh = force || key !== lastKey;
-    if (key !== lastKey) { clearLater(); FX.clear(); document.body.classList.remove('spot-winner'); }
+    if (key !== lastKey) { clearLater(); FX.clear(); Media.stop(); document.body.classList.remove('spot-winner'); }
     lastKey = key;
     document.body.classList.remove('urgent');
     if (s.phase !== 'lobby') lobbyShown = false;
@@ -86,6 +96,7 @@
     const reveal = s.phase === 'reveal';
     const kind = q.kind;
     const typed = kind === 'text' || kind === 'number';
+    const listed = typed || kind === 'point' || kind === 'order' || kind === 'pairs';
     $('#q-count').textContent = t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
     $('#q-answered').textContent = t('screen.answeredCount', { n: s.answered, total: s.teams.length });
     const wasRevealed = document.body.classList.contains('revealed');
@@ -93,17 +104,33 @@
     document.body.dataset.kind = kind;
 
     if (fresh) {
-      const text = q.scrambled ? t('screen.unscramble') : q.text || (q.clues ? t('screen.findLink') : q.image ? t('screen.whatIsThis') : '');
+      const text = q.scrambled ? t('screen.unscramble') : q.text || (q.clues ? t('screen.findLink') : q.emoji ? t('screen.emojiWhat') : q.audio ? t('screen.listen') : q.images ? t('screen.oddOne') : q.image ? t('screen.whatIsThis') : '');
       split($('#q-text'), text, 'word');
       const words = text.split(/\s+/).length;
       $('#q-text').parentElement.classList.toggle('long', text.length > 90);
       $('#answers').style.setProperty('--start', Math.min(1.4, 0.25 + words * 0.06) + 's');
       const answers = kind === 'trueFalse' ? [t('play.true'), t('play.false')] : kind === 'choice' ? q.answers : [];
-      $('#answers').className = 'answers' + (kind === 'trueFalse' ? ' tf' : '');
+      $('#answers').className = 'answers' + (kind === 'trueFalse' ? ' tf' : '') + (q.images ? ' images' : '');
       $('#answers').replaceChildren(...answers.map((a, i) => h('li', { class: 'answer', style: kind === 'trueFalse' ? `--k: ${i}` : `--a: var(--ans-${i}); --k: ${i}` },
+        q.images ? h('img', { class: 'answer-img', src: q.images[i], alt: '' }) : null,
         h('span', { class: 'letter' }, kind === 'trueFalse' ? (i === 0 ? '✓' : '✗') : LETTERS[i]),
         h('span', { class: 'text' }, a),
         h('span', { class: 'count' }))));
+      $('#q-emoji').hidden = !q.emoji;
+      if (q.emoji) $('#q-emoji').replaceChildren(...Array.from(q.emoji.replace(/\s+/g, ''), (c, i) => c).reduce((out, c) => {
+        // Keep emoji made of several code points (flags, skin tones, joined people) together.
+        if (out.length && /[\u200d\ufe0f\u{1f3fb}-\u{1f3ff}\u{e0020}-\u{e007f}]/u.test(c)) out[out.length - 1] += c;
+        else if (out.length && /\u200d$/.test(out[out.length - 1])) out[out.length - 1] += c;
+        else out.push(c);
+        return out;
+      }, []).map((c, i) => h('span', { class: 'emo', style: `--k: ${i}` }, c)));
+      $('#q-items').hidden = !q.items;
+      if (q.items) $('#q-items').replaceChildren(...q.items.map((it, i) => h('li', { class: 'order-item', style: `--k: ${i}` }, h('span', { class: 'letter' }, LETTERS[i] || i + 1), h('span', {}, it))));
+      $('#q-pairs').hidden = !q.left;
+      if (q.left) $('#q-pairs').replaceChildren(
+        h('ol', { class: 'pair-col left' }, q.left.map((x, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'num' }, i + 1), x))),
+        h('ol', { class: 'pair-col right' }, q.right.map((x, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'letter' }, LETTERS[i] || String.fromCharCode(65 + i)), x))));
+      $('#q-pins').replaceChildren();
       $('#answered-dots').replaceChildren();
       renderMedia(q);
       $('#q-category').hidden = !q.category;
@@ -118,8 +145,12 @@
       }
       $('#q-clues').hidden = !q.clues;
       if (q.clues) $('#q-clues').replaceChildren(...q.clues.map((c, i) => h('li', { class: 'clue', style: `--k: ${i}` }, h('span', { class: 'clue-pts' }), h('span', {}, c))));
-      $('#q-typehint').hidden = !typed;
-      $('#q-typehint').textContent = typed ? t(kind === 'number' ? 'screen.typeNumber' : 'screen.typeAnswer') : '';
+      const hintKey = { text: 'screen.typeAnswer', number: 'screen.typeNumber', point: 'screen.tapSpot', order: 'screen.putInOrder', pairs: 'screen.makePairs' }[kind];
+      $('#q-typehint').hidden = !hintKey;
+      $('#q-typehint').textContent = hintKey ? t(hintKey) : '';
+      Media.start(q, q.time * 1000 - s.remaining);
+      $('#q-wave').hidden = !q.audio;
+      if (!q.audio) $('#sound-gate').hidden = true;
     }
 
     // Choice and true/false: light up the right answer.
@@ -131,18 +162,26 @@
 
     // Typed answers: the solution on the board and every team's answer below it.
     const sol = $('#q-solution');
-    sol.hidden = !(reveal && typed);
-    $('#team-answers').hidden = !(reveal && typed && s.answers);
-    if (reveal && typed) {
+    // Order and pairs show the solution in the list itself.
+    sol.hidden = !(reveal && listed) || kind === 'order' || kind === 'pairs';
+    $('#team-answers').hidden = !(reveal && listed && s.answers);
+    if (reveal && listed) {
       $('#q-typehint').hidden = true;
       sol.replaceChildren(h('span', { class: 'sol-label' }, t('screen.solution')), h('span', { class: 'sol-text' }, s.reveal.answerText + (s.reveal.unit ? ' ' + s.reveal.unit : '')));
       const list = (s.answers || []).slice();
       if (kind === 'number') list.sort((a, b) => (a.answer === null) - (b.answer === null) || Math.abs(a.answer - s.reveal.number) - Math.abs(b.answer - s.reveal.number));
       else list.sort((a, b) => b.correct - a.correct);
+      if (kind === 'point') list.sort((a, b) => (a.answer === null) - (b.answer === null) || (a.answer && b.answer ? dist(a.answer, s.reveal.spot) - dist(b.answer, s.reveal.spot) : 0));
+      const shown = a => {
+        if (a.answer === null) return '—';
+        if (kind === 'point') return t('screen.distance', { n: Math.round(dist(a.answer, s.reveal.spot) * 100) });
+        if (kind === 'order' || kind === 'pairs') return a.correct ? '✓' : '✗';
+        return String(a.answer);
+      };
       $('#team-answers').replaceChildren(...list.map((a, i) => h('li', { class: 'team-answer' + (a.correct ? ' right' : a.answer === null ? ' none' : ' wrong'), style: `${teamVar(a.color)}; --k: ${i}` },
         h('span', { class: 'team-dot' }),
         h('span', { class: 'ta-name' }, a.name),
-        h('span', { class: 'ta-answer' }, a.answer === null ? '—' : String(a.answer)),
+        h('span', { class: 'ta-answer' }, shown(a)),
         h('span', { class: 'ta-pts' + (a.points < 0 ? ' minus' : '') }, a.points ? (a.points > 0 ? '+' : '') + a.points : ''))));
     }
     if (reveal) {
@@ -150,6 +189,17 @@
       img.style.animation = 'none';
       img.style.transform = '';
       img.style.filter = '';
+      $('#q-canvas').hidden = true;
+      img.hidden = false;
+      if (!wasRevealed) Media.reveal();
+      if (q.items && s.reveal.order) $('#q-items').replaceChildren(...s.reveal.order.map((it, i) => h('li', { class: 'order-item solved', style: `--k: ${i}` }, h('span', { class: 'letter' }, i + 1), h('span', {}, it))));
+      if (q.left && s.reveal.pairs) $('#q-pairs').replaceChildren(h('ol', { class: 'pair-col solved' }, s.reveal.pairs.map((p, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'num' }, i + 1), p[0], h('span', { class: 'eq' }, '='), h('strong', {}, p[1])))));
+      if (kind === 'point' && s.reveal.spot) {
+        const pins = (s.answers || []).filter(a => a.answer).map(a => h('span', { class: 'pin team', style: `${teamVar(a.color)}; left: ${a.answer.x * 100}%; top: ${a.answer.y * 100}%`, title: a.name }));
+        pins.push(h('span', { class: 'pin goal', style: `left: ${s.reveal.spot.x * 100}%; top: ${s.reveal.spot.y * 100}%` }));
+        $('#q-pins').replaceChildren(...pins);
+        fitPins();
+      }
       $('#q-clues').querySelectorAll('.clue').forEach(c => c.classList.add('on'));
       if (q.scrambled) $('#q-tiles').replaceChildren(...[...s.reveal.answerText.toUpperCase().replace(/\s+/g, '')].map((c, i) => h('span', { class: 'tile solved', style: `--k: ${i}` }, c)));
     }
@@ -195,7 +245,12 @@
       img.style.animation = `zoom-out ${total}ms linear both`;
       img.style.animationDelay = `-${total - s.remaining}ms`;
     }
+    const canvas = $('#q-canvas');
+    canvas.hidden = q.effect !== 'pixel';
+    img.hidden = q.effect === 'pixel';
     stopTimer = countdown(s.remaining, total, (left, frac) => {
+      Media.tick(total - left);
+      if (q.effect === 'pixel') pixelate(canvas, img, 1 - frac);
       ring.style.strokeDashoffset = C * (1 - frac);
       $('#timer-num').textContent = Math.ceil(left / 1000);
       const urgent = left < 5000 && left > 0;
@@ -215,12 +270,32 @@
   function renderMedia(q) {
     const box = $('#q-media');
     const img = $('#q-img');
-    box.hidden = !q.image;
-    document.body.classList.toggle('has-media', !!q.image);
+    box.hidden = !q.image && !q.audio;
+    box.classList.toggle('silhouette', q.effect === 'silhouette');
+    box.classList.toggle('map', q.kind === 'point');
+    box.classList.toggle('audio-only', !q.image && !!q.audio);
+    document.body.classList.toggle('has-media', !!q.image || !!q.audio);
     img.style.animation = 'none';
     if (q.image) img.src = q.image;
     else img.removeAttribute('src');
   }
+
+  // Pins sit on the picture itself, not on the frame around it (the picture is letterboxed).
+  function fitPins() {
+    const img = $('#q-img');
+    const box = $('#q-pins');
+    const place = () => {
+      const W = img.clientWidth;
+      const H = img.clientHeight;
+      if (!img.naturalWidth || !W) return;
+      const k = Math.min(W / img.naturalWidth, H / img.naturalHeight);
+      const w = img.naturalWidth * k;
+      const hh = img.naturalHeight * k;
+      box.style.cssText = `left: ${(W - w) / 2}px; top: ${(H - hh) / 2}px; width: ${w}px; height: ${hh}px`;
+    };
+    if (img.complete) place(); else img.addEventListener('load', place, { once: true });
+  }
+  addEventListener('resize', () => { if ($('#q-pins').children.length) fitPins(); });
 
   function renderWager(s) {
     split($('#wager-category'), s.category || t('round.jackpot'));

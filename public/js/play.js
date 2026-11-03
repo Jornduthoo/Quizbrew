@@ -69,6 +69,7 @@
         if (s.blocked) return wait(t('play.blocked'), '!');
         if (s.answer !== null && s.answer !== undefined) return wait(t('play.locked'), lockedBadge(s));
         if (s.question.kind === 'text' || s.question.kind === 'number') return renderType(s, fresh);
+        if (['order', 'pairs', 'point'].includes(s.question.kind)) return renderBuild(s, fresh);
         return renderChoices(s, fresh);
       case 'reveal': return renderResult(s, fresh);
       case 'scoreboard':
@@ -91,6 +92,7 @@
     const k = s.question.kind;
     if (k === 'choice') return LETTERS[s.answer];
     if (k === 'trueFalse') return s.answer === 0 ? '✓' : '✗';
+    if (k === 'order' || k === 'pairs' || k === 'point') return '✓';
     return String(s.answer).slice(0, 14);
   }
 
@@ -147,6 +149,73 @@
     const number = state.question && state.question.kind === 'number';
     socket.emit('answer', number ? Number(v.replace(/\s/g, '').replace(',', '.')) : v);
     $('#type-input').blur();
+    if (navigator.vibrate) navigator.vibrate(25);
+  });
+
+  // Order, pairs and pins: the team builds an answer with taps, can undo, and sends it when it is complete.
+  let build = [];
+  function renderBuild(s, fresh) {
+    showView('build');
+    const q = s.question;
+    $('#b-num').textContent = t('play.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
+    if (fresh) build = [];
+    drawBuild(q, fresh);
+    stopTimer = countdown(s.remaining, q.time * 1000, left => {
+      $('#b-time').textContent = Math.ceil(left / 1000);
+    });
+  }
+
+  function drawBuild(q, enter) {
+    const box = $('#build');
+    const tap = fn => e => { fn(e); if (navigator.vibrate) navigator.vibrate(15); drawBuild(q); };
+    let done = false;
+    if (q.kind === 'order') {
+      $('#build-label').textContent = t('play.tapOrder');
+      box.className = 'build order' + (enter ? ' enter' : '');
+      box.replaceChildren(...q.items.map((item, i) => {
+        const at = build.indexOf(i);
+        return h('button', { type: 'button', class: 'build-item' + (at >= 0 ? ' on' : ''), style: `--k: ${i}`, onclick: tap(() => { if (at < 0) build.push(i); }) },
+          h('span', { class: 'build-n' }, at >= 0 ? String(at + 1) : ''), h('span', { class: 'text' }, item));
+      }));
+      done = build.length === q.items.length;
+    } else if (q.kind === 'pairs') {
+      const cur = build.length;
+      done = cur === q.left.length;
+      $('#build-label').textContent = done ? t('play.pairsDone') : t('play.pickPair', { item: q.left[cur] });
+      box.className = 'build pairs' + (enter ? ' enter' : '');
+      box.replaceChildren(
+        h('ol', { class: 'pair-left' }, q.left.map((l, i) => h('li', { class: i === cur ? 'now' : i < cur ? 'set' : '' },
+          h('span', { class: 'text' }, l), h('span', { class: 'pair-to' }, i < cur ? q.right[build[i]] : '')))),
+        h('div', { class: 'pair-right' }, q.right.map((r, i) => h('button', {
+          type: 'button', class: 'build-item' + (build.includes(i) ? ' used' : ''), disabled: done || build.includes(i),
+          onclick: tap(() => build.push(i)),
+        }, h('span', { class: 'text' }, r)))),
+      );
+    } else {
+      $('#build-label').textContent = t('play.tapSpot');
+      box.className = 'build point';
+      const pin = build[0];
+      const img = h('img', { src: q.image, alt: '', draggable: 'false' });
+      const frame = h('div', {
+        class: 'pin-frame',
+        onclick: tap(e => {
+          const r = img.getBoundingClientRect();
+          const x = (e.clientX - r.left) / r.width;
+          const y = (e.clientY - r.top) / r.height;
+          if (x >= 0 && x <= 1 && y >= 0 && y <= 1) build = [{ x, y }];
+        }),
+      }, img, pin ? h('span', { class: 'pin', style: `left: ${pin.x * 100}%; top: ${pin.y * 100}%` }) : null);
+      box.replaceChildren(frame);
+      done = !!pin;
+    }
+    $('#build-send').disabled = !done;
+    $('#build-undo').disabled = build.length === 0;
+  }
+  $('#build-undo').addEventListener('click', () => { build.pop(); if (state && state.question) drawBuild(state.question); });
+  $('#build-send').addEventListener('click', () => {
+    const q = state && state.question;
+    if (!q) return;
+    socket.emit('answer', q.kind === 'point' ? build[0] : build.slice());
     if (navigator.vibrate) navigator.vibrate(25);
   });
 
@@ -231,7 +300,7 @@
     view.classList.toggle('bad-result', answered && !right);
     if (fresh && right) setTimeout(() => celebrate(icon, 1), 200);
     icon.textContent = right ? '✓' : answered ? '✗' : '–';
-    $('#result-text').textContent = right ? t(s.question.kind === 'number' ? 'play.closest' : 'play.correct') : answered ? t('play.wrong') : t('play.noAnswer');
+    $('#result-text').textContent = right ? t(['number', 'point'].includes(s.question.kind) ? 'play.closest' : 'play.correct') : answered ? t('play.wrong') : t('play.noAnswer');
     const k = s.question.kind;
     const solution = k === 'choice' ? t('play.answerWas', { letter: LETTERS[s.correct], text: s.question.answers[s.correct] })
       : k === 'trueFalse' ? t('play.statementWas', { text: t(s.correct === 0 ? 'play.true' : 'play.false') })

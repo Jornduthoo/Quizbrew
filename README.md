@@ -46,6 +46,20 @@ Open http://localhost:3000/builder (or "Open quiz builder" on the quizmaster scr
 | `scramble` | type the word from shuffled letters | speed by default |
 | `commonThread` | clues appear one by one, type the link | ladder by default |
 | `jackpot` | bet points after seeing the category, then type | + or - the bet |
+| `music` | buttons or typed, a sound fragment plays on the big screen | scoring mode |
+| `introSprint` | type; the intro grows 1, 2, 4, 8 seconds | ladder by default |
+| `rewind` | type; the fragment plays backwards | scoring mode |
+| `soundCheck` | buttons or typed: what makes this sound? | scoring mode |
+| `lyricGap` | type the missing word of a song line | scoring mode |
+| `pixelFog` | buttons or typed; big pixels that get sharp | ladder by default |
+| `silhouette` | buttons or typed; only the outline until the reveal | scoring mode |
+| `oddOneOut` | 3-4 pictures, tap the letter of the odd one | scoring mode |
+| `emoji` | type what the emoji tell | scoring mode |
+| `orderUp` | tap the items in order (items are stored in the right order) | all right or nothing |
+| `pairUp` | for each left item tap its partner | all right or nothing |
+| `mapDrop` | tap a spot on a map or picture | closest pin, within 2% doubles |
+
+Sound files (mp3, m4a, ogg, wav) are uploaded in the builder with a start and end second. Browsers only play sound after one click on the big screen; a button asks for it when needed.
 
 Scoring modes: `points`, `speed` (up to double for fast answers), `race` (only the fastest right team), `risk` (wrong costs points), `time` (seconds left), `ladder` (earlier is worth more).
 Twists per round: `double`, `lockdown` (leaving the page blocks the answer), `blackout` (question only on the TV), `underdog` (last team x1.5). A quiz with `"jokers": true` gives every team one joker (x2 on a round of its choice).

@@ -53,6 +53,17 @@
     </form>
   </section>
 
+  <!-- Put in order, make pairs, or drop a pin on a picture -->
+  <section id="v-build" class="view answer-view" hidden>
+    <div class="mini-head"><span id="b-num"></span><span id="b-time"></span></div>
+    <p class="label build-label" id="build-label"></p>
+    <div class="build" id="build"></div>
+    <div class="build-actions">
+      <button class="ghost-btn" id="build-undo" type="button" data-i18n="play.undo"></button>
+      <button class="brass-btn big" id="build-send" type="button" data-i18n="play.send" disabled></button>
+    </div>
+  </section>
+
   <!-- Bet points before the question (jackpot) -->
   <section id="v-wager" class="view center" hidden>
     <p class="label" data-i18n="play.wagerKicker"></p>
