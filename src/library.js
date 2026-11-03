@@ -6,6 +6,7 @@ const crypto = require('crypto');
 
 const SEGMENT = /^[^\\/:*?"<>|\x00-\x1f]{1,80}$/;
 const MEDIA_TYPES = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'audio/mpeg': 'mp3', 'audio/ogg': 'ogg', 'audio/mp4': 'm4a', 'audio/wav': 'wav', 'video/mp4': 'mp4', 'video/webm': 'webm' };
+const ALIASES = { 'audio/x-m4a': 'm4a', 'audio/x-wav': 'wav', 'audio/wave': 'wav', 'audio/mp3': 'mp3', 'audio/webm': 'webm' };
 const MAX_MEDIA = 12 * 1024 * 1024;
 
 function create(dataDir = path.join(__dirname, '..', 'data')) {
@@ -102,7 +103,7 @@ function create(dataDir = path.join(__dirname, '..', 'data')) {
 
   // Store an uploaded file; same content gives the same name. Returns "/media/<hash>.<ext>".
   function addMedia(buffer, mime) {
-    const ext = MEDIA_TYPES[mime];
+    const ext = MEDIA_TYPES[mime] || ALIASES[mime];
     if (!ext) throw new Error('Unsupported file type');
     if (!buffer || !buffer.length || buffer.length > MAX_MEDIA) throw new Error('File too large');
     const name = `${crypto.createHash('sha1').update(buffer).digest('hex').slice(0, 20)}.${ext}`;

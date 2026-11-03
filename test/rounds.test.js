@@ -52,7 +52,7 @@ test('every round type, scoring mode, twist and family has a name in every langu
     for (const s of rounds.SCORINGS) assert.ok(d[`scoring.${s}`] && d[`scoring.${s}.desc`], `${code}: scoring.${s}`);
     for (const tw of rounds.TWISTS) assert.ok(d[`twist.${tw}`] && d[`twist.${tw}.desc`], `${code}: twist.${tw}`);
     for (const f of ['all', ...rounds.FAMILIES]) assert.ok(d[`family.${f}`], `${code}: family.${f}`);
-    for (const k of ['choice', 'trueFalse', 'text', 'number', 'choiceOrText']) assert.ok(d[`kind.${k}`], `${code}: kind.${k}`);
+    for (const k of ['choice', 'trueFalse', 'text', 'number', 'choiceOrText', 'order', 'pairs', 'point']) assert.ok(d[`kind.${k}`], `${code}: kind.${k}`);
   }
 });
 
@@ -136,6 +136,69 @@ test('picture round needs a picture and plays as buttons or typed', () => {
   go();
   go();
   assert.equal(game.kind, 'choice');
+});
+
+test('in the right order: the phone sends shown positions, only the full right order scores', () => {
+  const items = ['Bronze Age', 'Roman Empire', 'Middle Ages', 'Renaissance'];
+  const { game, ids, go } = play({ type: 'orderUp', questions: [{ question: 'Oldest first', items }] });
+  go();
+  assert.equal(game.kind, 'order');
+  const shown = game.teamState(ids[0]).question.items;
+  assert.deepEqual([...shown].sort(), [...items].sort());
+  assert.notDeepEqual(shown, items, 'items are shuffled');
+  const right = items.map(it => shown.indexOf(it));
+  assert.equal(game.answer(ids[0], [0, 0, 1, 2]), false, 'duplicates are refused');
+  game.answer(ids[0], right);
+  game.answer(ids[1], [...right].reverse());
+  assert.equal(game.phase, 'reveal');
+  assert.deepEqual([...game.teams.values()].map(t => t.score), [2, 0]);
+  assert.deepEqual(game.screenState().reveal.order, items);
+});
+
+test('make pairs: every left item matched to the right one', () => {
+  const pairs = [['France', 'Paris'], ['Belgium', 'Brussels'], ['Spain', 'Madrid']];
+  const { game, ids, go } = play({ type: 'pairUp', questions: [{ question: 'Capitals', pairs }] });
+  go();
+  const q = game.teamState(ids[0]).question;
+  assert.deepEqual(q.left, ['France', 'Belgium', 'Spain']);
+  const right = pairs.map(p => q.right.indexOf(p[1]));
+  game.answer(ids[0], right);
+  game.answer(ids[1], [right[1], right[0], right[2]]);
+  assert.deepEqual([...game.teams.values()].map(t => t.score), [2, 0]);
+});
+
+test('pin it: closest pin wins, spot on doubles, bad pins are refused', () => {
+  assert.throws(() => validateQuiz({ rounds: [{ type: 'mapDrop', questions: [{ image: '/media/m.webp', question: 'Where?' }] }] }), /right spot/);
+  const round = { type: 'mapDrop', questions: [{ image: '/media/m.webp', question: 'Where is Ghent?', answer: 'Ghent', spot: { x: 0.4, y: 0.3 } }] };
+  const { game, ids, go } = play(round, { teams: ['A', 'B', 'C'] });
+  go();
+  assert.equal(game.answer(ids[2], { x: 2, y: 0 }), false);
+  game.answer(ids[0], { x: 0.5, y: 0.5 });
+  game.answer(ids[1], { x: 0.41, y: 0.31 });
+  game.answer(ids[2], { x: 0.45, y: 0.3 });
+  assert.equal(game.phase, 'reveal');
+  assert.deepEqual([...game.teams.values()].map(t => t.score), [0, 4, 0]);
+  assert.equal(game.screenState().answers.length, 3);
+});
+
+test('odd one out, emoji and sound rounds', () => {
+  assert.throws(() => validateQuiz({ rounds: [{ type: 'oddOneOut', questions: [{ images: ['/a', '/b'], correct: 0 }] }] }), /3 or 4 pictures/);
+  assert.throws(() => validateQuiz({ rounds: [{ type: 'emoji', questions: [{ answer: 'x' }] }] }), /emoji/);
+  const { game, ids, go } = play({ type: 'oddOneOut', questions: [{ question: 'Which?', images: ['/a', '/b', '/c'], captions: ['Cat', 'Dog', 'Car'], correct: 2 }] });
+  go();
+  assert.equal(game.kind, 'choice');
+  assert.deepEqual(game.teamState(ids[0]).question.answers, ['Cat', 'Dog', 'Car']);
+  game.answer(ids[0], 2);
+  game.answer(ids[1], 0);
+  assert.deepEqual([...game.teams.values()].map(t => t.score), [1, 0]);
+
+  const music = play({ type: 'introSprint', questions: [{ audio: '/media/s.mp3', start: 12, answer: 'Song' }] });
+  music.go();
+  const pq = music.game.screenState().question;
+  assert.equal(pq.audio, '/media/s.mp3');
+  assert.equal(pq.start, 12);
+  assert.equal(pq.effect, 'grow');
+  assert.throws(() => validateQuiz({ rounds: [{ type: 'music', questions: [{ answer: 'x' }] }] }), /sound/);
 });
 
 test('scoring modes: speed, race, risk, time and ladder', () => {

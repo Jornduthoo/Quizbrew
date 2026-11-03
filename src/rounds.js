@@ -73,6 +73,25 @@ function scramble(word) {
   return letters.join('');
 }
 
+
+// A fixed shuffle of 0..n-1 for the same content (so a reload shows the same order), never the identity when n > 1.
+function permutation(n, seedText) {
+  const idx = Array.from({ length: n }, (_, i) => i);
+  let seed = [...String(seedText)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 11);
+  const rnd = () => { seed = (seed * 1103515245 + 12345) >>> 0; return seed / 4294967296; };
+  for (let tries = 0; tries < 6; tries++) {
+    for (let i = n - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [idx[i], idx[j]] = [idx[j], idx[i]];
+    }
+    if (n < 2 || idx.some((v, i) => v !== i)) break;
+  }
+  return idx;
+}
+
+// Distance between two points on a picture, both 0..1, as a share of the picture's diagonal.
+const pointDistance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) / Math.SQRT2;
+
 const str = v => (typeof v === 'string' ? v.trim() : '');
 const list = v => (Array.isArray(v) ? v.map(str).filter(Boolean) : typeof v === 'string' ? v.split('|').map(str).filter(Boolean) : []);
 
@@ -86,6 +105,7 @@ const need = {
   },
   answer(q, fail) { if (!str(q.answer)) fail('needs the right answer'); },
   image(q, fail) { if (!str(q.image)) fail('needs a picture'); },
+  audio(q, fail) { if (!str(q.audio)) fail('needs a sound file'); },
 };
 
 // Parts reused by many types.
@@ -231,6 +251,147 @@ const TYPES = [
     aiShape: '{"category": "category shown before betting", "question": "...", "answer": "short answer", "accept": ["..."]}',
     fromAI: it => ({ category: str(it.category), question: str(it.question), answer: str(it.answer), accept: list(it.accept) }),
   },
+  // ---------- wave 2: sound and pictures ----------
+  {
+    id: 'music', family: 'audio', ...choiceOrText, media: 'audio',
+    defaults: { time: 30, points: 1, scoring: 'points' },
+    fields: ['audio', 'question', 'answerOrChoices', 'time', 'points'],
+    validate(q, fail) { need.audio(q, fail); if (Array.isArray(q.answers) && q.answers.length) need.answers(q, fail); else need.answer(q, fail); },
+    aiShape: '{"question": "Who sings this? / What is the title?", "answer": "artist or title", "accept": ["..."], "song": "Artist - Title", "clipStart": 35}  (the quizmaster adds the sound file; clipStart = second where the recognisable part starts)',
+    fromAI: it => ({ question: str(it.question), answer: str(it.answer), accept: list(it.accept), audioHint: str(it.song), start: Number(it.clipStart) || 0 }),
+  },
+  {
+    id: 'introSprint', family: 'audio', ...textType, media: 'audio', effect: 'grow',
+    defaults: { time: 30, points: 4, scoring: 'ladder' },
+    fields: ['audio', 'question', 'answer', 'time', 'points'],
+    validate(q, fail) { need.audio(q, fail); need.answer(q, fail); },
+    steps: () => 4,
+    aiShape: '{"question": "Name the song", "answer": "title", "accept": ["..."], "song": "Artist - Title"}  (well known songs with a recognisable intro; the quizmaster adds the sound file)',
+    fromAI: it => ({ question: str(it.question), answer: str(it.answer), accept: list(it.accept), audioHint: str(it.song) }),
+  },
+  {
+    id: 'rewind', family: 'audio', ...textType, media: 'audio', effect: 'reverse',
+    defaults: { time: 30, points: 1, scoring: 'points' },
+    fields: ['audio', 'question', 'answer', 'time', 'points'],
+    validate(q, fail) { need.audio(q, fail); need.answer(q, fail); },
+    aiShape: '{"question": "This song plays backwards. Which one is it?", "answer": "title", "accept": ["..."], "song": "Artist - Title"}',
+    fromAI: it => ({ question: str(it.question), answer: str(it.answer), accept: list(it.accept), audioHint: str(it.song) }),
+  },
+  {
+    id: 'soundCheck', family: 'audio', ...choiceOrText, media: 'audio',
+    defaults: { time: 20, points: 1, scoring: 'points' },
+    fields: ['audio', 'question', 'answerOrChoices', 'time', 'points'],
+    validate(q, fail) { need.audio(q, fail); if (Array.isArray(q.answers) && q.answers.length) need.answers(q, fail); else need.answer(q, fail); },
+    aiShape: '{"question": "What makes this sound?", "answers": ["...", "...", "...", "..."], "correct": 0, "sound": "description of the sound to record or find"}',
+    fromAI: it => ({ question: str(it.question), answers: list(it.answers).slice(0, 4), correct: Number(it.correct) || 0, audioHint: str(it.sound) }),
+  },
+  {
+    id: 'lyricGap', family: 'audio', ...textType,
+    defaults: { time: 25, points: 1, scoring: 'points' },
+    fields: ['question', 'answer', 'audio', 'time', 'points'],
+    validate(q, fail) { need.text(q, fail); need.answer(q, fail); },
+    aiShape: '{"question": "a line of a famous song with the missing word as ___", "answer": "missing word", "song": "Artist - Title"}  (quote at most one short line)',
+    fromAI: it => ({ question: str(it.question), answer: str(it.answer), audioHint: str(it.song) }),
+  },
+  {
+    id: 'pixelFog', family: 'visual', ...choiceOrText, effect: 'pixel',
+    defaults: { time: 25, points: 5, scoring: 'ladder' },
+    fields: ['image', 'question', 'answerOrChoices', 'time', 'points'],
+  },
+  {
+    id: 'silhouette', family: 'visual', ...choiceOrText, effect: 'silhouette',
+    defaults: { time: 20, points: 1, scoring: 'points' },
+    fields: ['image', 'question', 'answerOrChoices', 'time', 'points'],
+    aiShape: '{"question": "Whose shadow is this?", "answer": "short answer", "accept": ["..."], "imagePrompt": "a prompt for an image AI: the subject alone on a plain white background, clear outline"}',
+  },
+  {
+    id: 'oddOneOut', family: 'visual', kind: 'choice',
+    defaults: { time: 20, points: 1, scoring: 'points' },
+    fields: ['question', 'images', 'time', 'points'],
+    validate(q, fail) {
+      if (!Array.isArray(q.images) || q.images.length < 3 || q.images.length > 4 || q.images.some(x => !str(x))) fail('needs 3 or 4 pictures');
+      if (!Number.isInteger(q.correct) || q.correct < 0 || q.correct >= q.images.length) fail('has no odd one marked');
+    },
+    parse: (raw, q) => (Number.isInteger(raw) && raw >= 0 && raw < q.images.length ? raw : undefined),
+    isCorrect: (a, q) => a === q.correct,
+    publicQ: q => ({ images: q.images, answers: q.images.map((_, i) => (q.captions && q.captions[i]) || '') }),
+    revealQ: q => ({ correct: q.correct, answerText: (q.captions && q.captions[q.correct]) || '' }),
+    aiShape: '{"question": "Which one does not belong?", "captions": ["...", "...", "...", "..."], "correct": 2, "imagePrompts": ["...", "...", "...", "..."]}',
+    fromAI: it => ({ question: str(it.question), captions: list(it.captions).slice(0, 4), correct: Number(it.correct) || 0, images: [], imagePrompt: list(it.imagePrompts).join(' | ') }),
+  },
+  {
+    id: 'emoji', family: 'visual', ...textType,
+    defaults: { time: 30, points: 1, scoring: 'points' },
+    fields: ['emoji', 'question', 'answer', 'time', 'points'],
+    validate(q, fail) { if (!str(q.emoji)) fail('needs emoji'); need.answer(q, fail); },
+    publicQ: q => ({ emoji: str(q.emoji) }),
+    aiShape: '{"emoji": "🦁👑", "question": "Which film?", "answer": "short answer", "accept": ["..."]}  (3 to 6 emoji that spell out a film, song, saying or place)',
+    fromAI: it => ({ emoji: str(it.emoji), question: str(it.question), answer: str(it.answer), accept: list(it.accept) }),
+  },
+  {
+    id: 'orderUp', family: 'classic', kind: 'order',
+    defaults: { time: 40, points: 2, scoring: 'points' },
+    fields: ['question', 'items', 'time', 'points'],
+    validate(q, fail) {
+      need.text(q, fail);
+      if (!Array.isArray(q.items) || q.items.length < 3 || q.items.length > 6 || q.items.some(x => !str(x))) fail('needs 3 to 6 items');
+    },
+    // The phone sends the shown items in the order the team chose (indexes into the shown list).
+    parse(raw, q) {
+      const n = q.items.length;
+      if (!Array.isArray(raw) || raw.length !== n || new Set(raw).size !== n || raw.some(i => !Number.isInteger(i) || i < 0 || i >= n)) return undefined;
+      const shown = permutation(n, q.items.join('|'));
+      return raw.map(i => shown[i]);
+    },
+    isCorrect: a => a.every((v, i) => v === i),
+    publicQ: q => ({ items: permutation(q.items.length, q.items.join('|')).map(i => q.items[i]) }),
+    revealQ: q => ({ order: q.items, answerText: q.items.join(' → ') }),
+    aiShape: '{"question": "Put these in order from oldest to newest", "items": ["first", "second", "third", "fourth"]}  (items listed in the RIGHT order; say in the question what the order is)',
+    fromAI: it => ({ question: str(it.question), items: list(it.items).slice(0, 6) }),
+  },
+  {
+    id: 'pairUp', family: 'classic', kind: 'pairs',
+    defaults: { time: 45, points: 2, scoring: 'points' },
+    fields: ['question', 'pairs', 'time', 'points'],
+    validate(q, fail) {
+      need.text(q, fail);
+      if (!Array.isArray(q.pairs) || q.pairs.length < 3 || q.pairs.length > 5 || q.pairs.some(p => !Array.isArray(p) || !str(p[0]) || !str(p[1]))) fail('needs 3 to 5 pairs');
+    },
+    // The phone sends, for every left item, the index of the right item it picked (in the shown right column).
+    parse(raw, q) {
+      const n = q.pairs.length;
+      if (!Array.isArray(raw) || raw.length !== n || new Set(raw).size !== n || raw.some(i => !Number.isInteger(i) || i < 0 || i >= n)) return undefined;
+      const shown = permutation(n, q.pairs.map(p => p[1]).join('|'));
+      return raw.map(i => shown[i]);
+    },
+    isCorrect: a => a.every((v, i) => v === i),
+    publicQ: q => ({ left: q.pairs.map(p => p[0]), right: permutation(q.pairs.length, q.pairs.map(p => p[1]).join('|')).map(i => q.pairs[i][1]) }),
+    revealQ: q => ({ pairs: q.pairs, answerText: q.pairs.map(p => `${p[0]} = ${p[1]}`).join(' · ') }),
+    aiShape: '{"question": "Match the country to its capital", "pairs": [["left", "right"], ["left", "right"], ["left", "right"], ["left", "right"]]}',
+    fromAI: it => ({ question: str(it.question), pairs: (Array.isArray(it.pairs) ? it.pairs : []).filter(p => Array.isArray(p) && p.length >= 2).map(p => [str(p[0]), str(p[1])]).slice(0, 5) }),
+  },
+  {
+    id: 'mapDrop', family: 'visual', kind: 'point',
+    defaults: { time: 30, points: 2 },
+    fields: ['image', 'question', 'spot', 'time', 'points'],
+    scorings: [],
+    validate(q, fail) {
+      need.image(q, fail);
+      need.text(q, fail);
+      if (!q.spot || !(q.spot.x >= 0 && q.spot.x <= 1 && q.spot.y >= 0 && q.spot.y <= 1)) fail('needs the right spot on the picture');
+    },
+    parse: raw => (raw && Number.isFinite(raw.x) && Number.isFinite(raw.y) && raw.x >= 0 && raw.x <= 1 && raw.y >= 0 && raw.y <= 1 ? { x: Math.round(raw.x * 1000) / 1000, y: Math.round(raw.y * 1000) / 1000 } : undefined),
+    publicQ: () => ({}),
+    revealQ: q => ({ spot: q.spot, answerText: str(q.answer) }),
+    // The closest pin gets the points, a pin within 2% of the picture doubles them.
+    score(entries, q, base) {
+      const d = e => (e.answer ? pointDistance(e.answer, q.spot) : Infinity);
+      const best = Math.min(...entries.map(d));
+      return entries.map(e => (e.answer && d(e) === best ? { points: d(e) <= 0.02 ? base * 2 : base, correct: true } : { points: 0, correct: false }));
+    },
+    aiShape: '{"question": "Where is Paris?", "answer": "Paris", "mapHint": "which map to use, e.g. a map of Europe"}  (the quizmaster adds the map and clicks the right spot)',
+    fromAI: it => ({ question: str(it.question), answer: str(it.answer), imagePrompt: str(it.mapHint) }),
+  },
 ];
 
 const BY_ID = Object.fromEntries(TYPES.map(t => [t.id, t]));
@@ -260,8 +421,8 @@ function catalog() {
     families: FAMILIES,
     scorings: SCORINGS,
     twists: TWISTS,
-    types: TYPES.map(t => ({ id: t.id, family: t.family, kind: t.kind || 'choiceOrText', fields: t.fields, defaults: t.defaults, scorings: t.scorings, wager: !!t.wager, effect: t.effect || null })),
+    types: TYPES.map(t => ({ id: t.id, family: t.family, kind: t.kind || 'choiceOrText', fields: t.fields, defaults: t.defaults, scorings: t.scorings, wager: !!t.wager, effect: t.effect || null, media: t.media || null })),
   };
 }
 
-module.exports = { TYPES, SCORINGS, TWISTS, FAMILIES, get, kindOf, stepsOf, withDefaults, catalog, normalize, textMatches, scramble, list, str };
+module.exports = { permutation, pointDistance, TYPES, SCORINGS, TWISTS, FAMILIES, get, kindOf, stepsOf, withDefaults, catalog, normalize, textMatches, scramble, list, str };

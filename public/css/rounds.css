@@ -88,6 +88,76 @@ body.screen[data-phase="wager"] .bg-stage { opacity: 1; animation-play-state: ru
 .screen .answered-dots.big { gap: 1.4vw; margin-top: 4vh; }
 .screen .answered-dots.big .dot { width: 3vh; height: 3vh; }
 
+/* ---------- big screen: pictures and sound (wave 2) ---------- */
+.screen .q-media canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* A silhouette: the picture in pure shadow with a neon rim, lit up at the reveal. */
+.screen .q-media.silhouette { background: radial-gradient(circle at 50% 45%, #fff6e0, #f6d48c 55%, #8a5a26); }
+.screen .q-media.silhouette img { filter: brightness(0) drop-shadow(0 0 1.4vh var(--theme, var(--neon-amber))); transition: filter 1.2s ease; }
+body.revealed .q-media.silhouette img { filter: none; }
+.screen .q-media.map { background: #10233a; }
+.screen .pins { position: absolute; inset: 0; pointer-events: none; }
+.screen .pin {
+  position: absolute; width: 2.4vh; height: 2.4vh; margin: -2.4vh 0 0 -1.2vh; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  background: var(--team, var(--c, var(--brass))); border: 2px solid #fff; box-shadow: 0 0 14px var(--team, var(--c, var(--brass)));
+  animation: pin-drop .5s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+.screen .pin.goal { width: 3.4vh; height: 3.4vh; margin: -1.7vh 0 0 -1.7vh; border-radius: 50%; transform: none; background: transparent; border: 4px solid var(--good); box-shadow: 0 0 22px var(--good), inset 0 0 12px var(--good); animation: goal-pulse 1.4s ease-in-out .4s infinite both; }
+@keyframes pin-drop { from { transform: translateY(-6vh) rotate(-45deg); opacity: 0; } }
+@keyframes goal-pulse { 50% { box-shadow: 0 0 40px var(--good), inset 0 0 18px var(--good); transform: scale(1.15); } }
+
+/* Sound only: a pulsing equaliser in the frame. */
+.screen .q-media.audio-only { flex-basis: 34%; background: radial-gradient(circle at 50% 50%, #2a1408, #0b0503); }
+.screen .sound-wave { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 1.2vh; pointer-events: none; }
+.screen .q-media:not(.audio-only) .sound-wave { inset: auto 0 1.4vh; height: 8vh; }
+.screen .sound-wave i { width: 1.6vh; height: 40%; border-radius: 1vh; background: linear-gradient(180deg, var(--neon-pink), var(--theme, var(--neon-amber))); box-shadow: 0 0 16px var(--theme, var(--neon-amber)); animation: eq 1.1s ease-in-out infinite; }
+.screen .sound-wave i:nth-child(2n) { animation-duration: .8s; animation-delay: -.3s; }
+.screen .sound-wave i:nth-child(3n) { animation-duration: 1.4s; animation-delay: -.6s; }
+@keyframes eq { 0%, 100% { transform: scaleY(.25); } 50% { transform: scaleY(1); } }
+body.revealed .sound-wave i { animation-duration: 2.4s; opacity: .6; }
+.screen .sound-gate {
+  position: fixed; left: 50%; bottom: 4vh; transform: translateX(-50%); z-index: 50; cursor: pointer;
+  padding: 1.2vh 2.4vw; border-radius: 999px; border: 3px solid var(--neon-pink); background: rgba(10, 4, 2, .85);
+  color: #fff; font: inherit; font-size: 1.4em; font-weight: 800; box-shadow: 0 0 30px var(--neon-pink); animation: hint-pulse 1.6s ease-in-out infinite;
+}
+.screen .sound-gate::before { content: '♪ '; }
+
+/* Emoji that pop up one by one. */
+.screen .emoji-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 2vw; font-size: 6em; line-height: 1.1; }
+.screen .emo { display: inline-block; filter: drop-shadow(0 0 18px rgba(255, 180, 60, .45)); animation: emo-pop .6s cubic-bezier(.2, 1.6, .4, 1) both; animation-delay: calc(.3s + var(--k) * .35s); }
+@keyframes emo-pop { from { transform: scale(0) rotate(-25deg); opacity: 0; } }
+
+/* Put in order: numbered brass plates. */
+.screen .order-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1.2vh; }
+.screen .order-item, .screen .pair-col li {
+  display: flex; align-items: center; gap: 1.2vw; padding: 1.2vh 1.6vw; border-radius: 14px; font-size: 1.5em; font-weight: 700;
+  background: rgba(0, 0, 0, .45); border: 2px solid var(--theme, var(--brass)); box-shadow: 0 0 14px color-mix(in srgb, var(--theme, var(--brass)) 40%, transparent);
+  animation: tube-on .8s linear both; animation-delay: calc(.4s + var(--k) * .14s);
+}
+.screen .order-item .letter, .screen .pair-col .letter, .screen .pair-col .num {
+  flex: none; width: 1.8em; height: 1.8em; display: grid; place-items: center; border-radius: 50%; font-size: .85em;
+  background: var(--theme, var(--brass)); color: #1a0e08; font-weight: 800;
+}
+.screen .order-item.solved { border-color: var(--good); box-shadow: 0 0 18px rgba(93, 255, 154, .4); }
+.screen .order-item.solved .letter { background: var(--good); }
+/* Make pairs: two columns, then one solved column with the matches. */
+.screen .pair-cols { display: flex; gap: 2vw; }
+.screen .pair-col { list-style: none; margin: 0; padding: 0; flex: 1; display: flex; flex-direction: column; gap: 1.2vh; }
+.screen .pair-col.right li { border-color: var(--neon-cyan); box-shadow: 0 0 14px rgba(62, 230, 255, .35); }
+.screen .pair-col.right .letter { background: var(--neon-cyan); }
+.screen .pair-col.solved li { border-color: var(--good); }
+.screen .pair-col.solved .num { background: var(--good); }
+.screen .pair-col .eq { color: var(--muted); }
+.screen .pair-col strong { color: var(--good); text-shadow: 0 0 12px rgba(93, 255, 154, .5); }
+
+/* Odd one out: four framed pictures with a letter. */
+.screen .answers.images { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); grid-auto-flow: column; }
+.screen .answers.images .answer { flex-direction: column; justify-content: flex-end; align-items: center; min-height: 34vh; padding: 0; overflow: hidden; }
+.screen .answers.images .answer-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 15px; }
+.screen .answers.images .letter { position: absolute; left: 1vh; top: 1vh; }
+.screen .answers.images .text { flex: none; position: relative; padding: .2em .7em; border-radius: 8px; background: rgba(0, 0, 0, .65); font-size: .8em; margin-bottom: 1.2vh; }
+.screen .answers.images .text:empty { display: none; }
+.screen .answers.images .count { position: absolute; right: 4.4vh; top: 1.4vh; margin: 0; background: rgba(0, 0, 0, .65); }
+
 /* ---------- phone ---------- */
 .phone .choices.tf { grid-template-rows: 1fr 1fr; }
 .phone .choices.tf .choice:nth-child(1) { --a: #5dff9a; }
@@ -111,6 +181,35 @@ body.screen[data-phase="wager"] .bg-stage { opacity: 1; animation-play-state: ru
 .phone .joker-btn { margin-top: 4vh; background: linear-gradient(180deg, #fff2a8, #ffcf3c 55%, #b07a12); box-shadow: 0 0 26px rgba(255, 207, 60, .55), 0 2px 0 #4a3010; }
 .phone .joker-btn::before { content: '★ '; }
 
+/* Order, pairs and pins */
+.phone .build-label { text-align: center; font-size: 1.1em; margin: 2vh 0 1.4vh; }
+.phone .build { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: auto; }
+.phone .build-item {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; border-radius: 16px; text-align: left; font: inherit; font-size: 1.1em; font-weight: 700;
+  color: var(--cream); background: rgba(0, 0, 0, .45); border: 2px solid rgba(246, 212, 140, .35); cursor: pointer;
+  transition: border-color .2s, box-shadow .2s, transform .1s;
+}
+.phone .build.enter .build-item { animation: choice-in .45s cubic-bezier(.2, 1.3, .4, 1) both; animation-delay: calc(var(--k, 0) * .06s); }
+.phone .build-item:active { transform: scale(.97); }
+.phone .build-item.on { border-color: var(--me, var(--brass)); box-shadow: 0 0 18px color-mix(in srgb, var(--me, var(--brass)) 45%, transparent); }
+.phone .build-n { flex: none; width: 2em; height: 2em; display: grid; place-items: center; border-radius: 50%; border: 2px dashed rgba(246, 212, 140, .35); font-weight: 800; }
+.phone .build-item.on .build-n { border: none; background: var(--me, var(--brass)); color: #1a0e08; }
+.phone .build.pairs { gap: 16px; }
+.phone .pair-left { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.phone .pair-left li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 12px; background: rgba(0, 0, 0, .3); color: var(--muted); font-weight: 700; }
+.phone .pair-left li.now { color: #fff; outline: 2px solid var(--me, var(--brass)); box-shadow: 0 0 16px color-mix(in srgb, var(--me, var(--brass)) 45%, transparent); }
+.phone .pair-left li.set { color: var(--cream); }
+.phone .pair-to { color: var(--me, var(--brass-light)); text-align: right; }
+.phone .pair-right { display: flex; flex-direction: column; gap: 8px; }
+.phone .build-item.used { opacity: .3; }
+.phone .pin-frame { position: relative; align-self: center; max-width: 100%; touch-action: manipulation; cursor: crosshair; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 3px var(--brass), 0 10px 30px rgba(0, 0, 0, .5); }
+.phone .pin-frame img { display: block; max-width: 100%; max-height: 58vh; user-select: none; -webkit-user-select: none; }
+.phone .pin { position: absolute; width: 26px; height: 26px; margin: -26px 0 0 -13px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--me, var(--brass)); border: 3px solid #fff; box-shadow: 0 0 16px var(--me, var(--brass)); animation: pin-in .35s cubic-bezier(.2, 1.5, .4, 1) both; }
+@keyframes pin-in { from { transform: translateY(-30px) rotate(-45deg); opacity: 0; } }
+.phone .build-actions { display: flex; gap: 10px; padding: 12px 0 4px; }
+.phone .build-actions .brass-btn { flex: 1; }
+.phone .build-actions button:disabled { opacity: .4; }
+
 /* ---------- quizmaster ---------- */
 .host .card-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .host .card-actions a, .host .builder-card a { text-decoration: none; color: var(--cream); }
@@ -131,3 +230,11 @@ body.screen[data-phase="wager"] .bg-stage { opacity: 1; animation-play-state: ru
 .host .judge .mini.ok.on { background: rgba(93, 255, 154, .3); border-color: var(--good); }
 .host .judge .mini.no.on { background: rgba(255, 90, 90, .3); border-color: var(--bad); }
 .host .joker-star { color: #ffcf3c; }
+.host .host-img.shadow { filter: brightness(0) drop-shadow(0 0 6px var(--neon-amber)); background: #f6d48c; }
+.host .host-emoji { font-size: 2.6em; margin: 8px 0 0; letter-spacing: .1em; }
+.host .host-imgs { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.host .host-imgs figure { margin: 0; position: relative; width: 110px; }
+.host .host-imgs img { width: 110px; height: 80px; object-fit: cover; border-radius: 8px; display: block; border: 2px solid transparent; }
+.host .host-imgs figure.key img { border-color: var(--good); box-shadow: 0 0 12px rgba(93, 255, 154, .5); }
+.host .host-imgs figcaption { position: absolute; left: 6px; top: 4px; font-weight: 800; text-shadow: 0 1px 3px #000; }
+.host #preview .card-actions { margin-top: 10px; }

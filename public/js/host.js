@@ -91,7 +91,15 @@
       kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions })}`;
       const q = s.question;
       title.textContent = q.text || (q.clues ? q.clues.join(' · ') : '') || (q.scrambled || '');
-      if (q.image) preview.append(h('img', { class: 'host-img', src: q.image, alt: '' }));
+      const key = s.phase === 'reveal' ? s.reveal : s.answerKey;
+      if (q.emoji) preview.append(h('p', { class: 'host-emoji' }, q.emoji));
+      if (q.image) preview.append(h('img', { class: 'host-img' + (q.effect === 'silhouette' && s.phase !== 'reveal' ? ' shadow' : ''), src: q.image, alt: '' }));
+      if (q.images) preview.append(h('div', { class: 'host-imgs' }, q.images.map((src, i) => h('figure', { class: key && key.correct === i ? 'key' : '' }, h('img', { src, alt: '' }), h('figcaption', {}, LETTERS[i])))));
+      if (q.audio) {
+        preview.append(h('div', { class: 'card-actions' },
+          h('button', { class: 'ghost-btn small', type: 'button', onclick: () => socket.emit('media', 'replay') }, t('host.replay')),
+          h('button', { class: 'ghost-btn small', type: 'button', onclick: () => socket.emit('media', 'stop') }, t('host.stopSound'))));
+      }
       const kind = q.kind;
       if (kind === 'choice' || kind === 'trueFalse') {
         const key = s.phase === 'reveal' ? s.correct : s.answerKey && s.answerKey.correct;
@@ -105,7 +113,7 @@
         const rows = s.phase === 'reveal' ? s.answers : s.liveAnswers;
         if (rows && rows.length) {
           preview.append(h('ul', { class: 'judge-list' }, rows.map(a => h('li', { class: 'judge-row' + (s.phase === 'reveal' ? (a.correct ? ' right' : ' wrong') : ''), style: teamVar(a.color) },
-            h('span', { class: 'team-dot' }), h('span', { class: 'name' }, a.name), h('span', { class: 'given' }, a.answer === null ? '—' : String(a.answer)),
+            h('span', { class: 'team-dot' }), h('span', { class: 'name' }, a.name), h('span', { class: 'given' }, given(a.answer, kind, key)),
             s.phase === 'reveal' ? h('span', { class: 'pts' }, (a.points > 0 ? '+' : '') + a.points) : null,
             s.canJudge && a.answer !== null ? h('span', { class: 'judge' },
               h('button', { class: 'mini ok' + (a.correct ? ' on' : ''), title: t('host.markRight'), onclick: () => socket.emit('judge', { teamId: a.id, correct: true }) }, '✓'),
@@ -123,6 +131,15 @@
     }
 
     renderTeams(s);
+  }
+
+  // What a team gave, readable for the quizmaster.
+  function given(a, kind, key) {
+    if (a === null || a === undefined) return '—';
+    if (kind === 'order') return key && key.order ? a.map(i => key.order[i]).join(' → ') : '✓';
+    if (kind === 'pairs') return key && key.pairs ? t('host.pairsRight', { n: a.filter((v, i) => v === i).length, total: a.length }) : '✓';
+    if (kind === 'point') return key && key.spot ? t('screen.distance', { n: Math.round(Math.hypot(a.x - key.spot.x, a.y - key.spot.y) * 100) }) : '📍';
+    return String(a);
   }
 
   function renderTeams(s) {

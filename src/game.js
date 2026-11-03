@@ -334,6 +334,9 @@ class Game {
       kind: this.kind,
       text: q.question || '',
       image: q.image || null,
+      audio: q.audio || null,
+      start: Number(q.start) > 0 ? Number(q.start) : 0,
+      end: Number(q.end) > 0 ? Number(q.end) : null,
       effect: type.effect || null,
       steps: rounds.stepsOf(type, q),
       time: q.time,
@@ -380,10 +383,10 @@ class Game {
       ranking: this.phase === 'scoreboard' || this.phase === 'end' || reveal ? this.ranking() : null,
     };
     if (reveal && (kind === 'choice' || kind === 'trueFalse')) {
-      const n = kind === 'trueFalse' ? 2 : this.question.answers.length;
+      const n = kind === 'trueFalse' ? 2 : (this.question.answers || this.question.images).length;
       state.counts = Array.from({ length: n }, (_, i) => teams.filter(t => t.answer === i).length);
     }
-    if (reveal && (kind === 'text' || kind === 'number')) {
+    if (reveal && ['text', 'number', 'point', 'order', 'pairs'].includes(kind)) {
       state.answers = [...this.teams.entries()].map(([id, t]) => ({
         id, name: t.name, color: t.color, answer: t.answer, correct: t.correct, points: t.lastPoints, wager: t.wager,
       }));
@@ -399,7 +402,7 @@ class Game {
       ranking: this.ranking(),
       teamIds: [...this.teams.keys()],
       answerKey: live ? this.type.revealQ(q) : null,
-      liveAnswers: this.phase === 'question' && (this.kind === 'text' || this.kind === 'number')
+      liveAnswers: this.phase === 'question' && ['text', 'number', 'point'].includes(this.kind)
         ? [...this.teams.values()].filter(t => t.answer !== null).map(t => ({ name: t.name, color: t.color, answer: t.answer }))
         : null,
       canJudge: this.phase === 'reveal' && !this.type.score && this.kind === 'text',
