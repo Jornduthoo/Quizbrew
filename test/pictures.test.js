@@ -30,7 +30,7 @@ test('a Commons search gives pictures in order, with maker and licence, and leav
   assert.deepEqual(results.map(r => r.title), ['Eiffel Tower', 'Lighthouse at night']);
   assert.equal(results[1].credit, 'Jane & Co · CC BY-SA 4.0 · Wikimedia Commons');
   assert.equal(results[0].credit, 'Public domain · Wikimedia Commons');
-  assert.match(results[0].thumb, /\/320px-Eiffel\.png$/);
+  assert.match(results[0].thumb, /\/330px-Eiffel\.png$/);
   assert.match(results[0].url, /\/1280px-Eiffel\.png$/);
   assert.deepEqual((await Pictures.search('   ')).results, []);
   await assert.rejects(Pictures.search('x', { fetch: fakeFetch([]) }), /pictures\.offline/);
