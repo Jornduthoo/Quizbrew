@@ -356,6 +356,8 @@
   "screen.makePairs": "Faites les paires sur votre téléphone",
   "screen.distance": "à {n} %",
   "screen.enableSound": "Cliquez pour activer le son",
+  "screen.fullscreen": "Plein écran",
+  "screen.fullscreenHint": "ou appuyez sur F11",
   "play.tapOrder": "Touchez les éléments dans le bon ordre",
   "play.pickPair": "Qu'est-ce qui va avec « {item} » ?",
   "play.pairsDone": "Toutes les paires sont faites. Envoyez !",

@@ -274,7 +274,7 @@
       kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('host.phase.vote')}`;
       title.textContent = s.question.text || '';
       preview.append(h('ol', { class: 'mini-answers ballot-mini' }, s.ballot.map((b, i) => h('li', {},
-        h('span', { class: 'letter' }, LETTERS[i] || String(i + 1)), b.image ? h('img', { class: 'ballot-thumb', src: b.content, alt: '' }) : b.content))));
+        h('span', { class: 'letter' }, String.fromCharCode(65 + i)), b.image ? h('img', { class: 'ballot-thumb', src: b.content, alt: '' }) : b.content))));
       preview.append(h('p', { class: 'hint' }, t('screen.votedCount', { n: s.answered, total: s.teams.filter(x => !x.paper).length })));
     } else if (s.phase === 'question' || s.phase === 'reveal') {
       kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions })}`;
@@ -283,7 +283,7 @@
       if (s.actor) preview.append(h('p', { class: 'hint' }, t('screen.actsNow', { name: s.actor.name })));
       if (s.phase === 'reveal' && s.ballot) {
         preview.append(h('ol', { class: 'mini-answers ballot-mini' }, s.ballot.map((b, i) => h('li', { class: b.truth ? 'key' : '' },
-          h('span', { class: 'letter' }, LETTERS[i] || String(i + 1)), b.image ? h('img', { class: 'ballot-thumb', src: b.content, alt: '' }) : b.content,
+          h('span', { class: 'letter' }, String.fromCharCode(65 + i)), b.image ? h('img', { class: 'ballot-thumb', src: b.content, alt: '' }) : b.content,
           h('span', { class: 'n' }, `${b.truth ? t('screen.theTruth') : b.by ? b.by.name : ''} · ${(b.votes || []).length}`)))));
       }
       const key = s.phase === 'reveal' ? s.reveal : s.answerKey;

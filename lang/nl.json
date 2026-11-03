@@ -356,6 +356,8 @@
   "screen.makePairs": "Maak de paren op je telefoon",
   "screen.distance": "{n}% ernaast",
   "screen.enableSound": "Klik om het geluid aan te zetten",
+  "screen.fullscreen": "Volledig scherm",
+  "screen.fullscreenHint": "of druk op F11",
   "play.tapOrder": "Tik de items aan in de juiste volgorde",
   "play.pickPair": "Wat hoort bij “{item}”?",
   "play.pairsDone": "Alle paren gemaakt. Verstuur!",

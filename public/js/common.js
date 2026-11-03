@@ -132,12 +132,41 @@
   const CROWN = '<svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18l1.5-11 5 5L12 4l2.5 8 5-5L21 18z"/><path d="M3.5 21h17"/></svg>';
 
   // Put each letter (or word) in its own span with --i, so CSS can light them up one by one.
+  // Letters stay together in a word (.w), so a title only wraps between words, never inside one.
   function split(el, text, by) {
-    const parts = by === 'word' ? text.split(/(\s+)/) : Array.from(text);
+    const parts = String(text).split(/(\s+)/).filter(Boolean);
     let i = 0;
-    el.replaceChildren(...parts.map(p => (/^\s+$/.test(p) ? document.createTextNode(p) : h('span', { class: 'ch', style: `--i: ${i++}` }, p))));
+    el.replaceChildren(...parts.map(p => {
+      if (/^\s+$/.test(p)) return document.createTextNode(' ');
+      if (by === 'word') return h('span', { class: 'ch', style: `--i: ${i++}` }, p);
+      return h('span', { class: 'w' }, Array.from(p).map(c => h('span', { class: 'ch', style: `--i: ${i++}` }, c)));
+    }));
     el.style.setProperty('--n', i);
     el.setAttribute('aria-label', text);
+  }
+
+  // Make text smaller until it fits its box: no word sticks out on the side, and at most `lines` lines
+  // (or at most `height` pixels). Sizes in em inside the element shrink along. Returns the scale used.
+  function fit(el, { lines = 0, height = 0, min = 0.4 } = {}) {
+    if (!el) return 1;
+    el.style.fontSize = '';
+    if (el.offsetParent === null) return 1;
+    const base = parseFloat(getComputedStyle(el).fontSize);
+    let size = base;
+    const tooBig = () => {
+      if (el.scrollWidth > el.clientWidth + 1) return true;
+      if (height && el.scrollHeight > height + 1) return true;
+      if (lines) {
+        const lh = parseFloat(getComputedStyle(el).lineHeight) || size * 1.15;
+        if (el.scrollHeight > lh * lines + lh * 0.5) return true;
+      }
+      return false;
+    };
+    while (size > base * min && tooBig()) {
+      size *= 0.92;
+      el.style.fontSize = size + 'px';
+    }
+    return size / base;
   }
 
   // Count a number up in an element, with an ease-out. Respects the effects level.
@@ -167,5 +196,5 @@
     return keys.length ? t(keys[(Math.random() * keys.length) | 0], vars) : '';
   }
 
-  window.QB = { quip, applyLook, $, h, showView, LETTERS, REACTIONS, teamVar, dot, countdown, mmss, info, ROUND_THEMES, roundTheme, CROWN, split, countUp, later, clearLater };
+  window.QB = { quip, applyLook, $, h, showView, LETTERS, REACTIONS, teamVar, dot, countdown, mmss, info, ROUND_THEMES, roundTheme, CROWN, split, fit, countUp, later, clearLater };
 })();

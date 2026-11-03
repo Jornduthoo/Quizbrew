@@ -2,11 +2,14 @@
    Loaded after screen.css / play.css / host.css; every rule is scoped to its screen. */
 
 /* ---------- big screen ---------- */
-body.screen .question { grid-template-rows: auto 1fr auto auto auto; }
+/* Fixed zones from top to bottom: head, board (takes what is left), answers, team answers, dots, fact.
+   Hidden zones take no row; screen.js shrinks the board's content until it fits its own zone. */
+body.screen .question { grid-template-rows: auto minmax(0, 1fr); grid-auto-rows: auto; }
 body.screen[data-phase="wager"] .bg-stage { opacity: 1; animation-play-state: running; }
 .screen .q-body { display: flex; gap: 3vw; min-height: 0; align-items: stretch; }
 .screen .q-main { flex: 1; display: flex; flex-direction: column; gap: 2.2vh; min-width: 0; justify-content: center; }
-.screen .q-main .q-board { flex: 1; min-height: 18vh; }
+.screen .q-main .q-board { flex: 1 0 auto; min-height: 0; }
+.screen .q-main > * { flex-shrink: 0; }
 .screen.has-media .q-board h1 { font-size: 2.6em; }
 .screen.has-media .q-board.long h1 { font-size: 2em; }
 
@@ -68,9 +71,9 @@ body.screen[data-phase="wager"] .bg-stage { opacity: 1; animation-play-state: ru
 }
 .screen .sol-label { color: var(--good); font-weight: 800; text-transform: uppercase; letter-spacing: .1em; font-size: 1em; }
 .screen .sol-text { font-size: 2.6em; font-weight: 800; color: #fff; text-shadow: 0 0 18px rgba(93, 255, 154, .6); }
-.screen .team-answers { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(22vw, 1fr)); gap: 1.2vh 1.4vw; max-height: 30vh; overflow: hidden; }
+.screen .team-answers { --cols: 3; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 1vh 1.2vw; }
 .screen .team-answer {
-  display: grid; grid-template-columns: auto minmax(0, .9fr) minmax(0, 1fr) auto; align-items: center; gap: .8vw;
+  display: grid; grid-template-columns: auto minmax(0, .8fr) minmax(0, 1.2fr) auto; align-items: center; gap: .8vw;
   padding: 1vh 1vw; border-radius: 12px; background: rgba(0, 0, 0, .5); border-left: 5px solid var(--c); font-size: 1.15em; font-weight: 700;
   animation: rise .45s ease both; animation-delay: calc(.4s + var(--k) * .08s);
 }
@@ -442,10 +445,42 @@ body.silent .mini-head span:last-child, body.silent #turn-num { visibility: hidd
 /* "Did you know": a short extra line along the bottom after the answer (where the answered dots were). */
 .screen .q-fact {
   position: absolute; left: 50%; bottom: 1.4vh; transform: translateX(-50%); z-index: 2;
-  width: max-content; max-width: 90vw; margin: 0; padding: .6vh 1.6vw; border-radius: 999px; text-align: center;
+  width: max-content; max-width: 90vw; margin: 0; padding: .6vh 1.6vw; border-radius: 1.4em; text-align: center;
   background: rgb(0 0 0 / .72); border: 2px solid var(--brass); color: var(--cream); font-size: 1.05em; line-height: 1.3;
   box-shadow: 0 0 24px rgb(0 0 0 / .6); animation: fact-in .7s ease both 1.2s;
 }
 @keyframes fact-in { from { opacity: 0; transform: translate(-50%, 1.5vh); } }
 .screen .fact-label { color: var(--brass-light); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; font-size: .8em; margin-right: .4em; }
 body[data-phase="reveal"] .q-fact:not([hidden]) ~ .answered-dots, body[data-phase="reveal"] .answered-dots:has(~ .q-fact:not([hidden])) { visibility: hidden; }
+
+/* The fact is its own zone at the bottom of the question screen, under the team answers, never on top of them. */
+.screen .q-fact { position: static; transform: none; justify-self: center; animation-name: fact-rise; }
+@keyframes fact-rise { from { opacity: 0; transform: translateY(1.5vh); } }
+body[data-phase="reveal"] .q-fact:not([hidden]) ~ .answered-dots, body[data-phase="reveal"] .answered-dots:has(~ .q-fact:not([hidden])) { display: none; }
+/* A long label (a hint, a category, two finalists) becomes a card instead of a pill. */
+.screen .q-category { max-width: 100%; text-align: center; }
+.screen .q-category.long { border-radius: .7em; text-transform: none; letter-spacing: .01em; line-height: 1.2; }
+.screen .team-answer { padding: .7vh .9vw; }
+.screen .wager-category { max-width: 100%; text-wrap: balance; }
+
+/* Inside the board zone everything is sized in em, so the fit in screen.js can shrink lists and board together. */
+.screen .q-main { gap: .55em; }
+.screen .q-main .q-board { padding: .7em 1.4em; }
+.screen .order-list, .screen .pair-col, .screen .clues { gap: .4em; }
+.screen .order-item, .screen .pair-col li, .screen .clue { padding: .38em .8em; gap: .6em; }
+.screen .q-main:has(> .order-list:not([hidden]), > .pair-cols:not([hidden]), > .clues:not([hidden]), > .list-board:not([hidden])) .q-board h1 { font-size: 2.2em; }
+/* The solved pairs fill two columns when there are many, instead of one long column. */
+.screen .pair-col.solved.split { display: grid; grid-template-columns: 1fr 1fr; grid-auto-flow: column; grid-template-rows: repeat(var(--rows), auto); column-gap: 1.2em; }
+.screen .q-fact { font-size: .95em; }
+/* Clocks in em, so the fit can make them smaller when eight teams play. */
+.screen .clock-board { gap: .6em .6em; }
+.screen .clock { min-width: 7.5em; padding: .5em .9em .45em; gap: .2em; }
+/* Ballot cards: the text stays clear of the letter in the corner. */
+.screen .ballot-card:not(.pic) { padding-top: 2.6em; }
+.screen .bc-text { max-width: 100%; overflow-wrap: break-word; }
+/* Odd one out: the check mark sits inside the picture, not clipped at its edge. */
+.screen .answers.images .answer.correct::after { right: 1vh; top: auto; bottom: 1vh; }
+/* Categories to pick: equal cards, long names a bit smaller. */
+.screen .pick-cards { max-width: 100%; }
+.screen .pick-card { flex: 1 1 0; min-width: 0; font-size: 2em; line-height: 1.15; text-wrap: balance; }
+.screen .round-kicker { max-width: 100%; text-wrap: balance; }

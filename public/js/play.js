@@ -665,7 +665,7 @@
       box.replaceChildren(...s.ballot.map((b, i) => h('button', {
         type: 'button', class: 'ballot-item' + (b.mine ? ' mine' : '') + (b.image ? ' pic' : ''), disabled: b.mine, style: `--k: ${i}`,
         onclick: () => { socket.emit('vote', i); if (navigator.vibrate) navigator.vibrate(25); },
-      }, h('span', { class: 'letter' }, LETTERS[i] || i + 1), b.image ? h('img', { src: b.content, alt: '' }) : h('span', { class: 'text' }, b.content),
+      }, h('span', { class: 'letter' }, String.fromCharCode(65 + i)), b.image ? h('img', { src: b.content, alt: '' }) : h('span', { class: 'text' }, b.content),
       b.mine ? h('span', { class: 'mine-tag' }, t('play.yours')) : null)));
     }
     stopTimer = countdown(s.remaining, s.vote.time * 1000, left => { $('#v-time').textContent = Math.ceil(left / 1000); });
@@ -723,8 +723,20 @@
     $('#shield-btn').hidden = true;
     $('#power-left').hidden = true;
     const b = $('#wait-badge');
-    b.textContent = badge || (state && state.team ? state.team.name.charAt(0).toUpperCase() : '');
+    const mark = badge || (state && state.team ? state.team.name.charAt(0).toUpperCase() : '');
     b.className = 'badge' + (badge ? ' filled' : ' pulse');
+    // A typed answer ("Eiffeltoren") gets smaller until it fits inside the circle.
+    if (String(mark).length > 2) {
+      b.classList.add('word');
+      b.replaceChildren(h('span', { class: 'badge-text' }, mark));
+      const span = b.firstChild;
+      let size = parseFloat(getComputedStyle(span).fontSize);
+      const room = b.clientWidth * 0.8;
+      while (size > 12 && (span.scrollWidth > span.clientWidth + 1 || span.offsetHeight > room)) {
+        size *= 0.9;
+        span.style.fontSize = size + 'px';
+      }
+    } else b.textContent = mark;
     $('#wait-text').textContent = text;
     $('#wait-quip').textContent = '';
     $('#standings').hidden = true;

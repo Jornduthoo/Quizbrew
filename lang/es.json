@@ -356,6 +356,8 @@
   "screen.makePairs": "Haz las parejas en tu móvil",
   "screen.distance": "a {n} % de distancia",
   "screen.enableSound": "Haz clic para activar el sonido",
+  "screen.fullscreen": "Pantalla completa",
+  "screen.fullscreenHint": "o pulsa F11",
   "play.tapOrder": "Toca los elementos en el orden correcto",
   "play.pickPair": "¿Cuál va con «{item}»?",
   "play.pairsDone": "Todas las parejas hechas. ¡Envíalas!",

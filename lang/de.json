@@ -356,6 +356,8 @@
   "screen.makePairs": "Bilde die Paare auf deinem Handy",
   "screen.distance": "{n} % daneben",
   "screen.enableSound": "Klicken, um den Ton einzuschalten",
+  "screen.fullscreen": "Vollbild",
+  "screen.fullscreenHint": "oder F11 drücken",
   "play.tapOrder": "Tippe die Dinge in der richtigen Reihenfolge an",
   "play.pickPair": "Was gehört zu „{item}“?",
   "play.pairsDone": "Alle Paare gebildet. Abschicken!",

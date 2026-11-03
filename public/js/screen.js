@@ -11,6 +11,7 @@
   let stopTimer = null;
   let lastKey = '';
   let lobbyShown = false;
+  let lastZoneKey = '';
 
   // Ambient particles per phase.
   const AMBIENT = { awards: 'stage', idle: 'lights', lobby: 'lights', roundIntro: 'stage', wager: 'stage', vote: 'stage', question: 'dust', reveal: 'dust', scoreboard: 'dust', end: 'embers' };
@@ -33,6 +34,30 @@
     el.addEventListener('animationend', () => el.remove());
     layer.append(el);
   });
+  // Full screen: the button shows while tabs or the taskbar are still visible. Big in the lobby, elsewhere only
+  // when the mouse moves, so it never sits on top of a question. F11 or the F key work too.
+  const fsBtn = $('#fs-btn');
+  const isFull = () => !!document.fullscreenElement || matchMedia('(display-mode: fullscreen)').matches || (innerHeight >= screen.height - 2 && innerWidth >= screen.width - 2);
+  const toggleFull = () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+  };
+  const updateFull = () => {
+    fsBtn.hidden = MUTE || isFull();
+    fsBtn.classList.toggle('quiet', !!state && !['idle', 'lobby'].includes(state.phase));
+  };
+  let mouseTimer = 0;
+  addEventListener('mousemove', () => {
+    document.body.classList.add('mouse');
+    clearTimeout(mouseTimer);
+    mouseTimer = setTimeout(() => document.body.classList.remove('mouse'), 2500);
+  });
+  fsBtn.addEventListener('click', toggleFull);
+  addEventListener('keydown', e => { if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey) toggleFull(); });
+  document.addEventListener('fullscreenchange', updateFull);
+  addEventListener('resize', updateFull);
+  updateFull();
+
   socket.on('media', action => (action === 'replay' ? Media.replay() : Media.stop()));
   // Browsers only play sound after a click on the page: show a button for that once.
   Media.onBlocked(() => { $('#sound-gate').hidden = MUTE; });
@@ -99,6 +124,7 @@
   });
 
   function render(s, force) {
+    updateFull();
     showView(s.vote && (s.phase === 'reveal' || s.phase === 'vote') ? 'vote' : s.phase, { reveal: 'question' });
     FX.ambient(AMBIENT[s.phase]);
     // Re-render only what changed, so animations play once.
@@ -197,25 +223,56 @@
   }
 
   // The question always fits on the slate: start at the normal size and step down until it does.
+  // The question screen has fixed zones: the head, the board with its lists, the answers, what the teams
+  // answered and the fact. Long texts and many teams make the zones smaller, never overlap them:
+  // first the team answers get at most a quarter of the screen, then the board and its lists shrink to fit
+  // what is left, and last the question itself shrinks to fit the board.
   function fitQuestion() {
     const h1 = $('#q-text');
     const board = h1.parentElement;
+    const main = $('.q-main');
+    const body = $('.q-body');
+    const teamsBox = $('#team-answers');
     h1.style.fontSize = '';
+    main.style.fontSize = '';
+    teamsBox.style.fontSize = '';
     requestAnimationFrame(() => {
       if (board.offsetParent === null) return;
+      if (!teamsBox.hidden) QB.fit(teamsBox, { height: innerHeight * 0.22, min: 0.55 });
+      const clocks = $('#clock-board');
+      if (!clocks.hidden) QB.fit(clocks, { height: innerHeight * 0.42, min: 0.5 });
+      // The lists under the board: everything inside .q-main is sized in em, so one font size scales it all.
+      const gap = parseFloat(getComputedStyle(main).rowGap) || 0;
+      const outer = c => { const cs = getComputedStyle(c); return c.offsetHeight + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom); };
+      const needed = () => [...main.children].filter(c => c.offsetParent !== null).reduce((sum, c, i) => sum + outer(c) + (i ? gap : 0), 0);
+      // Measure the board at its own height, not at the height it grew to fill the zone.
+      board.style.flexGrow = '0';
+      let size = parseFloat(getComputedStyle(main).fontSize);
+      const minMain = size * 0.5;
+      while (size > minMain && needed() > body.clientHeight + 1) {
+        size *= 0.93;
+        main.style.fontSize = size + 'px';
+      }
+      board.style.flexGrow = '';
       const room = () => {
         const cs = getComputedStyle(board);
         return board.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
       };
-      let size = parseFloat(getComputedStyle(h1).fontSize);
-      const min = size * 0.45;
-      while (size > min && (h1.scrollHeight > room() + 1 || h1.scrollWidth > board.clientWidth)) {
-        size *= 0.93;
-        h1.style.fontSize = size + 'px';
+      let q = parseFloat(getComputedStyle(h1).fontSize);
+      const min = q * 0.45;
+      while (q > min && (h1.scrollHeight > room() + 1 || h1.scrollWidth > board.clientWidth)) {
+        q *= 0.93;
+        h1.style.fontSize = q + 'px';
       }
     });
   }
-  addEventListener('resize', () => { if (!$('#v-question').hidden) fitQuestion(); });
+  const refit = () => {
+    if (!$('#v-question').hidden) fitQuestion();
+    if (!$('#v-roundIntro').hidden) QB.fit($('#round-title'), { lines: 2, min: 0.45 });
+    if (!$('#v-scoreboard').hidden) fitScoreboard();
+  };
+  addEventListener('resize', refit);
+  if (document.fonts) document.fonts.ready.then(refit);
 
   function setTheme(type) {
     document.body.style.setProperty('--theme', roundTheme(type).glow);
@@ -256,6 +313,7 @@
     $('#ri-art').src = '/img/icons/' + (s.round.family || 'classic') + '.webp';
     $('#round-kicker').textContent = s.round.tiebreak ? s.round.tiebreak.map(x => x.name).join(' · ') : t('screen.roundOf', { n: s.round.index + 1, total: s.round.total });
     split($('#round-title'), s.round.title || t(`round.${s.round.type}`));
+    QB.fit($('#round-title'), { lines: 2, min: 0.45 });
     $('#ri-type').textContent = t(`round.${s.round.type}`);
     // How this round scores, and its twists, so every team knows the rules before it starts.
     const rules = [t('screen.questionsInRound', { n: s.round.questions })];
@@ -284,11 +342,10 @@
     document.body.dataset.kind = kind;
 
     if (fresh) {
-      const text = s.round.type === 'actItOut' ? t('screen.actTitle') : q.ladder ? t('screen.whoAmI') : q.kind === 'level' ? t('screen.ownLevel') : q.scrambled ? t('screen.unscramble') : q.text || (q.clues ? t('screen.findLink') : q.emoji ? t('screen.emojiWhat') : q.audio ? t('screen.listen') : q.images ? t('screen.oddOne') : q.image ? t('screen.whatIsThis') : '');
+      const text = s.round.type === 'actItOut' ? t('screen.actTitle') : q.ladder ? t('screen.whoAmI') : q.kind === 'level' ? t('screen.ownLevel') : q.scrambled ? (q.hint || t('screen.unscramble')) : q.text || (q.clues ? t('screen.findLink') : q.emoji ? t('screen.emojiWhat') : q.audio ? t('screen.listen') : q.images ? t('screen.oddOne') : q.image ? t('screen.whatIsThis') : '');
       split($('#q-text'), text, 'word');
       const words = text.split(/\s+/).length;
       $('#q-text').parentElement.classList.toggle('long', text.length > 90);
-      fitQuestion();
       $('#answers').style.setProperty('--start', Math.min(1.4, 0.25 + words * 0.06) + 's');
       const answers = kind === 'trueFalse' ? [t('play.true'), t('play.false')] : kind === 'choice' ? q.answers : [];
       $('#answers').className = 'answers' + (kind === 'trueFalse' ? ' tf' : '') + (q.images ? ' images' : '');
@@ -306,11 +363,11 @@
         return out;
       }, []).map((c, i) => h('span', { class: 'emo', style: `--k: ${i}` }, c)));
       $('#q-items').hidden = !q.items;
-      if (q.items) $('#q-items').replaceChildren(...q.items.map((it, i) => h('li', { class: 'order-item', style: `--k: ${i}` }, h('span', { class: 'letter' }, LETTERS[i] || i + 1), h('span', {}, it))));
+      if (q.items) $('#q-items').replaceChildren(...q.items.map((it, i) => h('li', { class: 'order-item', style: `--k: ${i}` }, h('span', { class: 'letter' }, String.fromCharCode(65 + i)), h('span', {}, it))));
       $('#q-pairs').hidden = !q.left;
       if (q.left) $('#q-pairs').replaceChildren(
         h('ol', { class: 'pair-col left' }, q.left.map((x, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'num' }, i + 1), x))),
-        h('ol', { class: 'pair-col right' }, q.right.map((x, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'letter' }, LETTERS[i] || String.fromCharCode(65 + i)), x))));
+        h('ol', { class: 'pair-col right' }, q.right.map((x, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'letter' }, String.fromCharCode(65 + i)), x))));
       $('#q-pins').replaceChildren();
       $('#answered-dots').replaceChildren();
       renderMedia(q);
@@ -320,7 +377,10 @@
       if (q.scrambled) {
         $('#q-tiles').replaceChildren(...[...q.scrambled].map((c, i) => h('span', { class: 'tile', style: `--k: ${i}; --r: ${((i * 37) % 13) - 6}deg` }, c)));
       }
-      if (q.hint) {
+      if (q.scrambled && q.hint) {
+        $('#q-category').hidden = false;
+        $('#q-category').textContent = t('screen.unscramble');
+      } else if (q.hint) {
         $('#q-category').hidden = false;
         $('#q-category').textContent = q.hint;
       }
@@ -334,6 +394,7 @@
         $('#q-category').hidden = false;
         $('#q-category').textContent = t('screen.actsNow', { name: s.actor.name });
       }
+      $('#q-category').classList.toggle('long', $('#q-category').textContent.length > 34);
       $('#q-clues').hidden = !q.clues;
       if (q.clues) $('#q-clues').replaceChildren(...q.clues.map((c, i) => h('li', { class: 'clue', style: `--k: ${i}` }, h('span', { class: 'clue-pts' }), h('span', {}, c))));
       const own = { bluffBank: 'screen.bluffNow', captionThis: 'screen.captionNow', whosWho: 'screen.aboutUs', actItOut: 'screen.guessAct' }[s.round.type];
@@ -429,6 +490,7 @@
         if (kind === 'buzz') return a.answer === 'right' ? '✓' : '✗';
         return String(a.answer);
       };
+      $('#team-answers').style.setProperty('--cols', list.length <= 2 ? Math.max(1, list.length) : list.length <= 4 ? 2 : list.length <= 9 ? 3 : 4);
       $('#team-answers').replaceChildren(...list.map((a, i) => h('li', { class: 'team-answer' + (a.correct ? ' right' : a.answer === null ? ' none' : ' wrong'), style: `${teamVar(a.color)}; --k: ${i}` },
         h('span', { class: 'team-dot' }),
         h('span', { class: 'ta-name' }, a.name),
@@ -444,7 +506,7 @@
       img.hidden = false;
       if (!wasRevealed) Media.reveal();
       if (q.items && s.reveal.order) $('#q-items').replaceChildren(...s.reveal.order.map((it, i) => h('li', { class: 'order-item solved', style: `--k: ${i}` }, h('span', { class: 'letter' }, i + 1), h('span', {}, it))));
-      if (q.left && s.reveal.pairs) $('#q-pairs').replaceChildren(h('ol', { class: 'pair-col solved' }, s.reveal.pairs.map((p, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'num' }, i + 1), p[0], h('span', { class: 'eq' }, '='), h('strong', {}, p[1])))));
+      if (q.left && s.reveal.pairs) $('#q-pairs').replaceChildren(h('ol', { class: 'pair-col solved' + (s.reveal.pairs.length > 4 ? ' split' : ''), style: `--rows: ${Math.ceil(s.reveal.pairs.length / 2)}` }, s.reveal.pairs.map((p, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'num' }, i + 1), p[0], h('span', { class: 'eq' }, '='), h('strong', {}, p[1])))));
       if (kind === 'point' && s.reveal.spot) {
         const pins = (s.answers || []).filter(a => a.answer).map(a => h('span', { class: 'pin team', style: `${teamVar(a.color)}; left: ${a.answer.x * 100}%; top: ${a.answer.y * 100}%`, title: a.name }));
         pins.push(h('span', { class: 'pin goal', style: `left: ${s.reveal.spot.x * 100}%; top: ${s.reveal.spot.y * 100}%` }));
@@ -469,6 +531,11 @@
       const target = s.correct !== null ? $('#answers').children[s.correct] : sol;
       later(() => target && FX.sparksAt(target, { color, count: 90, speed: 1.4 }), 150);
     }
+
+    // The zones change size when the reveal adds the solution, the team answers or a list: fit them again.
+    const zoneKey = [s.questionIndex, reveal, (s.answers || []).length, s.board ? s.teams.length : 0, (s.reveal && s.reveal.found || []).length].join(':');
+    if (fresh || zoneKey !== lastZoneKey) fitQuestion();
+    lastZoneKey = zoneKey;
 
     // Answered dots: update in place so only the dot that changes animates.
     const dots = $('#answered-dots');
@@ -622,11 +689,13 @@
     grid.replaceChildren(...s.ballot.map((b, i) => {
       const win = reveal && mode !== 'match' && (b.truth || (mode === 'best' && most > 0 && (b.votes || []).length === most));
       return h('li', { class: 'ballot-card' + (b.image ? ' pic' : '') + (b.truth ? ' truth' : '') + (win ? ' win' : ''), style: `--k: ${i}` + (reveal && b.by ? `; ${teamVar(b.by.color)}` : '') },
-        h('span', { class: 'letter' }, LETTERS[i] || String(i + 1)),
+        h('span', { class: 'letter' }, String.fromCharCode(65 + i)),
         b.image ? h('img', { src: b.content, alt: '' }) : h('span', { class: 'bc-text' }, b.content),
         reveal ? h('span', { class: 'bc-by' }, b.truth ? t('screen.theTruth') : b.by ? b.by.name : '') : null,
         reveal && mode !== 'match' ? h('span', { class: 'bc-votes' }, (b.votes || []).map(v => h('i', { class: 'team-dot', style: teamVar(v.color), title: v.name }))) : null);
     }));
+    // A long entry gets smaller, so every card keeps the same size and nothing runs over the letter.
+    grid.querySelectorAll('.bc-text').forEach(el => QB.fit(el, { lines: 3, min: 0.5 }));
     if (stopTimer) stopTimer();
     if (reveal) {
       $('#vote-time').textContent = '';
@@ -667,6 +736,7 @@
     $('#wager-kicker').textContent = t(level ? 'screen.pickLevel' : 'screen.placeBets');
     $('#wager-hint').textContent = t(level ? 'screen.levelHint' : 'screen.betHint');
     split($('#wager-category'), s.category || t(level ? 'round.pickYourLevel' : `round.${s.round.type}`));
+    QB.fit($('#wager-category'), { lines: 2, min: 0.45 });
     $('#wager-dots').replaceChildren(...s.teams.filter(team => !team.paper).map(team => h('li', { class: 'dot' + (team.wagered ? ' on' : ''), style: teamVar(team.color), title: team.name })));
   }
 
@@ -705,6 +775,22 @@
       }
       return row;
     }));
+    fitScoreboard();
+  }
+  // Many teams or a few tied leaders (each one big) must still fit above the bottom edge.
+  function fitScoreboard() {
+    // Measured by the rows themselves: the spotlight behind the leader may reach outside the list.
+    const list = $('#sb-list');
+    list.style.fontSize = '';
+    if (list.offsetParent === null || !list.lastElementChild) return;
+    const limit = innerHeight * 0.96 - list.offsetTop;
+    const bottom = () => Math.max(...[...list.children].map(r => r.offsetTop + r.offsetHeight)) - list.offsetTop;
+    let size = parseFloat(getComputedStyle(list).fontSize);
+    const min = size * 0.4;
+    while (size > min && bottom() > limit) {
+      size *= 0.93;
+      list.style.fontSize = size + 'px';
+    }
   }
 
   // The prizes: one card every 1.8 seconds, each with a burst of light in the team colour.

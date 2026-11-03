@@ -362,3 +362,6 @@ body.big-text .choice .letter { width: 60px; height: 60px; }
 .left-warning h2 { margin: 0; font-size: 1.5em; color: var(--neon-amber); }
 .left-warning p { margin: 0 0 6px; font-size: 1.1em; line-height: 1.35; }
 .left-warning .brass-btn { width: 100%; }
+
+/* The badge with a typed answer: the word sits inside the circle, wraps between words, and shrinks to fit. */
+.badge.word .badge-text { display: block; max-width: 80%; line-height: 1.05; text-align: center; }
