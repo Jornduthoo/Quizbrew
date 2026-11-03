@@ -71,7 +71,7 @@ test('a full quiz: rounds, questions, reveal, scoreboard and end', () => {
   assert.equal(game.phase, 'question');
   assert.equal(game.screenState().question.text, 'Q1');
   assert.equal(game.screenState().correct, null, 'the screen never sees the answer early');
-  assert.equal(game.hostState().answerKey, 1, 'the quizmaster does');
+  assert.equal(game.hostState().answerKey.correct, 1, 'the quizmaster does');
 
   assert.equal(game.answer('team1aaaa', 1), true);
   assert.equal(game.answer('team1aaaa', 2), false, 'one answer per question');

@@ -53,6 +53,12 @@
     speed: { glow: '#a8ff3e', icon: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>' },
     drawGuess: { glow: '#ff7a2e', icon: '<path d="M4 20l4-1L19 8l-3-3L5 16z"/><path d="M14 7l3 3"/>' },
     puzzle: { glow: '#2fe0b8', icon: '<path d="M4 7h4a2 2 0 1 1 4 0h4v4a2 2 0 1 1 0 4v5H4v-5a2 2 0 1 0 0-4z"/>' },
+    trueFalse: { glow: '#5dff9a', icon: '<path d="M4 12l4 4 8-9"/><path d="M15 15l5 5M20 15l-5 5"/>' },
+    closest: { glow: '#ffe94a', icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/>' },
+    zoomOut: { glow: '#4f8bff', icon: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21M7.5 10.5h6"/>' },
+    scramble: { glow: '#2fe0b8', icon: '<rect x="2.5" y="7" width="6" height="6" rx="1.2"/><rect x="9" y="11" width="6" height="6" rx="1.2"/><rect x="15.5" y="6" width="6" height="6" rx="1.2"/><path d="M5.5 16.5v3h4"/>' },
+    commonThread: { glow: '#9dffd6', icon: '<circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><circle cx="12" cy="12" r="2.5"/><path d="M7 7l3 3.5M17 7l-3 3.5M7 17l3-3.5M17 17l-3-3.5"/>' },
+    jackpot: { glow: '#ffcf3c', icon: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v4c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 10v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4"/><path d="M5 14v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4"/>' },
     lastStanding: { glow: '#ff4a4a', icon: '<path d="M6 3h12M6 21h12M7 3c0 6 10 6 10 9s-10 3-10 9M17 3c0 6-10 6-10 9s10 3 10 9"/>' },
   };
   const roundTheme = type => ROUND_THEMES[type] || ROUND_THEMES.classic;

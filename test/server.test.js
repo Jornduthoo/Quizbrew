@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const { io: connect } = require('socket.io-client');
 const { createServer } = require('../src/app');
 
+const tmpLibrary = () => require('../src/library').create(require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'qb-')));
 const memorySettings = () => { const v = {}; return { get: k => v[k], set: (k, x) => { v[k] = x; } }; };
 const once = (socket, event, pred = () => true) => new Promise(resolve => {
   const fn = s => { if (pred(s)) { socket.off(event, fn); resolve(s); } };
@@ -11,7 +12,7 @@ const once = (socket, event, pred = () => true) => new Promise(resolve => {
 });
 
 test('host, screen and phone play a question together', async t => {
-  const qb = createServer({ port: 0, settings: memorySettings(), lanAddresses: () => ['192.168.1.50'] });
+  const qb = createServer({ port: 0, settings: memorySettings(), library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
   const url = `http://127.0.0.1:${port}`;
   const sockets = [];
@@ -31,7 +32,8 @@ test('host, screen and phone play a question together', async t => {
   const host = open({ role: 'host' });
   const screen = open({ role: 'screen' });
   const list = await new Promise(r => host.emit('quizzes', r));
-  assert.ok(list.find(q => q.file === 'pub-warm-up.json'));
+  assert.ok(list.samples.find(q => q.file === 'pub-warm-up.json'));
+  assert.ok(Array.isArray(list.library));
 
   const lobby = once(screen, 'state', s => s.phase === 'lobby');
   await new Promise(r => host.emit('load', 'pub-warm-up.json', r));
@@ -72,7 +74,7 @@ test('host, screen and phone play a question together', async t => {
 test('host controls only work from this laptop', async t => {
   const lan = require('../src/network').lanAddresses()[0];
   if (!lan) return t.skip('no network address on this machine');
-  const qb = createServer({ port: 0, settings: memorySettings() });
+  const qb = createServer({ port: 0, settings: memorySettings(), library: tmpLibrary() });
   const port = await qb.listen();
   t.after(() => qb.close());
   // Through the network address the server sees a non-local client, like a phone would be.

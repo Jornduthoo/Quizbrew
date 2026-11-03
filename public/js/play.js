@@ -37,7 +37,7 @@
   }).then(() => state && render(state, true));
 
   function render(s, force) {
-    const key = [s.phase, s.round && s.round.index, s.questionIndex, s.team ? 1 : 0, s.answer].join(':');
+    const key = [s.phase, s.round && s.round.index, s.questionIndex, s.team ? 1 : 0, s.answer, s.blocked, s.wager].join(':');
     const fresh = force || key !== lastKey;
     if (key !== lastKey) window.scrollTo(0, 0);
     lastKey = key;
@@ -61,9 +61,14 @@
     switch (s.phase) {
       case 'idle': return showView('idle');
       case 'lobby': return wait(t('play.youreIn'));
-      case 'roundIntro': return wait(t('play.getReady', { title: s.round.title }));
+      case 'roundIntro':
+        wait(t('play.getReady', { title: s.round.title || t(`round.${s.round.type}`) }));
+        return renderJoker(s);
+      case 'wager': return renderWager(s, fresh);
       case 'question':
-        if (s.answer !== null && s.answer !== undefined) return wait(t('play.locked'), LETTERS[s.answer]);
+        if (s.blocked) return wait(t('play.blocked'), '!');
+        if (s.answer !== null && s.answer !== undefined) return wait(t('play.locked'), lockedBadge(s));
+        if (s.question.kind === 'text' || s.question.kind === 'number') return renderType(s, fresh);
         return renderChoices(s, fresh);
       case 'reveal': return renderResult(s, fresh);
       case 'scoreboard':
@@ -81,8 +86,78 @@
     }
   }
 
+  // The badge after locking in: the letter, true/false, or what was typed.
+  function lockedBadge(s) {
+    const k = s.question.kind;
+    if (k === 'choice') return LETTERS[s.answer];
+    if (k === 'trueFalse') return s.answer === 0 ? '✓' : '✗';
+    return String(s.answer).slice(0, 14);
+  }
+
+  // A joker doubles the points of one round per evening; it can only be played at the start of a round.
+  function renderJoker(s) {
+    const btn = $('#joker-btn');
+    btn.hidden = !s.jokers || !s.team.jokerLeft;
+    if (s.jokers && s.team.jokerNow) $('#wait-text').textContent = t('play.jokerPlayed');
+  }
+  $('#joker-btn').addEventListener('click', () => {
+    if (!confirm(t('play.jokerConfirm'))) return;
+    socket.emit('joker');
+    if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
+  });
+
+  function renderWager(s, fresh) {
+    showView('wager');
+    $('#wager-category').textContent = s.category || t('round.jackpot');
+    const range = $('#wager-range');
+    if (fresh) {
+      range.max = s.maxWager;
+      range.value = s.wager !== null && s.wager !== undefined ? s.wager : Math.round(s.maxWager / 2);
+    }
+    $('#wager-amount').textContent = range.value;
+    $('#wager-note').textContent = s.wager !== null && s.wager !== undefined ? t('play.betPlaced', { n: s.wager }) : t('play.betMax', { n: s.maxWager });
+  }
+  $('#wager-range').addEventListener('input', e => { $('#wager-amount').textContent = e.target.value; });
+  $('#wager-send').addEventListener('click', () => {
+    socket.emit('wager', Number($('#wager-range').value));
+    if (navigator.vibrate) navigator.vibrate(25);
+  });
+
+  function renderType(s, fresh) {
+    showView('type');
+    const number = s.question.kind === 'number';
+    $('#t-num').textContent = t('play.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
+    if (fresh) {
+      const input = $('#type-input');
+      input.value = '';
+      input.type = number ? 'text' : 'text';
+      input.inputMode = number ? 'decimal' : 'text';
+      $('#type-label').textContent = t(number ? 'play.typeNumber' : 'play.typeAnswer');
+      $('#type-unit').textContent = s.question.unit || '';
+      setTimeout(() => input.focus(), 50);
+    }
+    stopTimer = countdown(s.remaining, s.question.time * 1000, left => {
+      $('#t-time').textContent = Math.ceil(left / 1000);
+    });
+  }
+  $('#type-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const v = $('#type-input').value.trim();
+    if (!v) return;
+    const number = state.question && state.question.kind === 'number';
+    socket.emit('answer', number ? Number(v.replace(/\s/g, '').replace(',', '.')) : v);
+    $('#type-input').blur();
+    if (navigator.vibrate) navigator.vibrate(25);
+  });
+
+  // Anti-cheat: leaving the page during a question (switching to a search app) is seen by the quizmaster.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state && state.team && state.phase === 'question') socket.emit('leftPage');
+  });
+
   function wait(text, badge) {
     showView('wait');
+    $('#joker-btn').hidden = true;
     const b = $('#wait-badge');
     b.textContent = badge || (state && state.team ? state.team.name.charAt(0).toUpperCase() : '');
     b.className = 'badge' + (badge ? ' filled' : ' pulse');
@@ -97,7 +172,7 @@
       class: 'swatch' + (c === picked ? ' on' : ''),
       style: teamVar(c),
       disabled: taken.includes(c),
-      'aria-label': t('color.' + c),
+      'aria-label': t(`color.${c}`),
       'aria-pressed': c === picked ? 'true' : 'false',
       onclick: () => { picked = c; renderSwatches(state.takenColors); },
     })));
@@ -119,15 +194,17 @@
     showView('question');
     $('#q-num').textContent = t('play.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
     if (fresh) {
-      $('#choices').className = 'choices n' + s.question.answers.length;
-      $('#choices').replaceChildren(...s.question.answers.map((a, i) => h('button', {
-        class: 'choice', style: `--a: var(--ans-${i}); --k: ${i}`,
+      const tf = s.question.kind === 'trueFalse';
+      const answers = tf ? [t('play.true'), t('play.false')] : s.question.answers;
+      $('#choices').className = 'choices n' + answers.length + (tf ? ' tf' : '') + (s.question.blackout ? ' blackout' : '');
+      $('#choices').replaceChildren(...answers.map((a, i) => h('button', {
+        class: 'choice', style: tf ? `--k: ${i}` : `--a: var(--ans-${i}); --k: ${i}`,
         onclick: e => {
           e.currentTarget.classList.add('tapped');
           if (navigator.vibrate) navigator.vibrate(25);
           socket.emit('answer', i);
         },
-      }, h('span', { class: 'letter' }, LETTERS[i]), h('span', { class: 'text' }, a))));
+      }, h('span', { class: 'letter' }, tf ? (i === 0 ? '✓' : '✗') : LETTERS[i]), h('span', { class: 'text' }, a))));
     }
     stopTimer = countdown(s.remaining, s.question.time * 1000, left => {
       $('#q-time').textContent = Math.ceil(left / 1000);
@@ -146,7 +223,7 @@
   function renderResult(s, fresh) {
     showView('reveal');
     const answered = s.answer !== null && s.answer !== undefined;
-    const right = answered && s.answer === s.correct;
+    const right = !!s.wasCorrect;
     const icon = $('#result-icon');
     icon.className = 'result ' + (right ? 'good' : answered ? 'bad' : 'none');
     const view = $('#v-reveal');
@@ -154,10 +231,13 @@
     view.classList.toggle('bad-result', answered && !right);
     if (fresh && right) setTimeout(() => celebrate(icon, 1), 200);
     icon.textContent = right ? '✓' : answered ? '✗' : '–';
-    $('#result-text').textContent = right ? t('play.correct') : answered ? t('play.wrong') : t('play.noAnswer');
-    $('#result-sub').textContent = right
-      ? t('play.pointsWon', { n: s.lastPoints })
-      : t('play.answerWas', { letter: LETTERS[s.correct], text: s.question.answers[s.correct] });
+    $('#result-text').textContent = right ? t(s.question.kind === 'number' ? 'play.closest' : 'play.correct') : answered ? t('play.wrong') : t('play.noAnswer');
+    const k = s.question.kind;
+    const solution = k === 'choice' ? t('play.answerWas', { letter: LETTERS[s.correct], text: s.question.answers[s.correct] })
+      : k === 'trueFalse' ? t('play.statementWas', { text: t(s.correct === 0 ? 'play.true' : 'play.false') })
+        : t('play.solutionWas', { text: s.reveal.answerText + (s.reveal.unit ? ' ' + s.reveal.unit : '') });
+    $('#result-sub').textContent = s.lastPoints > 0 ? t('play.pointsWon', { n: s.lastPoints })
+      : s.lastPoints < 0 ? `${t('play.pointsLost', { n: -s.lastPoints })} · ${solution}` : solution;
     if (fresh && navigator.vibrate) navigator.vibrate(right ? [40, 60, 40] : 120);
   }
 })();

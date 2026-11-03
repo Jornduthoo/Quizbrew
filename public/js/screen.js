@@ -8,7 +8,7 @@
   let lobbyShown = false;
 
   // Ambient particles per phase.
-  const AMBIENT = { idle: 'lights', lobby: 'lights', roundIntro: 'stage', question: 'dust', reveal: 'dust', scoreboard: 'dust', end: 'embers' };
+  const AMBIENT = { idle: 'lights', lobby: 'lights', roundIntro: 'stage', wager: 'stage', question: 'dust', reveal: 'dust', scoreboard: 'dust', end: 'embers' };
   const cssColor = name => getComputedStyle(document.body).getPropertyValue(name).trim();
 
   socket.on('language', async lang => {
@@ -36,6 +36,7 @@
     if (s.phase === 'lobby') renderLobby(s);
     if (s.phase === 'roundIntro' && fresh) renderRoundIntro(s);
     if (s.phase === 'question' || s.phase === 'reveal') renderQuestion(s, fresh);
+    if (s.phase === 'wager') renderWager(s);
     if (s.phase === 'scoreboard' && fresh) renderScoreboard(s);
     if (s.phase === 'end' && fresh) renderEnd(s);
   }
@@ -67,9 +68,13 @@
     const theme = roundTheme(s.round.type);
     $('#ri-icon').innerHTML = theme.icon;
     $('#round-kicker').textContent = t('screen.roundOf', { n: s.round.index + 1, total: s.round.total });
-    split($('#round-title'), s.round.title);
-    $('#ri-type').textContent = t('round.' + (s.round.type in QB.ROUND_THEMES ? s.round.type : 'classic'));
-    $('#round-meta').textContent = t('screen.questionsInRound', { n: s.round.questions });
+    split($('#round-title'), s.round.title || t(`round.${s.round.type}`));
+    $('#ri-type').textContent = t(`round.${s.round.type}`);
+    // How this round scores, and its twists, so every team knows the rules before it starts.
+    const rules = [t('screen.questionsInRound', { n: s.round.questions })];
+    if (s.round.scoring && s.round.scoring !== 'points') rules.push(t(`scoring.${s.round.scoring}`));
+    s.round.twists.forEach(tw => rules.push(t(`twist.${tw}`)));
+    $('#round-meta').textContent = rules.join(' · ');
     // Restart the CSS animations for this round.
     const v = $('#v-roundIntro');
     v.classList.remove('play'); void v.offsetWidth; v.classList.add('play');
@@ -79,35 +84,83 @@
   function renderQuestion(s, fresh) {
     const q = s.question;
     const reveal = s.phase === 'reveal';
+    const kind = q.kind;
+    const typed = kind === 'text' || kind === 'number';
     $('#q-count').textContent = t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
     $('#q-answered').textContent = t('screen.answeredCount', { n: s.answered, total: s.teams.length });
     const wasRevealed = document.body.classList.contains('revealed');
     document.body.classList.toggle('revealed', reveal);
+    document.body.dataset.kind = kind;
 
     if (fresh) {
-      split($('#q-text'), q.text, 'word');
-      const words = q.text.split(/\s+/).length;
+      const text = q.scrambled ? t('screen.unscramble') : q.text || (q.clues ? t('screen.findLink') : q.image ? t('screen.whatIsThis') : '');
+      split($('#q-text'), text, 'word');
+      const words = text.split(/\s+/).length;
+      $('#q-text').parentElement.classList.toggle('long', text.length > 90);
       $('#answers').style.setProperty('--start', Math.min(1.4, 0.25 + words * 0.06) + 's');
-      $('#answers').replaceChildren(...q.answers.map((a, i) => h('li', { class: 'answer', style: `--a: var(--ans-${i}); --k: ${i}` },
-        h('span', { class: 'letter' }, LETTERS[i]),
+      const answers = kind === 'trueFalse' ? [t('play.true'), t('play.false')] : kind === 'choice' ? q.answers : [];
+      $('#answers').className = 'answers' + (kind === 'trueFalse' ? ' tf' : '');
+      $('#answers').replaceChildren(...answers.map((a, i) => h('li', { class: 'answer', style: kind === 'trueFalse' ? `--k: ${i}` : `--a: var(--ans-${i}); --k: ${i}` },
+        h('span', { class: 'letter' }, kind === 'trueFalse' ? (i === 0 ? '✓' : '✗') : LETTERS[i]),
         h('span', { class: 'text' }, a),
         h('span', { class: 'count' }))));
-      $('#q-text').parentElement.classList.toggle('long', q.text.length > 90);
       $('#answered-dots').replaceChildren();
+      renderMedia(q);
+      $('#q-category').hidden = !q.category;
+      $('#q-category').textContent = q.category ? t('screen.category', { name: q.category }) : '';
+      $('#q-tiles').hidden = !q.scrambled;
+      if (q.scrambled) {
+        $('#q-tiles').replaceChildren(...[...q.scrambled].map((c, i) => h('span', { class: 'tile', style: `--k: ${i}; --r: ${((i * 37) % 13) - 6}deg` }, c)));
+      }
+      if (q.hint) {
+        $('#q-category').hidden = false;
+        $('#q-category').textContent = q.hint;
+      }
+      $('#q-clues').hidden = !q.clues;
+      if (q.clues) $('#q-clues').replaceChildren(...q.clues.map((c, i) => h('li', { class: 'clue', style: `--k: ${i}` }, h('span', { class: 'clue-pts' }), h('span', {}, c))));
+      $('#q-typehint').hidden = !typed;
+      $('#q-typehint').textContent = typed ? t(kind === 'number' ? 'screen.typeNumber' : 'screen.typeAnswer') : '';
     }
 
+    // Choice and true/false: light up the right answer.
     [...$('#answers').children].forEach((li, i) => {
       li.classList.toggle('correct', reveal && i === s.correct);
       li.classList.toggle('wrong', reveal && i !== s.correct);
       li.querySelector('.count').textContent = reveal && s.counts ? t('screen.teamsChose', { n: s.counts[i] }) : '';
     });
 
+    // Typed answers: the solution on the board and every team's answer below it.
+    const sol = $('#q-solution');
+    sol.hidden = !(reveal && typed);
+    $('#team-answers').hidden = !(reveal && typed && s.answers);
+    if (reveal && typed) {
+      $('#q-typehint').hidden = true;
+      sol.replaceChildren(h('span', { class: 'sol-label' }, t('screen.solution')), h('span', { class: 'sol-text' }, s.reveal.answerText + (s.reveal.unit ? ' ' + s.reveal.unit : '')));
+      const list = (s.answers || []).slice();
+      if (kind === 'number') list.sort((a, b) => (a.answer === null) - (b.answer === null) || Math.abs(a.answer - s.reveal.number) - Math.abs(b.answer - s.reveal.number));
+      else list.sort((a, b) => b.correct - a.correct);
+      $('#team-answers').replaceChildren(...list.map((a, i) => h('li', { class: 'team-answer' + (a.correct ? ' right' : a.answer === null ? ' none' : ' wrong'), style: `${teamVar(a.color)}; --k: ${i}` },
+        h('span', { class: 'team-dot' }),
+        h('span', { class: 'ta-name' }, a.name),
+        h('span', { class: 'ta-answer' }, a.answer === null ? '—' : String(a.answer)),
+        h('span', { class: 'ta-pts' + (a.points < 0 ? ' minus' : '') }, a.points ? (a.points > 0 ? '+' : '') + a.points : ''))));
+    }
+    if (reveal) {
+      const img = $('#q-img');
+      img.style.animation = 'none';
+      img.style.transform = '';
+      img.style.filter = '';
+      $('#q-clues').querySelectorAll('.clue').forEach(c => c.classList.add('on'));
+      if (q.scrambled) $('#q-tiles').replaceChildren(...[...s.reveal.answerText.toUpperCase().replace(/\s+/g, '')].map((c, i) => h('span', { class: 'tile solved', style: `--k: ${i}` }, c)));
+    }
+
     if (reveal && (!wasRevealed || fresh)) {
-      const color = cssColor('--ans-' + s.correct);
+      const color = cssColor(s.correct !== null ? '--ans-' + s.correct : '--good');
       const flash = $('#flash');
       flash.style.setProperty('--f', color);
       flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
-      later(() => FX.sparksAt($('#answers').children[s.correct], { color, count: 90, speed: 1.4 }), 150);
+      const target = s.correct !== null ? $('#answers').children[s.correct] : sol;
+      later(() => target && FX.sparksAt(target, { color, count: 90, speed: 1.4 }), 150);
     }
 
     // Answered dots: update in place so only the dot that changes animates.
@@ -116,7 +169,7 @@
       let d = dots.children[i];
       if (!d) dots.append(d = h('li', { class: 'dot' }));
       const was = d.classList.contains('on');
-      d.className = 'dot' + (team.answered ? ' on' : '') + (team.connected ? '' : ' away') + (team.answered && !was ? ' just' : '');
+      d.className = 'dot' + (team.answered ? ' on' : '') + (team.connected ? '' : ' away') + (team.blocked ? ' blocked' : '') + (team.answered && !was ? ' just' : '');
       d.style.cssText = teamVar(team.color);
       d.title = team.name;
     });
@@ -133,13 +186,45 @@
       $('#timer').classList.remove('urgent');
       return;
     }
+    const clues = [...$('#q-clues').children];
+    const img = $('#q-img');
+    if (q.effect === 'zoom' && q.image) {
+      // Zoomed in far at the start, the whole picture when time is up.
+      img.style.animation = 'none';
+      void img.offsetWidth;
+      img.style.animation = `zoom-out ${total}ms linear both`;
+      img.style.animationDelay = `-${total - s.remaining}ms`;
+    }
     stopTimer = countdown(s.remaining, total, (left, frac) => {
       ring.style.strokeDashoffset = C * (1 - frac);
       $('#timer-num').textContent = Math.ceil(left / 1000);
       const urgent = left < 5000 && left > 0;
       $('#timer').classList.toggle('urgent', urgent);
       document.body.classList.toggle('urgent', urgent);
+      if (clues.length) {
+        const shown = Math.min(clues.length, Math.floor((1 - frac) * clues.length) + 1);
+        clues.forEach((c, i) => {
+          if (i < shown && !c.classList.contains('on')) { c.classList.add('on'); if (i > 0) FX.sparksAt(c, { color: cssColor('--theme') || '#ffb43c', count: 24 }); }
+        });
+        // Points still to win, shown next to the newest clue in a ladder round.
+        if (s.round.scoring === 'ladder') clues.forEach((c, i) => { c.querySelector('.clue-pts').textContent = i === shown - 1 ? '+' + Math.max(1, Math.ceil(q.points * (clues.length - i) / clues.length)) : ''; });
+      }
     });
+  }
+
+  function renderMedia(q) {
+    const box = $('#q-media');
+    const img = $('#q-img');
+    box.hidden = !q.image;
+    document.body.classList.toggle('has-media', !!q.image);
+    img.style.animation = 'none';
+    if (q.image) img.src = q.image;
+    else img.removeAttribute('src');
+  }
+
+  function renderWager(s) {
+    split($('#wager-category'), s.category || t('round.jackpot'));
+    $('#wager-dots').replaceChildren(...s.teams.map(team => h('li', { class: 'dot' + (team.wagered ? ' on' : ''), style: teamVar(team.color), title: team.name })));
   }
 
   function renderScoreboard(s) {
