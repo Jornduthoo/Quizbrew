@@ -6,6 +6,8 @@
 
 const { TEAM_COLORS } = require('./teams');
 const rounds = require('./rounds');
+const tiebreak = require('./tiebreak');
+const i18n = require('./i18n');
 
 const MAX_NAME = 20;
 const MAX_UNDO = 40;
@@ -29,6 +31,7 @@ class Game {
     this.onChange = onChange;
     this.resumable = null; // a saved game from before a restart: { title, round, teams }
     this.teams = new Map(); // teamId -> team (see join)
+    this.language = 'en'; // the language of the evening (for the built-in tie-break questions)
     this.reset();
   }
 
@@ -180,18 +183,41 @@ class Game {
       case 'vote':
         return this.finishVote();
       case 'reveal':
+        // After the tie-break the winner is known: straight to the podium.
+        if (this.round.tiebreak) return this.finish(true);
         if (this.roundOver) return this.showScoreboard();
         if (this.questionIndex + 1 < this.round.questions.length) return this.openQuestion(this.questionIndex + 1);
         return this.showScoreboard();
       case 'scoreboard':
-        if (this.roundIndex + 1 < this.quiz.rounds.length) return this.startRound(this.roundIndex + 1);
-        this.phase = this.awards().length ? 'awards' : 'end';
-        return this.broadcast();
+        if (this.roundIndex + 1 < this.regularRounds()) return this.startRound(this.roundIndex + 1);
+        if (this.awards().length) {
+          this.phase = 'awards';
+          return this.broadcast();
+        }
+        return this.finish();
       case 'awards':
-        this.phase = 'end';
-        return this.broadcast();
+        return this.finish();
       default:
     }
+  }
+
+  // The quiz without the tie-break that may have been added at the end.
+  regularRounds() {
+    return this.quiz.rounds.filter(r => !r.tiebreak).length;
+  }
+
+  // The end of the quiz. Teams that share a place in the top three first play one tie-break question.
+  finish(afterTiebreak = false) {
+    const ties = afterTiebreak || this.quiz.tiebreak === false ? [] : tiebreak.podiumTies(this.ranking());
+    if (!ties.length) {
+      this.phase = 'end';
+      return this.broadcast();
+    }
+    const q = tiebreak.question(this.quiz, i18n.dictionary(this.language));
+    const round = rounds.withDefaults({ type: 'closest', title: '', tiebreak: { teams: ties.flat() }, twists: [], questions: [q] });
+    // An undo may come back here: the tie-break round is replaced, never added twice.
+    this.quiz.rounds = [...this.quiz.rounds.filter(r => !r.tiebreak), round];
+    return this.startRound(this.quiz.rounds.length - 1);
   }
 
   startRound(index) {
@@ -203,6 +229,8 @@ class Game {
     const type = this.type;
     // Finales: the top two play.
     if (type.finale) this.finalists = this.ranking().slice(0, 2).map(r => r.id);
+    // Tie-break: only the tied teams answer.
+    if (this.round.tiebreak) this.finalists = this.round.tiebreak.teams.filter(id => this.teams.has(id));
     if (type.turns) {
       const players = type.turns === 'duel' ? this.finalists : [...this.teams.keys()];
       for (const id of players) this.clocks.set(id, type.clock * 1000);
@@ -219,7 +247,7 @@ class Game {
   // A team plays its one joker of the evening on the round that is about to start: points x2.
   playJoker(teamId) {
     const t = this.teams.get(teamId);
-    if (!t || !this.quiz.jokers || this.phase !== 'roundIntro' || t.jokerRound !== -1) return false;
+    if (!t || !this.quiz.jokers || this.phase !== 'roundIntro' || t.jokerRound !== -1 || this.round.tiebreak) return false;
     t.jokerRound = this.roundIndex;
     this.broadcast();
     return true;
@@ -559,6 +587,21 @@ class Game {
   }
 
   applyPoints() {
+    // Tie-break: no points, the distance to the answer decides the order of the tied teams.
+    if (this.round.tiebreak) {
+      const q = this.question;
+      for (const t of this.teams.values()) {
+        if (!this.round.tiebreak.teams.includes(t.id)) continue;
+        t.tb = t.answer === null || t.answer === undefined ? Number.MAX_SAFE_INTEGER : Math.abs(t.answer - q.answer);
+      }
+      const best = Math.min(...this.round.tiebreak.teams.map(id => (this.teams.get(id) ? this.teams.get(id).tb : Infinity)));
+      for (const t of this.teams.values()) {
+        t.lastPoints = 0;
+        t.correct = this.round.tiebreak.teams.includes(t.id) && t.tb === best && best !== Number.MAX_SAFE_INTEGER;
+        t.memNext = null;
+      }
+      return;
+    }
     for (const [id, r] of this.computePoints()) {
       const t = this.teams.get(id);
       t.score += r.points - t.lastPoints;
@@ -798,10 +841,12 @@ class Game {
   // Ties share a rank: 10, 8, 8, 5 -> 1, 2, 2, 4.
   ranking() {
     const sorted = [...this.teams.entries()]
-      .map(([id, t]) => ({ id, name: t.name, color: t.color, photo: t.photo || null, score: t.score, lastPoints: t.lastPoints }))
-      .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+      .map(([id, t]) => ({ id, name: t.name, color: t.color, photo: t.photo || null, score: t.score, lastPoints: t.lastPoints, tb: t.tb ?? null }))
+      // A tie-break splits equal scores: the closest answer first.
+      .sort((a, b) => b.score - a.score || (a.tb ?? Infinity) - (b.tb ?? Infinity) || a.name.localeCompare(b.name));
     sorted.forEach((r, i) => {
-      r.rank = i > 0 && sorted[i - 1].score === r.score ? sorted[i - 1].rank : i + 1;
+      const same = i > 0 && sorted[i - 1].score === r.score && sorted[i - 1].tb === r.tb;
+      r.rank = same ? sorted[i - 1].rank : i + 1;
       r.previousRank = this.previousRanks[r.id] || null;
     });
     return sorted;
@@ -856,7 +901,8 @@ class Game {
       title: this.quiz ? this.quiz.title : '',
       jokers: !!(this.quiz && this.quiz.jokers),
       round: round ? {
-        index: this.roundIndex, total: this.quiz.rounds.length, title: mystery ? '? ? ?' : round.title, type: round.type, family: (rounds.get(round.type) || {}).family || 'classic', mystery: !!mystery,
+        index: this.roundIndex, total: this.regularRounds(), title: round.tiebreak ? i18n.dictionary(this.language)['round.tiebreak'] : mystery ? '? ? ?' : round.title,
+        tiebreak: round.tiebreak ? round.tiebreak.teams.map(team).filter(Boolean) : null, type: round.type, family: (rounds.get(round.type) || {}).family || 'classic', mystery: !!mystery,
         questions: round.questions.length, scoring: round.scoring, twists: round.twists,
       } : null,
       questionIndex: this.questionIndex,
@@ -889,6 +935,8 @@ class Game {
 
   revealInfo() {
     const info = this.type.revealQ(this.question);
+    // A short "did you know" line after the answer, when the question has one.
+    info.fact = typeof this.question.fact === 'string' && this.question.fact.trim() ? this.question.fact.trim().slice(0, 200) : null;
     if (this.type.crowd) {
       // The answer of the room: the most common one.
       const groups = new Map();
@@ -929,7 +977,7 @@ class Game {
       state.counts = Array.from({ length: n }, (_, i) => teams.filter(t => t.answer === i).length);
     }
     if (reveal && ['text', 'number', 'point', 'order', 'pairs', 'list', 'level', 'buzz'].includes(kind)) {
-      state.answers = [...this.teams.entries()].map(([id, t]) => ({
+      state.answers = [...this.teams.entries()].filter(([id]) => !this.round.tiebreak || this.round.tiebreak.teams.includes(id)).map(([id, t]) => ({
         id, name: t.name, color: t.color, answer: t.answer, correct: t.correct, points: t.lastPoints, wager: t.wager, found: t.found,
       }));
     }
@@ -960,8 +1008,8 @@ class Game {
       canJudgeBuzz: this.phase === 'question' && (!!this.buzz || (!!this.type.turns && !!this.turnTeam)),
       realTitle: this.round ? this.round.title : '',
       lastQuestion: !!this.round && this.questionIndex + 1 >= this.round.questions.length,
-      lastRound: !!this.quiz && this.roundIndex + 1 >= this.quiz.rounds.length,
-      hasAwards: this.phase === 'scoreboard' && !!this.quiz && this.roundIndex + 1 >= this.quiz.rounds.length && this.awards().length > 0,
+      lastRound: !!this.quiz && this.roundIndex + 1 >= this.regularRounds(),
+      hasAwards: this.phase === 'scoreboard' && !!this.quiz && this.roundIndex + 1 >= this.regularRounds() && this.awards().length > 0,
     };
   }
 

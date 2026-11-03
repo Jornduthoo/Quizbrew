@@ -854,3 +854,21 @@ test('twist: mystery category keeps the round title hidden until the last answer
   game.answer(ids[1], 0);
   assert.equal(game.screenState().round.title, 'Cheese');
 });
+
+test('a "did you know" line: from the AI, in a spreadsheet, and with the answer', () => {
+  const ai = require('../src/ai');
+  const csv = require('../src/csv');
+  const { Game } = require('../src/game');
+  const qs = ai.parseRound('{"questions": [{"question": "Q?", "answers": ["a", "b", "c", "d"], "correct": 1, "fact": "Short and true."}]}', 'classic');
+  assert.equal(qs[0].fact, 'Short and true.');
+  assert.match(ai.roundPrompt({ type: 'classic' }), /"fact"/);
+  const quiz = { title: 'F', rounds: [{ type: 'classic', title: 'R', questions: [{ question: 'Q?', answers: ['a', 'b'], correct: 0, fact: 'Fun, really.' }] }] };
+  assert.equal(csv.toQuiz(csv.fromQuiz(quiz), 'F').rounds[0].questions[0].fact, 'Fun, really.');
+  const game = new Game();
+  game.load(quiz);
+  game.join('team1aaaa', 'A', 'amber', 's1');
+  game.next(); game.next();
+  assert.equal(game.screenState().reveal, null);
+  game.answer('team1aaaa', 0);
+  assert.equal(game.screenState().reveal.fact, 'Fun, really.');
+});

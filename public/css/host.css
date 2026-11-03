@@ -170,5 +170,31 @@ body.remote .key-hint { display: none; }
 .resume { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 22px 26px; margin: 0 auto 26px; max-width: 1100px; border-color: rgb(var(--k-amber) / .7); box-shadow: 0 0 30px rgb(var(--k-amber) / .25); animation: rise .4s ease both; }
 .resume-title { margin: 4px 0; font-size: 1.8em; }
 .resume .hint { margin: 0; }
+
+/* Connection test and raffle pop-ups. */
+.check-pop { align-items: flex-start; max-width: 560px; }
+.check-body, .raffle-body { min-width: 0; }
+.check-status { margin: 10px 0 4px; font-weight: 700; color: var(--brass-light); }
+.check-status.good { color: var(--good); }
+.check-hits { list-style: none; margin: 0; padding: 0; max-height: 140px; overflow: auto; font-size: .9em; }
+.check-hits li { padding: 3px 0; }
+.check-hits .ok { color: var(--good); font-weight: 800; }
+.check-tips { margin-top: 8px; font-size: .88em; }
+.check-tips summary { cursor: pointer; color: var(--brass-light); font-weight: 700; }
+.check-tips ol { margin: 6px 0 0; padding-left: 1.3em; display: grid; gap: 4px; color: var(--cream); }
+.raffle-pop { width: 380px; }
+.raffle-body h3 { margin: 0 0 10px; }
+.raffle-body .seg { display: flex; gap: 6px; }
+.raffle-body .seg button { flex: 1; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--brass); background: transparent; color: var(--cream); font: inherit; cursor: pointer; }
+.raffle-body .seg button.on { background: var(--brass); color: var(--ink); font-weight: 800; }
+.raffle-range { display: flex; gap: 12px; margin-top: 10px; }
+.raffle-range label { display: flex; align-items: center; gap: 6px; font-size: .9em; }
+.raffle-range input { width: 80px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--brass); background: rgb(0 0 0 / .35); color: var(--cream); font: inherit; }
+.raffle-actions { display: flex; gap: 8px; margin-top: 12px; }
+.raffle-winners { margin: 10px 0 6px; padding-left: 0; list-style: none; display: grid; gap: 4px; max-height: 160px; overflow: auto; }
+.raffle-winners li { display: flex; align-items: center; gap: 6px; }
+.raffle-winners .team-dot { width: 14px; height: 14px; }
+.rating-live { margin: 6px 0 0; font-size: 1.2em; color: var(--brass-light); font-weight: 700; }
+.quiz-rating { color: var(--brass-light); font-weight: 700; }
 .sfx-btn { min-width: 46px; padding-left: 10px; padding-right: 10px; font-size: 1.1em; }
 .sfx-btn.off { opacity: .6; }

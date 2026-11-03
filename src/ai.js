@@ -17,6 +17,7 @@ const RULES = [
   'Facts must be correct, current and unambiguous: one clear right answer.',
   'Keep questions short enough to read on a TV in a few seconds (max 120 characters).',
   'Never mention or copy existing TV quiz shows, game shows, quiz brands or board games.',
+  'Give every question a "fact" field: one short, surprising and true extra sentence for after the answer (max 120 characters).',
   'Answer with JSON only, no explanation before or after it.',
 ];
 
@@ -166,12 +167,18 @@ function extract(raw, check) {
   throw new Error('ai.noJson');
 }
 
+// The "did you know" line the AI writes next to a question.
+const withFact = (it, q) => {
+  const fact = rounds.str(it.fact).slice(0, 200);
+  return fact ? { ...q, fact } : q;
+};
+
 // Questions for one round from AI text, already in Quizbrew's shape. Unusable items are dropped.
 function parseRound(text, typeId) {
   const type = rounds.get(typeId);
   if (!type) throw new Error('Unknown round type');
   const data = extract(text, d => Array.isArray(d.questions));
-  const questions = data.questions.filter(it => it && typeof it === 'object').map(it => type.fromAI(it));
+  const questions = data.questions.filter(it => it && typeof it === 'object').map(it => withFact(it, type.fromAI(it)));
   if (!questions.length) throw new Error('ai.noQuestions');
   return questions;
 }
@@ -182,7 +189,7 @@ function parseQuiz(text) {
   for (const r of data.rounds) {
     const type = r && rounds.get(r.type);
     if (!type || !Array.isArray(r.questions)) continue;
-    out.rounds.push({ type: type.id, title: rounds.str(r.title), scoring: type.defaults.scoring, questions: r.questions.filter(q => q && typeof q === 'object').map(q => type.fromAI(q)) });
+    out.rounds.push({ type: type.id, title: rounds.str(r.title), scoring: type.defaults.scoring, questions: r.questions.filter(q => q && typeof q === 'object').map(q => withFact(q, type.fromAI(q))) });
   }
   if (!out.rounds.length) throw new Error('ai.noQuestions');
   return out;

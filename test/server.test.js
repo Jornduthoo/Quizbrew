@@ -161,3 +161,55 @@ test('the builder sees how every question went after a quiz night', async t => {
   assert.equal(stats.plays, 1);
   assert.deepEqual(stats.q['Two plus two?'], { asked: 2, right: 1, answered: 2 });
 });
+
+test('connection test, raffle and stars at the end', async t => {
+  const qb = createServer({ port: 0, settings: memorySettings(), library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
+  const port = await qb.listen();
+  const url = `http://127.0.0.1:${port}`;
+  const sockets = [];
+  const open = query => { const s = connect(url, { query, transports: ['websocket'], forceNew: true }); sockets.push(s); return s; };
+  t.after(async () => { sockets.forEach(s => s.close()); await qb.close(); });
+
+  // A phone that opens /check shows up on the quizmaster's laptop.
+  assert.equal((await fetch(`${url}/check`)).status, 200);
+  const check = await (await fetch(`${url}/api/host/check`)).json();
+  assert.equal(check.url, `http://192.168.1.50:${port}/check`);
+  assert.match(check.qr, /<svg/);
+  const host = open({ role: 'host' });
+  await once(host, 'state');
+  const hit = once(host, 'checkHit');
+  const phone = connect(url, { query: { role: 'check' }, transports: ['websocket'], forceNew: true, extraHeaders: { 'user-agent': 'Mozilla/5.0 (Linux; Android 14) Chrome/120 Mobile' } });
+  sockets.push(phone);
+  const checked = once(phone, 'checked');
+  assert.equal((await hit).device, 'Android · Chrome');
+  await checked;
+
+  // Raffle: ticket numbers are never drawn twice; a range with no numbers left says so.
+  const screen = open({ role: 'screen' });
+  await once(screen, 'state');
+  const shown = once(screen, 'raffle');
+  const first = await new Promise(r => host.emit('raffle', { mode: 'tickets', from: 1, to: 2 }, r));
+  assert.ok([1, 2].includes(first.winner.number));
+  const show = await shown;
+  assert.equal(show.prize, 1);
+  assert.deepEqual(show.winner, first.winner);
+  const second = await new Promise(r => host.emit('raffle', { mode: 'tickets', from: 1, to: 2 }, r));
+  assert.notEqual(second.winner.number, first.winner.number);
+  assert.equal((await new Promise(r => host.emit('raffle', { mode: 'tickets', from: 1, to: 2 }, r))).error, 'raffle.empty');
+  assert.equal((await new Promise(r => host.emit('raffle', { mode: 'tickets', from: 5, to: 2 }, r))).error, 'raffle.range');
+
+  // Stars: only at the end, one per team, the average goes to the quizmaster and to data/ratings.json.
+  await new Promise(r => host.emit('load', 'pub-warm-up.json', r));
+  const a = open({ role: 'player' });
+  await once(a, 'state');
+  await new Promise(r => a.emit('join', { teamId: 'aaaaaaaa111', name: 'Owls', color: 'amber' }, r));
+  a.emit('rate', 5); // too early: ignored
+  const teamDraw = await new Promise(r => host.emit('raffle', { mode: 'teams' }, r));
+  assert.equal(teamDraw.winner.name, 'Owls');
+  while (qb.game.phase !== 'end') qb.game.next();
+  const rated = once(host, 'rating');
+  a.emit('rate', 4);
+  assert.deepEqual(await rated, { count: 1, avg: 4 });
+  const list = await new Promise(r => host.emit('quizzes', r));
+  assert.equal(list.ratings['Pub Warm-up'].avg, 4);
+});

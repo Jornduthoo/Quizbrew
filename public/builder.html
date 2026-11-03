@@ -52,6 +52,7 @@
         <input class="title-input" id="quiz-title" maxlength="80" data-i18n-attr="placeholder:builder.quizTitle,aria-label:builder.quizTitle">
         <div class="head-row">
           <label class="check"><input type="checkbox" id="quiz-jokers"> <span data-i18n="builder.jokers"></span></label>
+          <label class="check"><input type="checkbox" id="quiz-tiebreak"> <span data-i18n="builder.tiebreak"></span></label>
           <span class="meta" id="quiz-meta"></span>
           <div class="head-buttons">
             <button class="ghost-btn small" id="check-btn" data-i18n="builder.check"></button>
@@ -62,6 +63,15 @@
             <button class="brass-btn" id="play-btn" data-i18n="builder.play"></button>
           </div>
         </div>
+        <details class="tiebreak-own" id="tiebreak-own">
+          <summary data-i18n="builder.tiebreakOwn"></summary>
+          <div class="tiebreak-fields">
+            <label class="field wide"><span data-i18n="builder.f.question"></span><input id="tb-question" maxlength="240"></label>
+            <label class="field"><span data-i18n="builder.f.number"></span><input id="tb-answer" type="number" step="any"></label>
+            <label class="field"><span data-i18n="builder.f.unit"></span><input id="tb-unit" maxlength="20"></label>
+          </div>
+          <p class="hint small" data-i18n="builder.tiebreakHint"></p>
+        </details>
         <div class="check-result" id="check-result" hidden></div>
       </section>
 

@@ -1,10 +1,10 @@
 // Quizzes as a spreadsheet: one row per question. Works with Excel's comma or semicolon files.
-// Columns: round, type, question, A, B, C, D, correct, answer, accept, clues, category, unit, time, points, image
+// Columns: round, type, question, A, B, C, D, correct, answer, accept, clues, category, unit, time, points, image, fact
 // correct = the letter of the right choice (A-D), or true/false for a true-or-false round.
 // accept and clues are separated by |.
 const rounds = require('./rounds');
 
-const COLUMNS = ['round', 'type', 'question', 'A', 'B', 'C', 'D', 'correct', 'answer', 'accept', 'clues', 'category', 'unit', 'time', 'points', 'image'];
+const COLUMNS = ['round', 'type', 'question', 'A', 'B', 'C', 'D', 'correct', 'answer', 'accept', 'clues', 'category', 'unit', 'time', 'points', 'image', 'fact'];
 const LETTERS = ['A', 'B', 'C', 'D'];
 
 function parseRows(text) {
@@ -59,7 +59,7 @@ function toQuiz(text, title = 'Imported quiz') {
     if (get(r, 'answer')) q.answer = type.kind === 'number' ? Number(get(r, 'answer').replace(',', '.')) : get(r, 'answer');
     if (get(r, 'accept')) q.accept = rounds.list(get(r, 'accept'));
     if (get(r, 'clues')) q.clues = rounds.list(get(r, 'clues'));
-    for (const f of ['category', 'unit', 'image']) if (get(r, f)) q[f] = get(r, f);
+    for (const f of ['category', 'unit', 'image', 'fact']) if (get(r, f)) q[f] = get(r, f);
     if (Number(get(r, 'time')) > 0) q.time = Number(get(r, 'time'));
     if (Number(get(r, 'points')) > 0) q.points = Number(get(r, 'points'));
     round.questions.push(q);
@@ -82,6 +82,7 @@ function fromQuiz(quiz) {
         answer: q.answer, accept: (q.accept || []).join('|'), clues: (q.clues || []).join('|'),
         category: q.category, unit: q.unit, time: q.time, points: q.points,
         image: typeof q.image === 'string' && !q.image.startsWith('data:') ? q.image : '',
+        fact: q.fact,
       };
       (q.answers || []).forEach((a, i) => { row[LETTERS[i]] = a; });
       lines.push(COLUMNS.map(c => esc(row[c])).join(','));

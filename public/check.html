@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f0805">
+  <title>Quizbrew · Brew a quiz in seconds</title>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/play.css">
+</head>
+<body class="phone">
+  <!-- The connection test: if this page opens, the phone reaches the quiz laptop. -->
+  <section class="view center" id="v-check">
+    <img class="logo" src="/img/logo.webp" alt="Quizbrew">
+    <div class="badge pulse" id="check-badge"></div>
+    <p class="say" id="check-text" data-i18n="check.wait"></p>
+    <p class="sub" id="check-sub"></p>
+  </section>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/common.js"></script>
+  <script>
+    (async function () {
+      const $ = QB.$;
+      let ok = false;
+      const info = await QB.info();
+      await I18n.load(I18n.deviceLanguage(info.languages.map(l => l.code)) || info.language);
+      const socket = io({ query: { role: 'check' } });
+      socket.on('checked', () => {
+        ok = true;
+        $('#check-badge').className = 'badge filled';
+        $('#check-badge').textContent = '✓';
+        $('#check-text').textContent = t('check.ok');
+        $('#check-sub').textContent = t('check.okSub');
+        if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+      });
+      // The page came through, but the live connection did not: something on the network blocks it.
+      setTimeout(() => {
+        if (ok) return;
+        $('#check-badge').className = 'badge filled bad';
+        $('#check-badge').textContent = '!';
+        $('#check-text').textContent = t('check.half');
+        $('#check-sub').textContent = t('check.halfSub');
+      }, 8000);
+    })();
+  </script>
+</body>
+</html>
