@@ -184,6 +184,27 @@
     $('#ri-sponsor-line').hidden = !sp.line;
   }
 
+  // The question always fits on the slate: start at the normal size and step down until it does.
+  function fitQuestion() {
+    const h1 = $('#q-text');
+    const board = h1.parentElement;
+    h1.style.fontSize = '';
+    requestAnimationFrame(() => {
+      if (board.offsetParent === null) return;
+      const room = () => {
+        const cs = getComputedStyle(board);
+        return board.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+      };
+      let size = parseFloat(getComputedStyle(h1).fontSize);
+      const min = size * 0.45;
+      while (size > min && (h1.scrollHeight > room() + 1 || h1.scrollWidth > board.clientWidth)) {
+        size *= 0.93;
+        h1.style.fontSize = size + 'px';
+      }
+    });
+  }
+  addEventListener('resize', () => { if (!$('#v-question').hidden) fitQuestion(); });
+
   function setTheme(type) {
     document.body.style.setProperty('--theme', roundTheme(type).glow);
   }
@@ -255,6 +276,7 @@
       split($('#q-text'), text, 'word');
       const words = text.split(/\s+/).length;
       $('#q-text').parentElement.classList.toggle('long', text.length > 90);
+      fitQuestion();
       $('#answers').style.setProperty('--start', Math.min(1.4, 0.25 + words * 0.06) + 's');
       const answers = kind === 'trueFalse' ? [t('play.true'), t('play.false')] : kind === 'choice' ? q.answers : [];
       $('#answers').className = 'answers' + (kind === 'trueFalse' ? ' tf' : '') + (q.images ? ' images' : '');

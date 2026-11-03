@@ -18,6 +18,7 @@ const RULES = [
   'Keep questions short enough to read on a TV in a few seconds (max 120 characters).',
   'Never mention or copy existing TV quiz shows, game shows, quiz brands or board games.',
   'Give every question a "fact" field: one short, surprising and true extra sentence for after the answer (max 120 characters).',
+  'Keep alcohol, drinking and drugs out of questions, answers and facts unless the topic itself asks for it.',
   'Answer with JSON only, no explanation before or after it.',
 ];
 

@@ -216,7 +216,8 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 @keyframes line-grow { from { width: 0; opacity: 0; } }
 
 /* Question */
-.question { display: grid; grid-template-rows: auto 1fr auto auto; gap: 3vh; }
+.question { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 2.6vh; padding: 3vh 6vw 7vh; }
+.question .q-body { min-height: 0; }
 .q-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; font-size: 1.15em; color: var(--brass-light); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .q-answered { justify-self: end; }
 .timer { position: relative; width: 11vh; height: 11vh; display: grid; place-items: center; }
@@ -236,8 +237,9 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
   box-shadow: 0 0 0 1.1vh var(--wood-600), 0 0 0 calc(1.1vh + 3px) var(--brass), 0 30px 70px rgba(0, 0, 0, .65), inset 0 0 80px rgba(0, 0, 0, .55);
   margin: 1.1vh;
 }
-.q-board h1 { margin: 0; text-align: center; font-size: 3.3em; line-height: 1.12; font-weight: 700; color: var(--qboard-text); text-shadow: 0 0 1px #fff8, 0 2px 0 rgba(0, 0, 0, .3); letter-spacing: -.005em; }
-.q-board.long h1 { font-size: 2.5em; }
+.q-board { min-height: 0; overflow: hidden; }
+.q-board h1 { margin: 0; max-width: 30em; text-align: center; text-wrap: balance; font-size: 2.9em; line-height: 1.12; font-weight: 700; color: var(--qboard-text); text-shadow: 0 0 1px #fff8, 0 2px 0 rgba(0, 0, 0, .3); letter-spacing: -.005em; }
+.q-board.long h1 { font-size: 2.3em; }
 .q-board h1 .ch { display: inline-block; animation: chalk-in .5s ease-out both; animation-delay: calc(.15s + var(--i) * .06s); }
 @keyframes chalk-in {
   from { opacity: 0; transform: translateY(.25em) rotate(-2deg); filter: blur(4px); }
@@ -256,7 +258,7 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
   background: linear-gradient(90deg, rgba(0, 0, 0, .55), rgba(0, 0, 0, .35));
   border: 3px solid var(--a);
   box-shadow: 0 0 18px var(--a), inset 0 0 22px rgba(0, 0, 0, .4);
-  font-size: 1.7em; font-weight: 700;
+  font-size: 1.5em; font-weight: 700;
   animation: tube-on .9s linear both;
   animation-delay: calc(var(--start, .4s) + var(--k) * .18s);
   transition: opacity .5s, transform .5s, filter .5s, background .5s;
