@@ -52,7 +52,7 @@ test('every round type, scoring mode, twist and family has a name in every langu
     for (const s of rounds.SCORINGS) assert.ok(d[`scoring.${s}`] && d[`scoring.${s}.desc`], `${code}: scoring.${s}`);
     for (const tw of rounds.TWISTS) assert.ok(d[`twist.${tw}`] && d[`twist.${tw}.desc`], `${code}: twist.${tw}`);
     for (const f of ['all', ...rounds.FAMILIES]) assert.ok(d[`family.${f}`], `${code}: family.${f}`);
-    for (const k of ['choice', 'trueFalse', 'text', 'number', 'choiceOrText', 'order', 'pairs', 'point']) assert.ok(d[`kind.${k}`], `${code}: kind.${k}`);
+    for (const k of ['choice', 'trueFalse', 'text', 'number', 'choiceOrText', 'order', 'pairs', 'point', 'buzz', 'list', 'level']) assert.ok(d[`kind.${k}`], `${code}: kind.${k}`);
   }
 });
 
@@ -199,6 +199,117 @@ test('odd one out, emoji and sound rounds', () => {
   assert.equal(pq.start, 12);
   assert.equal(pq.effect, 'grow');
   assert.throws(() => validateQuiz({ rounds: [{ type: 'music', questions: [{ answer: 'x' }] }] }), /sound/);
+});
+
+const scores = game => [...game.teams.values()].map(t => t.score);
+const ch = (q, correct = 0) => ({ question: q, answers: ['a', 'b', 'c', 'd'], correct });
+
+test('buzzer: first buzz stops the clock, wrong lets the others buzz', () => {
+  const { game, ids, go, clock } = play({ type: 'buzzer', scoring: 'risk', questions: [{ question: 'Capital of Peru?', answer: 'Lima', time: 30 }] }, { teams: ['A', 'B', 'C'] });
+  go();
+  clock.advance(5000);
+  assert.equal(game.answer(ids[0], true), true);
+  assert.equal(game.answer(ids[1], true), false, 'floor is taken');
+  assert.equal(game.screenState().buzz.name, 'A');
+  clock.advance(10000);
+  assert.equal(game.remaining(), 25000, 'clock stands still');
+  game.judgeBuzz(false);
+  assert.equal(game.phase, 'question');
+  assert.equal(game.answer(ids[0], true), false, 'a wrong team may not buzz again');
+  game.answer(ids[1], true);
+  game.judgeBuzz(true);
+  assert.equal(game.phase, 'reveal');
+  assert.deepEqual(scores(game), [-1, 1, 0]);
+});
+
+test('last team standing: a miss and you are out for the round', () => {
+  const { game, ids, go } = play({ type: 'lastStanding', questions: [ch('Q1'), ch('Q2'), ch('Q3')] }, { teams: ['A', 'B'] });
+  go();
+  game.answer(ids[0], 0);
+  game.answer(ids[1], 1);
+  go(); // next question
+  assert.equal(game.teamState(ids[1]).out, true);
+  assert.equal(game.answer(ids[1], 0), false);
+  game.answer(ids[0], 0);
+  assert.equal(game.phase, 'reveal', 'the out team does not hold up the reveal');
+  assert.deepEqual(scores(game), [2, 0]);
+});
+
+test('push your luck: pots double, banking keeps them, a miss empties', () => {
+  const { game, ids, go } = play({ type: 'pushYourLuck', questions: [ch('Q1'), ch('Q2'), ch('Q3'), ch('Q4')] }, { teams: ['A', 'B'] });
+  go();
+  game.answer(ids[0], 0); game.answer(ids[1], 0); // pots 1, 1
+  go();
+  game.answer(ids[0], 0); game.answer(ids[1], 0); // pots 2, 2
+  go();
+  assert.equal(game.teamState(ids[0]).canBank, true);
+  game.bankPot(ids[0]); // A keeps 2
+  game.answer(ids[1], 3); // B misses: pot 0
+  assert.deepEqual(scores(game), [2, 0]);
+  go();
+  assert.equal(game.teamState(ids[0]).out, true);
+  game.answer(ids[1], 0); // last question: B's new pot (1) is banked by itself
+  assert.deepEqual(scores(game), [2, 1]);
+});
+
+test('steal: right teams take points from the leader', () => {
+  const { game, ids, go } = play({ type: 'steal', questions: [{ question: 'Q', answer: 'Lima', points: 2 }] }, { teams: ['A', 'B', 'C'] });
+  game.adjustScore(ids[0], 5);
+  go();
+  game.answer(ids[0], 'Paris');
+  game.answer(ids[1], 'lima');
+  game.answer(ids[2], 'Lima');
+  assert.deepEqual(scores(game), [1, 2, 2]);
+  game.judge(ids[2], false);
+  assert.deepEqual(scores(game), [3, 2, 0], 'the quizmaster can overrule and the steal follows');
+});
+
+test('pick your level: every team plays its own question for 1, 2 or 3 times the points', () => {
+  const levels = [ch('easy', 0), ch('medium', 1), ch('hard', 2)];
+  const { game, ids, go } = play({ type: 'pickYourLevel', questions: [{ category: 'Space', levels }] }, { teams: ['A', 'B'] });
+  go();
+  assert.equal(game.phase, 'wager');
+  game.setWager(ids[0], 2);
+  go();
+  assert.equal(game.teamState(ids[0]).question.text, 'hard');
+  assert.equal(game.teamState(ids[1]).question.text, 'easy', 'no choice = easy');
+  assert.equal(game.screenState().question.text, '');
+  game.answer(ids[0], 2);
+  game.answer(ids[1], 0);
+  assert.deepEqual(scores(game), [3, 1]);
+});
+
+test('hot streak: right answers in a row count up', () => {
+  const { game, ids, go } = play({ type: 'hotStreak', questions: [ch('Q1'), ch('Q2'), { question: 'Q3', answer: 'Lima' }] }, { teams: ['A', 'B'] });
+  go(); game.answer(ids[0], 0); game.answer(ids[1], 0);
+  go(); game.answer(ids[0], 0); game.answer(ids[1], 1);
+  go(); game.answer(ids[0], 'lima'); game.answer(ids[1], 'lima');
+  assert.deepEqual(scores(game), [1 + 2 + 3, 1 + 0 + 1]);
+});
+
+test('list rush: every right item once, other spellings with a slash', () => {
+  const { game, ids, go, clock } = play({ type: 'listRush', questions: [{ question: 'Benelux capitals', items: ['Brussels / Brussel', 'Amsterdam', 'Luxembourg'], time: 30 }] });
+  go();
+  game.answer(ids[0], 'Brussel');
+  game.answer(ids[0], 'brussel');
+  game.answer(ids[0], 'Amsterdam');
+  game.answer(ids[0], 'Paris');
+  game.answer(ids[1], 'Luxemburg');
+  assert.deepEqual(game.teams.get(ids[0]).answer, ['Brussel', 'Amsterdam', 'Paris']);
+  assert.equal(game.phase, 'question', 'a list runs until time is up');
+  clock.advance(30000);
+  assert.deepEqual(scores(game), [2, 1]);
+  assert.deepEqual(game.screenState().reveal.found.sort(), [0, 1, 2]);
+});
+
+test('crowd mind: the most common answer scores', () => {
+  const { game, ids, go } = play({ type: 'crowdMind', questions: [{ question: 'Name a fruit' }] }, { teams: ['A', 'B', 'C'] });
+  go();
+  game.answer(ids[0], 'Apple');
+  game.answer(ids[1], 'apple ');
+  game.answer(ids[2], 'Kiwi');
+  assert.deepEqual(scores(game), [2, 2, 0]);
+  assert.equal(game.screenState().reveal.answerText, 'Apple');
 });
 
 test('scoring modes: speed, race, risk, time and ladder', () => {

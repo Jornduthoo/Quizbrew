@@ -96,7 +96,7 @@
     const reveal = s.phase === 'reveal';
     const kind = q.kind;
     const typed = kind === 'text' || kind === 'number';
-    const listed = typed || kind === 'point' || kind === 'order' || kind === 'pairs';
+    const listed = typed || ['point', 'order', 'pairs', 'list', 'level', 'buzz'].includes(kind);
     $('#q-count').textContent = t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
     $('#q-answered').textContent = t('screen.answeredCount', { n: s.answered, total: s.teams.length });
     const wasRevealed = document.body.classList.contains('revealed');
@@ -104,7 +104,7 @@
     document.body.dataset.kind = kind;
 
     if (fresh) {
-      const text = q.scrambled ? t('screen.unscramble') : q.text || (q.clues ? t('screen.findLink') : q.emoji ? t('screen.emojiWhat') : q.audio ? t('screen.listen') : q.images ? t('screen.oddOne') : q.image ? t('screen.whatIsThis') : '');
+      const text = q.kind === 'level' ? t('screen.ownLevel') : q.scrambled ? t('screen.unscramble') : q.text || (q.clues ? t('screen.findLink') : q.emoji ? t('screen.emojiWhat') : q.audio ? t('screen.listen') : q.images ? t('screen.oddOne') : q.image ? t('screen.whatIsThis') : '');
       split($('#q-text'), text, 'word');
       const words = text.split(/\s+/).length;
       $('#q-text').parentElement.classList.toggle('long', text.length > 90);
@@ -145,12 +145,47 @@
       }
       $('#q-clues').hidden = !q.clues;
       if (q.clues) $('#q-clues').replaceChildren(...q.clues.map((c, i) => h('li', { class: 'clue', style: `--k: ${i}` }, h('span', { class: 'clue-pts' }), h('span', {}, c))));
-      const hintKey = { text: 'screen.typeAnswer', number: 'screen.typeNumber', point: 'screen.tapSpot', order: 'screen.putInOrder', pairs: 'screen.makePairs' }[kind];
+      const hintKey = { text: 'screen.typeAnswer', number: 'screen.typeNumber', point: 'screen.tapSpot', order: 'screen.putInOrder', pairs: 'screen.makePairs', buzz: 'screen.buzzNow', list: 'screen.listGo', level: 'screen.answerOnPhone' }[kind];
       $('#q-typehint').hidden = !hintKey;
-      $('#q-typehint').textContent = hintKey ? t(hintKey) : '';
+      $('#q-typehint').textContent = hintKey ? t(hintKey, { n: q.total }) : '';
+      $('#q-list').hidden = true;
+      $('#q-levels').hidden = !q.levels;
       Media.start(q, q.time * 1000 - s.remaining);
       $('#q-wave').hidden = !q.audio;
       if (!q.audio) $('#sound-gate').hidden = true;
+    }
+
+    // Pick your level: three cards with the teams that chose each; the questions and answers come with the reveal.
+    if (q.levels) {
+      $('#q-levels').replaceChildren(...q.levels.map((lv, i) => {
+        const solved = reveal && s.reveal.levels && s.reveal.levels[i];
+        return h('li', { class: 'level-card' + (solved ? ' solved' : ''), style: `--k: ${i}` },
+          h('span', { class: 'lv-name' }, t(`play.level${i}`)),
+          h('span', { class: 'lv-pts' }, t('screen.points', { n: lv.points * q.points })),
+          solved ? h('span', { class: 'lv-q' }, solved.question) : null,
+          solved ? h('strong', { class: 'lv-a' }, solved.answer) : null,
+          h('span', { class: 'lv-teams' }, s.teams.filter(tm => (tm.level || 0) === i).map(tm => h('i', { class: 'team-dot', style: teamVar(tm.color), title: tm.name }))));
+      }));
+    }
+
+    // Round memory: pots, streaks and who is out.
+    const board = $('#round-board');
+    board.hidden = !s.board;
+    if (s.board) {
+      board.replaceChildren(...s.teams.map(tm => h('li', { class: 'rb-team' + (tm.out ? ' out' : '') + (tm.banked ? ' banked' : ''), style: teamVar(tm.color) },
+        h('span', { class: 'team-dot' }), h('span', { class: 'rb-name' }, tm.name),
+        h('span', { class: 'rb-val' }, s.round.type === 'pushYourLuck' ? (tm.banked ? t('screen.banked') : t('screen.pot', { n: tm.pot }))
+          : s.round.type === 'hotStreak' ? (tm.streak ? '×' + tm.streak : '') : tm.out ? t('screen.out') : '✓'))));
+    }
+
+    // Buzzer: the team that has the floor, big and in its colour.
+    const banner = $('#buzz-banner');
+    const hadBuzz = !banner.hidden;
+    banner.hidden = !s.buzz;
+    if (s.buzz) {
+      banner.style.cssText = teamVar(s.buzz.color);
+      banner.replaceChildren(h('span', { class: 'bz-name' }, s.buzz.name), h('span', { class: 'bz-sub' }, t('screen.buzzed')));
+      if (!hadBuzz) later(() => FX.sparksAt(banner, { color: cssColor('--team-' + s.buzz.color), count: 80, speed: 1.4 }), 100);
     }
 
     // Choice and true/false: light up the right answer.
@@ -163,19 +198,24 @@
     // Typed answers: the solution on the board and every team's answer below it.
     const sol = $('#q-solution');
     // Order and pairs show the solution in the list itself.
-    sol.hidden = !(reveal && listed) || kind === 'order' || kind === 'pairs';
+    const crowd = s.round.type === 'crowdMind';
+    sol.hidden = !(reveal && (listed || kind === 'buzz')) || ['order', 'pairs', 'list', 'level'].includes(kind) || (kind === 'buzz' && !(s.reveal && s.reveal.answerText));
     $('#team-answers').hidden = !(reveal && listed && s.answers);
     if (reveal && listed) {
       $('#q-typehint').hidden = true;
-      sol.replaceChildren(h('span', { class: 'sol-label' }, t('screen.solution')), h('span', { class: 'sol-text' }, s.reveal.answerText + (s.reveal.unit ? ' ' + s.reveal.unit : '')));
+      sol.replaceChildren(h('span', { class: 'sol-label' }, t(crowd ? 'screen.crowdSays' : 'screen.solution')), h('span', { class: 'sol-text' }, s.reveal.answerText + (s.reveal.unit ? ' ' + s.reveal.unit : '')));
       const list = (s.answers || []).slice();
       if (kind === 'number') list.sort((a, b) => (a.answer === null) - (b.answer === null) || Math.abs(a.answer - s.reveal.number) - Math.abs(b.answer - s.reveal.number));
       else list.sort((a, b) => b.correct - a.correct);
+      if (kind === 'list') list.sort((a, b) => (b.found || 0) - (a.found || 0));
       if (kind === 'point') list.sort((a, b) => (a.answer === null) - (b.answer === null) || (a.answer && b.answer ? dist(a.answer, s.reveal.spot) - dist(b.answer, s.reveal.spot) : 0));
       const shown = a => {
         if (a.answer === null) return '—';
         if (kind === 'point') return t('screen.distance', { n: Math.round(dist(a.answer, s.reveal.spot) * 100) });
         if (kind === 'order' || kind === 'pairs') return a.correct ? '✓' : '✗';
+        if (kind === 'list') return t('screen.foundN', { n: a.found || 0 });
+        if (kind === 'level') return `${t(`play.level${a.answer.l}`)} ${a.correct ? '✓' : '✗'}`;
+        if (kind === 'buzz') return a.answer === 'right' ? '✓' : '✗';
         return String(a.answer);
       };
       $('#team-answers').replaceChildren(...list.map((a, i) => h('li', { class: 'team-answer' + (a.correct ? ' right' : a.answer === null ? ' none' : ' wrong'), style: `${teamVar(a.color)}; --k: ${i}` },
@@ -199,6 +239,11 @@
         pins.push(h('span', { class: 'pin goal', style: `left: ${s.reveal.spot.x * 100}%; top: ${s.reveal.spot.y * 100}%` }));
         $('#q-pins').replaceChildren(...pins);
         fitPins();
+      }
+      if (kind === 'list' && s.reveal.items) {
+        const found = new Set(s.reveal.found || []);
+        $('#q-list').hidden = false;
+        $('#q-list').replaceChildren(...s.reveal.items.map((it, i) => h('li', { class: found.has(i) ? 'hit' : '', style: `--k: ${i}` }, it)));
       }
       $('#q-clues').querySelectorAll('.clue').forEach(c => c.classList.add('on'));
       if (q.scrambled) $('#q-tiles').replaceChildren(...[...s.reveal.answerText.toUpperCase().replace(/\s+/g, '')].map((c, i) => h('span', { class: 'tile solved', style: `--k: ${i}` }, c)));
@@ -248,6 +293,12 @@
     const canvas = $('#q-canvas');
     canvas.hidden = q.effect !== 'pixel';
     img.hidden = q.effect === 'pixel';
+    if (s.paused) {
+      ring.style.strokeDashoffset = C * (1 - s.remaining / total);
+      $('#timer-num').textContent = Math.ceil(s.remaining / 1000);
+      Media.stop();
+      return;
+    }
     stopTimer = countdown(s.remaining, total, (left, frac) => {
       Media.tick(total - left);
       if (q.effect === 'pixel') pixelate(canvas, img, 1 - frac);
@@ -298,7 +349,10 @@
   addEventListener('resize', () => { if ($('#q-pins').children.length) fitPins(); });
 
   function renderWager(s) {
-    split($('#wager-category'), s.category || t('round.jackpot'));
+    const level = s.wagerMode === 'level';
+    $('#wager-kicker').textContent = t(level ? 'screen.pickLevel' : 'screen.placeBets');
+    $('#wager-hint').textContent = t(level ? 'screen.levelHint' : 'screen.betHint');
+    split($('#wager-category'), s.category || t(level ? 'round.pickYourLevel' : 'round.jackpot'));
     $('#wager-dots').replaceChildren(...s.teams.map(team => h('li', { class: 'dot' + (team.wagered ? ' on' : ''), style: teamVar(team.color), title: team.name })));
   }
 

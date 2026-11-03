@@ -154,6 +154,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
         }
       });
       on('judge', ({ teamId, correct } = {}) => game.judge(String(teamId), !!correct));
+      on('buzzJudge', right => game.judgeBuzz(!!right));
       // Play the sound of the question again (or stop it) on the big screen.
       on('media', action => { if (['replay', 'stop'].includes(action)) io.to('screen').emit('media', action); });
       on('next', () => game.next());
@@ -199,6 +200,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     });
     on('answer', choice => teamId && game.answer(teamId, choice));
     on('wager', amount => teamId && game.setWager(teamId, Number(amount)));
+    on('bank', () => teamId && game.bankPot(teamId));
     on('joker', () => teamId && game.playJoker(teamId));
     on('leftPage', () => teamId && game.leftPage(teamId));
     socket.on('disconnect', () => teamId && game.disconnect(socket.id));

@@ -58,6 +58,14 @@ Open http://localhost:3000/builder (or "Open quiz builder" on the quizmaster scr
 | `orderUp` | tap the items in order (items are stored in the right order) | all right or nothing |
 | `pairUp` | for each left item tap its partner | all right or nothing |
 | `mapDrop` | tap a spot on a map or picture | closest pin, within 2% doubles |
+| `buzzer` | one big button; the first team answers out loud, the quizmaster taps right or wrong | points (or risk) |
+| `lastStanding` | buttons; a miss puts the team out for the rest of the round | points per question survived |
+| `pushYourLuck` | buttons plus "bank"; every right answer doubles the pot | only banked points count |
+| `steal` | type; right teams take the points from the leader | + points, leader pays |
+| `pickYourLevel` | pick easy, medium or hard first, then your own question | 1x, 2x, 3x |
+| `hotStreak` | buttons or typed; right answers in a row count up | 1x, 2x, 3x ... |
+| `listRush` | type as many items as you can until time is up | points per item |
+| `crowdMind` | type; no right answer | the most common answer scores |
 
 Sound files (mp3, m4a, ogg, wav) are uploaded in the builder with a start and end second. Browsers only play sound after one click on the big screen; a button asks for it when needed.
 

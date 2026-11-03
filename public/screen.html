@@ -77,20 +77,24 @@
         <ol class="order-list" id="q-items" hidden></ol>
         <div class="pair-cols" id="q-pairs" hidden></div>
         <ol class="clues" id="q-clues" hidden></ol>
+        <ol class="level-cards" id="q-levels" hidden></ol>
+        <ul class="list-board" id="q-list" hidden></ul>
         <p class="type-hint" id="q-typehint" hidden></p>
         <div class="q-solution" id="q-solution" hidden></div>
       </div>
     </div>
     <ol class="answers" id="answers"></ol>
     <ul class="team-answers" id="team-answers" hidden></ul>
+    <ul class="round-board" id="round-board" hidden></ul>
     <ul class="answered-dots" id="answered-dots"></ul>
+    <div class="buzz-banner" id="buzz-banner" hidden></div>
   </section>
 
   <!-- Bets before a jackpot question -->
   <section id="v-wager" class="view center wager" hidden>
-    <p class="round-kicker" data-i18n="screen.placeBets"></p>
+    <p class="round-kicker" id="wager-kicker"></p>
     <h1 class="neon wager-category" id="wager-category"></h1>
-    <p class="round-meta" data-i18n="screen.betHint"></p>
+    <p class="round-meta" id="wager-hint"></p>
     <ul class="answered-dots big" id="wager-dots"></ul>
   </section>
 

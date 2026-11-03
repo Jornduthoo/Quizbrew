@@ -7,6 +7,15 @@
 //   trueFalse - 2 buttons, true or false (answer = 0 for true, 1 for false)
 //   text      - type an answer (checked against answer + accept, the quizmaster can overrule)
 //   number    - type a number (closest wins)
+//   order     - tap shown items in order (answer = item indexes in the right order)
+//   pairs     - match left to right (answer = right index per left item)
+//   point     - tap a spot on a picture (answer = { x, y }, 0..1)
+//   buzz      - one big button; the first team to buzz says the answer out loud, the quizmaster judges
+//   list      - type as many items of a list as you can (answer = the typed items)
+//   level     - every team first picks easy, medium or hard and gets its own question (answer = { l, i })
+//
+// A type with its own score(entries, q, base, ctx) gets per team: answer, answeredAt, wager, mem (what the
+// round remembers about the team: streak, pot, out ...) and bank. It may return a new mem per team.
 //
 // Scoring modes that the quizmaster picks per round (only for types with a right or wrong answer):
 //   points - right = the points of the question
@@ -392,6 +401,179 @@ const TYPES = [
     aiShape: '{"question": "Where is Paris?", "answer": "Paris", "mapHint": "which map to use, e.g. a map of Europe"}  (the quizmaster adds the map and clicks the right spot)',
     fromAI: it => ({ question: str(it.question), answer: str(it.answer), imagePrompt: str(it.mapHint) }),
   },
+// ---------- wave 3: speed and strategy ----------
+  {
+    id: 'buzzer', family: 'speed', kind: 'buzz',
+    defaults: { time: 30, points: 1, scoring: 'points' },
+    fields: ['question', 'answer', 'image', 'time', 'points'],
+    scorings: ['points', 'risk'],
+    validate(q, fail) { need.text(q, fail); },
+    parse: raw => (raw === true ? true : undefined),
+    publicQ: () => ({}),
+    revealQ: q => ({ answerText: str(q.answer) }),
+    // The quizmaster judged the team that buzzed: 'right' or 'wrong' (with risk, wrong costs the points).
+    score: (entries, q, base, ctx) => entries.map(e => (e.answer === 'right' ? { points: base, correct: true } : { points: e.answer === 'wrong' && ctx.scoring === 'risk' ? -base : 0, correct: false })),
+    aiShape: '{"question": "...", "answer": "short answer the quizmaster reads"}  (quick questions with one clear answer)',
+    fromAI: it => ({ question: str(it.question), answer: str(it.answer) }),
+  },
+  {
+    id: 'lastStanding', family: 'strategy', ...choiceType,
+    defaults: { time: 15, points: 1 },
+    fields: ['question', 'answers', 'image', 'time', 'points'],
+    scorings: [],
+    // A wrong or missing answer and the team is out for the rest of the round. Survivors score every question.
+    score: (entries, q, base) => entries.map(e => {
+      if (e.mem.out) return { points: 0, correct: false };
+      const right = e.answer === q.correct;
+      return right ? { points: base, correct: true } : { points: 0, correct: false, mem: { ...e.mem, out: true } };
+    }),
+    sitsOut: mem => !!mem.out,
+  },
+  {
+    id: 'pushYourLuck', family: 'strategy', ...choiceType,
+    defaults: { time: 15, points: 1 },
+    fields: ['question', 'answers', 'image', 'time', 'points'],
+    scorings: [],
+    // Every right answer doubles the pot (1, 2, 4, 8 ...). Bank it before a question to keep it; a wrong answer empties it.
+    // The pot is banked by itself after the last question of the round.
+    score: (entries, q, base, ctx) => entries.map(e => {
+      if (e.mem.banked) return { points: 0, correct: false };
+      if (e.bank) return { points: e.mem.pot, correct: true, mem: { ...e.mem, pot: 0, banked: true } };
+      const right = e.answer === q.correct;
+      const pot = right ? (e.mem.pot ? e.mem.pot * 2 : base) : 0;
+      if (ctx.lastQuestion && pot) return { points: pot, correct: true, mem: { ...e.mem, pot: 0, banked: true } };
+      return { points: 0, correct: right, mem: { ...e.mem, pot } };
+    }),
+    sitsOut: mem => !!mem.banked,
+    canBank: mem => !mem.banked && mem.pot > 0,
+  },
+  {
+    id: 'steal', family: 'strategy', ...textType, judge: true,
+    defaults: { time: 30, points: 2 },
+    fields: ['question', 'answer', 'image', 'time', 'points'],
+    scorings: [],
+    // Every right team scores, and takes those points from the leader (the leader can not go below zero this way).
+    score: (entries, q, base, ctx) => {
+      const right = entries.map(e => ctx.isRight(e));
+      const thieves = entries.filter((e, i) => right[i] && !ctx.leaders.includes(e.id)).length;
+      return entries.map((e, i) => {
+        let points = right[i] ? base : 0;
+        if (ctx.leaders.includes(e.id) && thieves) points -= Math.min(base * thieves, Math.max(0, e.score));
+        return { points, correct: right[i] };
+      });
+    },
+  },
+  {
+    id: 'pickYourLevel', family: 'strategy', kind: 'level', wager: 'level',
+    defaults: { time: 25, points: 1 },
+    fields: ['category', 'levels', 'time', 'points'],
+    scorings: [],
+    validate(q, fail) {
+      if (!Array.isArray(q.levels) || q.levels.length !== 3) fail('needs an easy, a medium and a hard question');
+      q.levels.forEach(l => { need.text(l || {}, fail); need.answers(l || {}, fail); });
+    },
+    // The team picked a level (0, 1, 2) first; the phone sends the index of its answer.
+    parse: (raw, q, team) => {
+      const l = team && Number.isInteger(team.wager) ? team.wager : 0;
+      return Number.isInteger(raw) && raw >= 0 && raw < q.levels[l].answers.length ? { l, i: raw } : undefined;
+    },
+    isCorrect: (a, q) => a.i === q.levels[a.l].correct,
+    publicQ: q => ({ category: str(q.category), levels: q.levels.map((l, i) => ({ points: i + 1 })) }),
+    teamQ: (q, team) => {
+      const l = q.levels[team.wager || 0];
+      return { level: team.wager || 0, text: l.question, answers: l.answers };
+    },
+    revealQ: q => ({ levels: q.levels.map(l => ({ question: l.question, answer: l.answers[l.correct] })), answerText: q.levels.map(l => l.answers[l.correct]).join(' · ') }),
+    score: (entries, q, base) => entries.map(e => (e.answer && e.answer.i === q.levels[e.answer.l].correct ? { points: base * (e.answer.l + 1), correct: true } : { points: 0, correct: false })),
+    aiShape: '{"category": "topic", "levels": [{"question": "easy", "answers": ["...", "...", "...", "..."], "correct": 0}, {"question": "medium", ...}, {"question": "hard", ...}]}',
+    fromAI: it => ({ category: str(it.category), levels: (Array.isArray(it.levels) ? it.levels : []).slice(0, 3).map(l => ({ question: str(l && l.question), answers: list(l && l.answers).slice(0, 4), correct: Number(l && l.correct) || 0 })) }),
+  },
+  {
+    id: 'hotStreak', family: 'speed', kind: 'choice', judge: true,
+    kindOf: q => (Array.isArray(q.answers) && q.answers.length ? 'choice' : 'text'),
+    defaults: { time: 15, points: 1 },
+    fields: ['question', 'answerOrChoices', 'image', 'time', 'points'],
+    scorings: [],
+    validate(q, fail) {
+      need.text(q, fail);
+      if (Array.isArray(q.answers) && q.answers.length) need.answers(q, fail); else need.answer(q, fail);
+    },
+    parse: (raw, q) => (Array.isArray(q.answers) && q.answers.length ? choiceType.parse(raw, q) : textType.parse(raw)),
+    isCorrect: (a, q) => (Array.isArray(q.answers) && q.answers.length ? a === q.correct : textMatches(a, q)),
+    publicQ: q => (Array.isArray(q.answers) && q.answers.length ? { answers: q.answers } : {}),
+    revealQ: q => (Array.isArray(q.answers) && q.answers.length ? choiceType.revealQ(q) : { answerText: q.answer }),
+    // Right answers in a row count up: 1x, 2x, 3x the points. A miss starts again at 1x.
+    score: (entries, q, base, ctx) => entries.map(e => {
+      if (!ctx.isRight(e)) return { points: 0, correct: false, mem: { ...e.mem, streak: 0 } };
+      const streak = (e.mem.streak || 0) + 1;
+      return { points: base * streak, correct: true, mem: { ...e.mem, streak } };
+    }),
+    aiShape: textType.aiShape,
+    fromAI: textType.fromAI,
+  },
+  {
+    id: 'listRush', family: 'speed', kind: 'list',
+    defaults: { time: 60, points: 1 },
+    fields: ['question', 'listItems', 'time', 'points'],
+    scorings: [],
+    validate(q, fail) {
+      need.text(q, fail);
+      if (list(q.items).length < 3) fail('needs at least 3 right items');
+    },
+    // Every typed line is added to the team's list until time is up.
+    parse: (raw, q, team) => {
+      if (typeof raw !== 'string' || !raw.trim()) return undefined;
+      const have = (team && team.answer) || [];
+      if (have.length >= 60) return undefined;
+      const item = raw.trim().slice(0, 60);
+      if (have.some(x => normalize(x) === normalize(item))) return undefined;
+      return [...have, item];
+    },
+    multi: true,
+    publicQ: q => ({ total: list(q.items).length }),
+    revealQ: q => ({ items: list(q.items).map(it => it.split('/')[0].trim()), answerText: list(q.items).map(it => it.split('/')[0].trim()).join(', ') }),
+    // One point per item from the list (each item once; "/" separates other spellings).
+    found: (given, q) => {
+      const items = list(q.items).map(it => it.split('/').map(x => x.trim()).filter(Boolean));
+      const hit = new Set();
+      for (const g of given || []) {
+        const i = items.findIndex((alts, k) => !hit.has(k) && textMatches(g, { answer: alts[0], accept: alts.slice(1) }));
+        if (i >= 0) hit.add(i);
+      }
+      return [...hit];
+    },
+    score(entries, q, base) {
+      return entries.map(e => {
+        const n = this.found(e.answer, q).length;
+        return { points: n * base, correct: n > 0, found: n };
+      });
+    },
+    aiShape: '{"question": "Name as many ... as you can", "items": ["item", "item / other spelling", "..."]}  (10 to 30 items)',
+    fromAI: it => ({ question: str(it.question), items: list(it.items).slice(0, 60) }),
+  },
+  {
+    id: 'crowdMind', family: 'party', kind: 'text',
+    defaults: { time: 30, points: 2 },
+    fields: ['question', 'time', 'points'],
+    scorings: [],
+    validate(q, fail) { need.text(q, fail); },
+    parse: textType.parse,
+    publicQ: () => ({}),
+    revealQ: () => ({ answerText: '' }),
+    // Think like the room: the teams with the most common answer score (at least two teams must agree).
+    score(entries, q, base) {
+      const groups = new Map();
+      for (const e of entries) if (e.answer) { const k = normalize(e.answer); groups.set(k, (groups.get(k) || 0) + 1); }
+      const top = Math.max(0, ...groups.values());
+      return entries.map(e => {
+        const ok = !!e.answer && top >= 2 && groups.get(normalize(e.answer)) === top;
+        return { points: ok ? base : 0, correct: ok };
+      });
+    },
+    crowd: true,
+    aiShape: '{"question": "Name something most people ..."}  (open questions with many possible answers, where a few answers are very common)',
+    fromAI: it => ({ question: str(it.question) }),
+  },
 ];
 
 const BY_ID = Object.fromEntries(TYPES.map(t => [t.id, t]));
@@ -421,7 +603,7 @@ function catalog() {
     families: FAMILIES,
     scorings: SCORINGS,
     twists: TWISTS,
-    types: TYPES.map(t => ({ id: t.id, family: t.family, kind: t.kind || 'choiceOrText', fields: t.fields, defaults: t.defaults, scorings: t.scorings, wager: !!t.wager, effect: t.effect || null, media: t.media || null })),
+    types: TYPES.map(t => ({ id: t.id, family: t.family, kind: t.kindOf ? 'choiceOrText' : t.kind, fields: t.fields, defaults: t.defaults, scorings: t.scorings, wager: t.wager || false, effect: t.effect || null, media: t.media || null })),
   };
 }
 

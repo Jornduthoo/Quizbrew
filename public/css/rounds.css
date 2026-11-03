@@ -158,6 +158,55 @@ body.revealed .sound-wave i { animation-duration: 2.4s; opacity: .6; }
 .screen .answers.images .text:empty { display: none; }
 .screen .answers.images .count { position: absolute; right: 4.4vh; top: 1.4vh; margin: 0; background: rgba(0, 0, 0, .65); }
 
+/* ---------- big screen: speed and strategy (wave 3) ---------- */
+/* Pick your level: three cards, easy to hard; the board stays small to leave room. */
+body.screen[data-kind="level"] .q-main .q-board { flex: 0 0 auto; min-height: 0; }
+body.screen[data-kind="level"] .q-board h1 { font-size: 2.6em; }
+.screen .level-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6vw; }
+.screen .level-card {
+  --lv: var(--good); display: flex; flex-direction: column; align-items: center; gap: 1vh; padding: 2vh 1.2vw; border-radius: 18px; text-align: center;
+  background: rgba(0, 0, 0, .5); border: 3px solid var(--lv); box-shadow: 0 0 22px color-mix(in srgb, var(--lv) 45%, transparent);
+  animation: tube-on .8s linear both; animation-delay: calc(.4s + var(--k) * .18s);
+}
+.screen .level-card:nth-child(2) { --lv: var(--neon-amber); }
+.screen .level-card:nth-child(3) { --lv: var(--neon-pink); }
+.screen .lv-name { font-size: 2em; font-weight: 800; color: var(--lv); text-shadow: 0 0 16px var(--lv); text-transform: uppercase; letter-spacing: .06em; }
+.screen .lv-pts { font-weight: 700; color: var(--muted); font-size: 1.1em; }
+.screen .lv-q { font-size: 1.05em; line-height: 1.25; }
+.screen .lv-a { font-size: 1.4em; color: var(--good); text-shadow: 0 0 12px rgba(93, 255, 154, .5); }
+.screen .lv-teams { display: flex; flex-wrap: wrap; justify-content: center; gap: .5vw; min-height: 2.2vh; }
+.screen .lv-teams .team-dot { width: 2.2vh; height: 2.2vh; }
+
+/* List rush: every item of the list, the ones somebody found light up. */
+.screen .list-board { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: .9vh .8vw; max-height: 34vh; overflow: hidden; }
+.screen .list-board li {
+  padding: .5vh 1vw; border-radius: 999px; font-weight: 700; font-size: 1.15em; color: var(--muted);
+  border: 2px dashed rgba(246, 212, 140, .25); animation: rise .4s ease both; animation-delay: calc(var(--k) * .04s);
+}
+.screen .list-board li.hit { color: #fff; border: 2px solid var(--good); box-shadow: 0 0 14px rgba(93, 255, 154, .45); background: rgba(93, 255, 154, .12); }
+
+/* Round memory: pot, streak or out, per team. */
+.screen .round-board { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 1vh 1vw; }
+.screen .rb-team { display: flex; align-items: center; gap: .6vw; padding: .7vh 1.1vw; border-radius: 999px; background: rgba(0, 0, 0, .55); border: 2px solid var(--c); box-shadow: 0 0 12px color-mix(in srgb, var(--c) 40%, transparent); font-weight: 700; font-size: 1.1em; }
+.screen .rb-val { color: var(--brass-light); font-weight: 800; }
+.screen .rb-val:empty { display: none; }
+.screen .rb-team.out { opacity: .35; filter: grayscale(.8); border-style: dashed; box-shadow: none; }
+.screen .rb-team.out .rb-name { text-decoration: line-through; }
+.screen .rb-team.banked { border-color: #ffcf3c; }
+.screen .rb-team.banked .rb-val { color: #ffcf3c; text-shadow: 0 0 10px #ffcf3c; }
+
+/* Buzzer: the team with the floor fills the middle of the screen. */
+.screen .buzz-banner {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 20; min-width: 40vw;
+  display: flex; flex-direction: column; align-items: center; gap: 1vh; padding: 4vh 4vw; border-radius: 28px;
+  background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--c) 35%, #120804), #0b0503 75%);
+  border: 4px solid var(--c); box-shadow: 0 0 60px var(--c), 0 0 0 100vmax rgba(0, 0, 0, .55);
+  animation: buzz-in .45s cubic-bezier(.2, 1.6, .4, 1) both;
+}
+.screen .bz-name { font-size: 5em; font-weight: 800; color: #fff; text-shadow: 0 0 30px var(--c); }
+.screen .bz-sub { font-size: 1.6em; font-weight: 700; color: var(--brass-light); text-transform: uppercase; letter-spacing: .12em; }
+@keyframes buzz-in { from { transform: translate(-50%, -50%) scale(.3); opacity: 0; } }
+
 /* ---------- phone ---------- */
 .phone .choices.tf { grid-template-rows: 1fr 1fr; }
 .phone .choices.tf .choice:nth-child(1) { --a: #5dff9a; }
@@ -210,6 +259,40 @@ body.revealed .sound-wave i { animation-duration: 2.4s; opacity: .6; }
 .phone .build-actions .brass-btn { flex: 1; }
 .phone .build-actions button:disabled { opacity: .4; }
 
+/* Buzzer, list rush, levels and the pot */
+.phone .mini-head.wide { position: absolute; top: 16px; left: 16px; right: 16px; }
+.phone .q-extra { color: var(--brass-light); font-weight: 800; }
+.phone .q-extra:empty { display: none; }
+.phone .phone-q { margin: 0; text-align: center; font-size: 1.25em; font-weight: 700; line-height: 1.3; }
+.phone .bank-btn { background: linear-gradient(180deg, #fff2a8, #ffcf3c 55%, #b07a12); box-shadow: 0 0 26px rgba(255, 207, 60, .5), 0 2px 0 #4a3010; }
+.phone .buzz-btn {
+  width: min(72vw, 300px); aspect-ratio: 1; border-radius: 50%; border: none; cursor: pointer; font: inherit; font-size: 2.6em; font-weight: 800; letter-spacing: .06em; color: #fff;
+  background: radial-gradient(circle at 50% 35%, #ff8aa8, #ff3d6e 45%, #a3123a 80%); text-shadow: 0 2px 6px rgba(0, 0, 0, .4);
+  box-shadow: 0 14px 0 #5c0a20, 0 0 60px rgba(255, 61, 110, .65), inset 0 -10px 30px rgba(0, 0, 0, .35);
+  transition: transform .08s, box-shadow .08s; touch-action: manipulation;
+}
+.phone .buzz-btn:active, .phone .buzz-btn.pressed { transform: translateY(10px); box-shadow: 0 4px 0 #5c0a20, 0 0 40px rgba(255, 61, 110, .5), inset 0 -6px 20px rgba(0, 0, 0, .35); }
+.phone .buzz-btn:disabled { color: #fff; }
+.phone .buzz-btn:disabled:not(.mine) { filter: grayscale(.85) brightness(.6); box-shadow: 0 6px 0 #2a0610; }
+.phone .buzz-btn.mine { filter: none; background: radial-gradient(circle at 50% 35%, #c6ffd9, var(--good) 45%, #1f9c52 80%); box-shadow: 0 6px 0 #0d4a25, 0 0 70px rgba(93, 255, 154, .7); animation: hint-pulse 1s ease-in-out infinite; }
+.phone #buzz-text { margin-top: 4vh; min-height: 2.6em; }
+.phone .list-row { gap: 8px; }
+.phone .list-row input { font-size: 1.2em; padding: .5em .7em; }
+.phone .list-row .brass-btn { padding: .6em 1em; }
+.phone .list-sent { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; overflow: auto; align-content: flex-start; flex: 1; }
+.phone .list-sent li { padding: 6px 12px; border-radius: 999px; background: rgba(0, 0, 0, .45); border: 2px solid color-mix(in srgb, var(--me, var(--brass)) 60%, transparent); font-weight: 700; }
+.phone .list-sent li.new { animation: pop-in .35s cubic-bezier(.2, 1.5, .4, 1) both; border-color: var(--me, var(--brass)); }
+.phone .level-picks { display: flex; flex-direction: column; gap: 12px; width: min(86vw, 360px); margin: 2vh 0; }
+.phone .level-pick {
+  --lv: var(--good); display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; border-radius: 16px; cursor: pointer; font: inherit; color: var(--cream);
+  background: rgba(0, 0, 0, .5); border: 2px solid color-mix(in srgb, var(--lv) 55%, transparent); animation: choice-in .45s cubic-bezier(.2, 1.3, .4, 1) both; animation-delay: calc(var(--k) * .08s);
+}
+.phone .level-pick:nth-child(2) { --lv: var(--neon-amber); }
+.phone .level-pick:nth-child(3) { --lv: var(--neon-pink); }
+.phone .level-pick strong { font-size: 1.3em; color: var(--lv); }
+.phone .level-pick.on { border-color: var(--lv); box-shadow: 0 0 22px color-mix(in srgb, var(--lv) 55%, transparent); background: color-mix(in srgb, var(--lv) 14%, rgba(0, 0, 0, .5)); }
+.phone .bet-box { display: flex; flex-direction: column; align-items: center; }
+
 /* ---------- quizmaster ---------- */
 .host .card-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .host .card-actions a, .host .builder-card a { text-decoration: none; color: var(--cream); }
@@ -238,3 +321,7 @@ body.revealed .sound-wave i { animation-duration: 2.4s; opacity: .6; }
 .host .host-imgs figure.key img { border-color: var(--good); box-shadow: 0 0 12px rgba(93, 255, 154, .5); }
 .host .host-imgs figcaption { position: absolute; left: 6px; top: 4px; font-weight: 800; text-shadow: 0 1px 3px #000; }
 .host #preview .card-actions { margin-top: 10px; }
+.host .buzz-judge { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: color-mix(in srgb, var(--c) 18%, rgba(0, 0, 0, .4)); border: 2px solid var(--c); box-shadow: 0 0 18px color-mix(in srgb, var(--c) 40%, transparent); }
+.host .buzz-judge strong { flex: 1; font-size: 1.2em; }
+.host .buzz-judge .no { border-color: var(--bad); color: #ffb3b3; }
+.host .mini-answers.levels li { font-size: .95em; }

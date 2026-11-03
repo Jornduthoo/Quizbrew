@@ -9,6 +9,9 @@ const rounds = require('./rounds');
 
 const MAX_NAME = 20;
 
+// What a round remembers about a team between questions (streak, pot, out of the round ...).
+const freshMem = () => ({ streak: 0, pot: 0, out: false, banked: false });
+
 class Game {
   // emit(target, event, payload): target is 'host', 'screen' or a team socket id.
   // clock: { now, setTimeout, clearTimeout } so tests can drive time.
@@ -29,6 +32,8 @@ class Game {
     this.questionStartedAt = 0;
     this.overrides = new Map();
     this.underdogs = new Set();
+    this.leaders = [];
+    this.buzz = null;
     this.teams.clear();
     this.previousRanks = {};
   }
@@ -80,7 +85,7 @@ class Game {
     this.teams.set(teamId, {
       name: clean, color, score: 0, socketId, connected: true,
       answer: null, answeredAt: 0, correct: false, lastPoints: 0, away: false, blocked: false, wager: null,
-      jokerRound: -1,
+      jokerRound: -1, mem: freshMem(), memNext: null, bank: false, buzzOut: false,
     });
     this.broadcast();
     return { ok: true, name: clean, color };
@@ -133,6 +138,7 @@ class Game {
     this.roundIndex = index;
     this.questionIndex = -1;
     this.phase = 'roundIntro';
+    for (const t of this.teams.values()) { t.mem = freshMem(); t.memNext = null; }
     // Underdog twist: whoever is last when the round starts gets a boost.
     const ranking = this.ranking();
     const last = ranking.length > 1 ? ranking[ranking.length - 1].score : null;
@@ -152,7 +158,13 @@ class Game {
   openQuestion(index) {
     this.questionIndex = index;
     this.overrides = new Map();
+    this.buzz = null;
+    const top = Math.max(...[...this.teams.values()].map(t => t.score));
+    this.leaders = top > 0 ? [...this.teams.entries()].filter(([, t]) => t.score === top).map(([id]) => id) : [];
     for (const t of this.teams.values()) {
+      if (t.memNext) { t.mem = t.memNext; t.memNext = null; }
+      t.bank = false;
+      t.buzzOut = false;
       t.answer = null;
       t.answeredAt = 0;
       t.correct = false;
@@ -170,7 +182,17 @@ class Game {
   }
 
   maxWager(t) {
+    if (this.type.wager === 'level') return 2;
     return Math.max(t.score, this.question.points);
+  }
+
+  // Out of this round (last team standing) or already banked (push your luck).
+  sitsOut(t) {
+    return !!(this.type && this.type.sitsOut && this.type.sitsOut(t.mem));
+  }
+
+  done(t) {
+    return t.answer !== null || t.bank || t.blocked || !t.connected || this.sitsOut(t);
   }
 
   setWager(teamId, amount) {
@@ -192,12 +214,53 @@ class Game {
 
   answer(teamId, raw) {
     const t = this.teams.get(teamId);
-    if (!t || this.phase !== 'question' || t.answer !== null || t.blocked) return false;
-    const value = this.type.parse(raw, this.question);
+    if (!t || this.phase !== 'question' || t.blocked || t.bank || this.sitsOut(t)) return false;
+    if (t.answer !== null && !this.type.multi) return false;
+    if (this.kind === 'buzz') return this.buzzIn(teamId, t);
+    const value = this.type.parse(raw, this.question, t);
     if (value === undefined) return false;
     t.answer = value;
     t.answeredAt = this.clock.now() - this.questionStartedAt;
-    if ([...this.teams.values()].every(x => x.answer !== null || x.blocked || !x.connected)) this.reveal();
+    // A list keeps filling until the time is up.
+    if (!this.type.multi && [...this.teams.values()].every(x => this.done(x))) this.reveal();
+    else this.broadcast();
+    return true;
+  }
+
+  // Buzzer: the first team stops the clock and answers out loud; the quizmaster says right or wrong.
+  buzzIn(teamId, t) {
+    if (this.buzz || t.buzzOut) return false;
+    this.buzz = { teamId, at: this.clock.now() - this.questionStartedAt, left: this.remaining() };
+    t.answeredAt = this.buzz.at;
+    this.clearTimer();
+    this.broadcast();
+    return true;
+  }
+
+  judgeBuzz(right) {
+    if (this.phase !== 'question' || !this.buzz) return false;
+    const t = this.teams.get(this.buzz.teamId);
+    const left = this.buzz.left;
+    this.buzz = null;
+    if (!t) return false;
+    t.answer = right ? 'right' : 'wrong';
+    if (right) { this.reveal(); return true; }
+    t.buzzOut = true;
+    // Wrong: the clock runs on and the other teams may buzz.
+    if ([...this.teams.values()].every(x => x.buzzOut || !x.connected) || left <= 0) { this.reveal(); return true; }
+    this.questionStartedAt = this.clock.now() - (this.question.time * 1000 - left);
+    this.timer = this.clock.setTimeout(() => this.reveal(), left);
+    this.broadcast();
+    return true;
+  }
+
+  // Push your luck: keep the pot and sit out the rest of the round.
+  bankPot(teamId) {
+    const t = this.teams.get(teamId);
+    if (!t || this.phase !== 'question' || !this.type.canBank || !this.type.canBank(t.mem) || t.answer !== null) return false;
+    t.bank = true;
+    t.answeredAt = this.clock.now() - this.questionStartedAt;
+    if ([...this.teams.values()].every(x => this.done(x))) this.reveal();
     else this.broadcast();
     return true;
   }
@@ -222,13 +285,17 @@ class Game {
     const ids = [...this.teams.keys()];
     const entries = ids.map(id => {
       const t = this.teams.get(id);
-      return { id, answer: t.answer, answeredAt: t.answeredAt, wager: t.wager || 0 };
+      return { id, answer: t.answer, answeredAt: t.answeredAt, wager: t.wager || 0, mem: t.mem, bank: t.bank, score: t.score - t.lastPoints };
     });
     const base = q.points;
     const timeMs = q.time * 1000;
     let results;
+    const isRight = e => (this.overrides.has(e.id) ? this.overrides.get(e.id) : e.answer !== null && !!type.isCorrect && type.isCorrect(e.answer, q));
     if (type.score) {
-      results = type.score(entries, q, base);
+      results = type.score(entries, q, base, {
+        isRight, leaders: this.leaders, scoring: this.round.scoring,
+        lastQuestion: this.questionIndex + 1 >= this.round.questions.length,
+      });
     } else {
       const correct = entries.map(e => {
         if (this.overrides.has(e.id)) return this.overrides.get(e.id);
@@ -259,7 +326,7 @@ class Game {
       if (this.hasTwist('double')) p *= 2;
       if (t.jokerRound === this.roundIndex) p *= 2;
       if (this.hasTwist('underdog') && this.underdogs.has(id) && p > 0) p = Math.round(p * 1.5);
-      out.set(id, { points: p, correct: results[i].correct });
+      out.set(id, { points: p, correct: results[i].correct, mem: results[i].mem || null, found: results[i].found });
     });
     return out;
   }
@@ -270,6 +337,8 @@ class Game {
       t.score += r.points - t.lastPoints;
       t.lastPoints = r.points;
       t.correct = r.correct;
+      t.memNext = r.mem;
+      t.found = r.found;
     }
   }
 
@@ -285,11 +354,15 @@ class Game {
   // The quizmaster overrules a typed answer after the reveal (a spelling the list did not know, a wrong match).
   judge(teamId, correct) {
     const t = this.teams.get(teamId);
-    if (!t || this.phase !== 'reveal' || this.type.score || this.kind !== 'text') return false;
+    if (!t || this.phase !== 'reveal' || !this.canJudge()) return false;
     this.overrides.set(teamId, !!correct);
     this.applyPoints();
     this.broadcast();
     return true;
+  }
+
+  canJudge() {
+    return this.kind === 'text' && (!this.type.score || !!this.type.judge);
   }
 
   showScoreboard() {
@@ -323,6 +396,7 @@ class Game {
 
   remaining() {
     if (this.phase !== 'question') return 0;
+    if (this.buzz) return this.buzz.left;
     return Math.max(0, this.question.time * 1000 - (this.clock.now() - this.questionStartedAt));
   }
 
@@ -360,10 +434,33 @@ class Game {
       questionIndex: this.questionIndex,
       question: showQuestion ? this.publicQuestion() : null,
       category: this.phase === 'wager' ? (q.category || '') : null,
+      wagerMode: this.phase === 'wager' ? (this.type.wager === 'level' ? 'level' : 'bet') : null,
+      levelBase: this.phase === 'wager' ? q.points : null,
       remaining: this.remaining(),
-      reveal: this.phase === 'reveal' ? this.type.revealQ(q) : null,
+      reveal: this.phase === 'reveal' ? this.revealInfo() : null,
       correct: this.phase === 'reveal' ? (this.type.revealQ(q).correct ?? null) : null,
+      // Buzzer: who holds the floor; the clock stands still meanwhile.
+      buzz: this.buzz ? { name: this.teams.get(this.buzz.teamId).name, color: this.teams.get(this.buzz.teamId).color } : null,
+      paused: !!this.buzz,
     };
+  }
+
+  revealInfo() {
+    const info = this.type.revealQ(this.question);
+    if (this.type.crowd) {
+      // The answer of the room: the most common one.
+      const groups = new Map();
+      for (const t of this.teams.values()) if (t.answer) {
+        const k = rounds.normalize(t.answer);
+        const g = groups.get(k) || { text: t.answer, n: 0 };
+        g.n++;
+        groups.set(k, g);
+      }
+      const top = [...groups.values()].sort((a, b) => b.n - a.n)[0];
+      info.answerText = top && top.n >= 2 ? top.text : '—';
+    }
+    if (this.type.multi) info.found = this.type.found([...this.teams.values()].flatMap(t => t.answer || []), this.question);
+    return info;
   }
 
   // The big screen and the quizmaster see the same thing; the quizmaster also sees the answer early and team status.
@@ -376,8 +473,10 @@ class Game {
       teams: teams.map(t => ({
         name: t.name, color: t.color, answered: t.answer !== null, connected: t.connected, away: t.away, blocked: t.blocked,
         wagered: t.wager !== null, joker: t.jokerRound === this.roundIndex, jokerLeft: t.jokerRound === -1,
+        out: this.sitsOut(t), pot: t.mem.pot, streak: t.mem.streak, banked: t.bank || t.mem.banked, buzzOut: t.buzzOut,
+        level: this.type && this.type.wager === 'level' ? t.wager : null,
       })),
-      answered: teams.filter(t => t.answer !== null).length,
+      answered: teams.filter(t => t.answer !== null || t.bank).length,
       counts: null,
       answers: null,
       ranking: this.phase === 'scoreboard' || this.phase === 'end' || reveal ? this.ranking() : null,
@@ -386,11 +485,13 @@ class Game {
       const n = kind === 'trueFalse' ? 2 : (this.question.answers || this.question.images).length;
       state.counts = Array.from({ length: n }, (_, i) => teams.filter(t => t.answer === i).length);
     }
-    if (reveal && ['text', 'number', 'point', 'order', 'pairs'].includes(kind)) {
+    if (reveal && ['text', 'number', 'point', 'order', 'pairs', 'list', 'level', 'buzz'].includes(kind)) {
       state.answers = [...this.teams.entries()].map(([id, t]) => ({
-        id, name: t.name, color: t.color, answer: t.answer, correct: t.correct, points: t.lastPoints, wager: t.wager,
+        id, name: t.name, color: t.color, answer: t.answer, correct: t.correct, points: t.lastPoints, wager: t.wager, found: t.found,
       }));
     }
+    // Strategy rounds show their round memory: pots, streaks and who is out.
+    if (this.type && (this.type.sitsOut || this.type.id === 'hotStreak')) state.board = true;
     return state;
   }
 
@@ -402,10 +503,11 @@ class Game {
       ranking: this.ranking(),
       teamIds: [...this.teams.keys()],
       answerKey: live ? this.type.revealQ(q) : null,
-      liveAnswers: this.phase === 'question' && ['text', 'number', 'point'].includes(this.kind)
+      liveAnswers: this.phase === 'question' && ['text', 'number', 'point', 'list'].includes(this.kind)
         ? [...this.teams.values()].filter(t => t.answer !== null).map(t => ({ name: t.name, color: t.color, answer: t.answer }))
         : null,
-      canJudge: this.phase === 'reveal' && !this.type.score && this.kind === 'text',
+      canJudge: this.phase === 'reveal' && this.canJudge(),
+      canJudgeBuzz: this.phase === 'question' && !!this.buzz,
       lastQuestion: !!this.round && this.questionIndex + 1 >= this.round.questions.length,
       lastRound: !!this.quiz && this.roundIndex + 1 >= this.quiz.rounds.length,
     };
@@ -419,6 +521,8 @@ class Game {
       state.question = { ...state.question, text: '', clues: undefined, answers: state.question.answers ? state.question.answers.map(() => '') : undefined, blackout: true };
     }
     if (!t) return state;
+    // Pick your level: every team gets the question of the level it chose.
+    if (state.question && this.type.teamQ) state.question = { ...state.question, ...this.type.teamQ(this.question, t) };
     const r = this.ranking().find(x => x.id === teamId);
     return {
       ...state,
@@ -433,6 +537,14 @@ class Game {
       maxWager: this.phase === 'wager' ? this.maxWager(t) : null,
       lastPoints: this.phase === 'reveal' ? t.lastPoints : 0,
       wasCorrect: this.phase === 'reveal' ? t.correct : null,
+      out: this.sitsOut(t),
+      pot: t.mem.pot,
+      streak: t.mem.streak,
+      canBank: this.phase === 'question' && !!this.type.canBank && this.type.canBank(t.mem) && t.answer === null && !t.bank,
+      banked: t.bank,
+      buzzOut: t.buzzOut,
+      buzzMine: !!this.buzz && this.buzz.teamId === teamId,
+      found: this.phase === 'reveal' ? t.found : undefined,
     };
   }
 
