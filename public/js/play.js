@@ -134,13 +134,13 @@
     });
   }
 
-  // Confetti in the team colour (and brass) from an element.
+  // Brass sparks and gold light in the team colour from an element. Light only, nothing falls.
   function celebrate(el, power) {
     const b = el.getBoundingClientRect();
     const me = getComputedStyle(document.body).getPropertyValue('--me').trim();
     const team = state && state.team ? getComputedStyle(document.body).getPropertyValue('--team-' + state.team.color).trim() : me;
-    FX.confetti({ x: b.left + b.width / 2, y: b.top + b.height / 2, colors: [team, '#f6d48c', '#ffffff', '#ffb43c'], count: 70 * power, spread: 0.8 });
-    if (power > 1) FX.rain({ colors: [team, '#f6d48c', '#ffffff'], seconds: 3, perSecond: 40 });
+    FX.celebrate({ x: b.left + b.width / 2, y: b.top + b.height / 2, colors: [team], count: 60 * power });
+    if (power > 1) FX.glints({ x: innerWidth / 2, y: innerHeight, width: innerWidth, count: 70 });
   }
 
   function renderResult(s, fresh) {

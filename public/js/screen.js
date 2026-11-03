@@ -8,7 +8,7 @@
   let lobbyShown = false;
 
   // Ambient particles per phase.
-  const AMBIENT = { idle: 'bubbles', lobby: 'bubbles', roundIntro: 'stage', question: 'dust', reveal: 'dust', scoreboard: 'dust', end: 'embers' };
+  const AMBIENT = { idle: 'lights', lobby: 'lights', roundIntro: 'stage', question: 'dust', reveal: 'dust', scoreboard: 'dust', end: 'embers' };
   const cssColor = name => getComputedStyle(document.body).getPropertyValue(name).trim();
 
   socket.on('language', async lang => {
@@ -28,7 +28,7 @@
     // Re-render only what changed, so animations play once.
     const key = [s.phase === 'reveal' ? 'question' : s.phase, s.round && s.round.index, s.questionIndex].join(':');
     const fresh = force || key !== lastKey;
-    if (key !== lastKey) { clearLater(); FX.clear(); }
+    if (key !== lastKey) { clearLater(); FX.clear(); document.body.classList.remove('spot-winner'); }
     lastKey = key;
     document.body.classList.remove('urgent');
     if (s.phase !== 'lobby') lobbyShown = false;
@@ -166,9 +166,10 @@
         row.querySelector('.crown-wrap').innerHTML = CROWN;
         later(() => {
           const b = row.getBoundingClientRect();
-          const colors = [cssColor('--team-' + r.color), '#f6d48c', '#ffb43c', '#ffffff'];
-          FX.confetti({ x: b.left + b.width * 0.25, y: b.top + b.height / 2, colors, count: 90 });
-          FX.confetti({ x: b.left + b.width * 0.75, y: b.top + b.height / 2, colors, count: 90 });
+          const colors = [cssColor('--team-' + r.color)];
+          FX.celebrate({ x: b.left + 40, y: b.top + b.height / 2, colors, count: 70 });
+          FX.celebrate({ x: b.right - 40, y: b.top + b.height / 2, colors, count: 70 });
+          FX.glints({ x: b.left + b.width / 2, y: b.top, width: b.width * 0.8, count: 60 });
         }, (delay + 0.55) * 1000);
       }
       return row;
@@ -187,14 +188,16 @@
     $('#rest').replaceChildren(...rows.slice(3).map(r => h('li', { style: teamVar(r.color) }, h('span', { class: 'rank' }, r.rank), h('span', { class: 'team-dot' }), r.name, h('span', { class: 'score' }, r.score))));
     const winner = rows[0];
     if (!winner) return;
-    // The winner lands at about 2.3 s: cannons from both corners, then confetti rain.
-    const colors = [cssColor('--team-' + winner.color), '#f6d48c', '#ffb43c', '#ffffff', '#ff4fa3', '#3ee6ff'];
+    // The winner lands at about 2.3 s: the spots swing onto the podium, brass sparks fly, gold light swarms up.
+    const colors = [cssColor('--team-' + winner.color)];
+    document.body.classList.remove('spot-winner');
     later(() => {
-      FX.confetti({ x: 0, y: innerHeight, colors, count: 160, spread: 2.6, dir: -Math.PI * 0.3, cone: Math.PI * 0.12 });
-      FX.confetti({ x: innerWidth, y: innerHeight, colors, count: 160, spread: 2.6, dir: -Math.PI * 0.7, cone: Math.PI * 0.12 });
-      FX.sparksAt($('.place1 .medal'), { color: '#ffcf5a', count: 90, speed: 1.5 });
+      document.body.classList.add('spot-winner');
+      const m = $('.place1 .medal').getBoundingClientRect();
+      FX.celebrate({ x: m.left + m.width / 2, y: m.top + m.height / 2, colors, count: 140 });
+      FX.glints({ x: m.left + m.width / 2, y: m.top, width: m.width * 4, count: 90 });
     }, 2300);
-    later(() => FX.rain({ colors, seconds: 6 }), 2700);
+    later(() => FX.swarm({ seconds: 8 }), 2600);
   }
 
 })();
