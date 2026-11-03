@@ -41,7 +41,7 @@
   "host.showWinner": "Show winner",
   "host.newQuiz": "New quiz",
   "host.stop": "Stop quiz",
-  "host.keyHint": "Space = next",
+  "host.keyHint": "Space = next · ← = back",
   "host.teams": "Teams",
   "host.noTeams": "No teams yet. They scan the QR code on the big screen.",
   "host.answered": "answered",
@@ -677,5 +677,13 @@
   "host.mode": "How to play",
   "mode.screen": "📺 Big screen",
   "mode.phones": "📱 Phones only",
-  "play.bigger": "Show the screen full size"
+  "play.bigger": "Show the screen full size",
+  "host.resumeKicker": "Quizbrew stopped during a quiz",
+  "host.resume": "Carry on",
+  "host.resumeNo": "Start fresh",
+  "host.resumeNoSure": "Throw away the saved quiz with its teams and scores?",
+  "host.resumeMeta": "Round {n} of {total} · {teams} teams. Every score is still there; phones join again by themselves.",
+  "host.addTime": "+10 s",
+  "host.back": "↶ Step back",
+  "host.judgeAfter": "Tap ✓ or ✗ to count an answer as right or wrong after all."
 }

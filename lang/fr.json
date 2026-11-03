@@ -41,7 +41,7 @@
   "host.showWinner": "Afficher le gagnant",
   "host.newQuiz": "Nouveau quiz",
   "host.stop": "Arrêter le quiz",
-  "host.keyHint": "Espace = suivant",
+  "host.keyHint": "Espace = suivant · ← = retour",
   "host.teams": "Équipes",
   "host.noTeams": "Pas encore d'équipes. Elles scannent le QR code sur le grand écran.",
   "host.answered": "a répondu",
@@ -677,5 +677,13 @@
   "host.mode": "Comment jouer",
   "mode.screen": "📺 Grand écran",
   "mode.phones": "📱 Téléphones seulement",
-  "play.bigger": "Afficher l'écran en grand"
+  "play.bigger": "Afficher l'écran en grand",
+  "host.resumeKicker": "Quizbrew s'est arrêté pendant un quiz",
+  "host.resume": "Continuer",
+  "host.resumeNo": "Recommencer",
+  "host.resumeNoSure": "Jeter le quiz sauvegardé avec ses équipes et ses scores ?",
+  "host.resumeMeta": "Manche {n} sur {total} · {teams} équipes. Tous les scores sont là ; les téléphones reviennent tout seuls.",
+  "host.addTime": "+10 s",
+  "host.back": "↶ Retour",
+  "host.judgeAfter": "Touche ✓ ou ✗ pour compter une réponse juste ou fausse après coup."
 }

@@ -41,7 +41,7 @@
   "host.showWinner": "Sieger zeigen",
   "host.newQuiz": "Neues Quiz",
   "host.stop": "Quiz beenden",
-  "host.keyHint": "Leertaste = weiter",
+  "host.keyHint": "Leertaste = weiter · ← = zurück",
   "host.teams": "Teams",
   "host.noTeams": "Noch keine Teams. Sie scannen den QR-Code auf dem großen Bildschirm.",
   "host.answered": "geantwortet",
@@ -677,5 +677,13 @@
   "host.mode": "Spielart",
   "mode.screen": "📺 Großer Bildschirm",
   "mode.phones": "📱 Nur Handys",
-  "play.bigger": "Bildschirm groß zeigen"
+  "play.bigger": "Bildschirm groß zeigen",
+  "host.resumeKicker": "Quizbrew wurde mitten im Quiz beendet",
+  "host.resume": "Weiterspielen",
+  "host.resumeNo": "Neu anfangen",
+  "host.resumeNoSure": "Das gespeicherte Quiz mit Teams und Punkten verwerfen?",
+  "host.resumeMeta": "Runde {n} von {total} · {teams} Teams. Alle Punkte sind noch da; die Handys machen von selbst wieder mit.",
+  "host.addTime": "+10 s",
+  "host.back": "↶ Zurück",
+  "host.judgeAfter": "Tippe ✓ oder ✗, um eine Antwort nachträglich als richtig oder falsch zu zählen."
 }

@@ -165,3 +165,8 @@ body.remote .key-hint { display: none; }
 /* Phones-only mode: a copy of the big screen on the laptop, with the sound for the room. */
 .screen-copy { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 10px; border: 2px solid rgb(var(--k-brass) / .5); background: #000; box-shadow: 0 10px 30px rgb(0 0 0 / .5); }
 .screen-copy iframe { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; border: 0; transform-origin: 0 0; }
+
+/* A quiz that was running when Quizbrew stopped. */
+.resume { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 22px 26px; margin: 0 auto 26px; max-width: 1100px; border-color: rgb(var(--k-amber) / .7); box-shadow: 0 0 30px rgb(var(--k-amber) / .25); animation: rise .4s ease both; }
+.resume-title { margin: 4px 0; font-size: 1.8em; }
+.resume .hint { margin: 0; }
