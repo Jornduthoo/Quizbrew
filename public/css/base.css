@@ -1,0 +1,151 @@
+/* Quizbrew base: warm pub wood, brass and neon. Shared by every screen. */
+@font-face {
+  font-family: 'Bricolage';
+  src: url('/fonts/bricolage.woff2') format('woff2');
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+:root {
+  --wood-900: #0f0805;
+  --wood-800: #1a0e08;
+  --wood-700: #2a170c;
+  --wood-600: #3d2414;
+  --brass: #d9a54a;
+  --brass-light: #f6d48c;
+  --brass-dark: #8a5f22;
+  --cream: #f8ecd4;
+  --chalk: #ece6da;
+  --muted: #b9a58a;
+  --neon-amber: #ffb43c;
+  --neon-pink: #ff4fa3;
+  --neon-cyan: #3ee6ff;
+  --neon-lime: #a8ff3e;
+  --good: #5dff9a;
+  --bad: #ff5a5a;
+  --radius: 18px;
+  --font: 'Bricolage', 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  /* Team colours: keep in sync with src/teams.js */
+  --team-amber: #ffb43c;
+  --team-pink: #ff4fa3;
+  --team-cyan: #3ee6ff;
+  --team-lime: #a8ff3e;
+  --team-violet: #b07cff;
+  --team-orange: #ff7a2e;
+  --team-red: #ff4a4a;
+  --team-teal: #2fe0b8;
+  --team-yellow: #ffe94a;
+  --team-blue: #4f8bff;
+  --team-mint: #9dffd6;
+  --team-rose: #ffa3c4;
+
+  /* Answer colours A B C D */
+  --ans-0: #ffb43c;
+  --ans-1: #ff4fa3;
+  --ans-2: #3ee6ff;
+  --ans-3: #a8ff3e;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: var(--font);
+  color: var(--cream);
+  background: var(--wood-900);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+
+/* Text that glows like a neon tube. --glow sets the colour. */
+.neon {
+  --glow: var(--neon-amber);
+  color: #fff8ea;
+  text-shadow:
+    0 0 .04em #fff,
+    0 0 .12em var(--glow),
+    0 0 .35em var(--glow),
+    0 0 .9em var(--glow);
+}
+.neon.pink { --glow: var(--neon-pink); }
+.neon.cyan { --glow: var(--neon-cyan); }
+
+/* A brass-framed panel. */
+.panel {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 230, 190, .06), rgba(0, 0, 0, .25)),
+    var(--wood-800);
+  border-radius: var(--radius);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  box-shadow:
+    0 0 0 2px var(--brass-dark),
+    0 0 0 3px var(--brass),
+    0 0 0 5px rgba(0, 0, 0, .5),
+    0 18px 50px rgba(0, 0, 0, .55),
+    inset 0 1px 0 rgba(255, 240, 210, .12);
+}
+
+.brass-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: .8em 1.6em;
+  font-weight: 750;
+  letter-spacing: .01em;
+  color: #2a1606;
+  background: linear-gradient(180deg, var(--brass-light), var(--brass) 55%, var(--brass-dark));
+  box-shadow: 0 2px 0 #fff3 inset, 0 -2px 0 #0003 inset, 0 6px 18px rgba(217, 165, 74, .35), 0 2px 0 #4a3010;
+  transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+}
+.brass-btn:hover { filter: brightness(1.08); }
+.brass-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #fff3 inset, 0 2px 8px rgba(217, 165, 74, .3); }
+.brass-btn:disabled { filter: grayscale(.8) brightness(.6); cursor: default; transform: none; }
+
+.ghost-btn {
+  border: 1.5px solid rgba(246, 212, 140, .45);
+  background: rgba(0, 0, 0, .25);
+  border-radius: 999px;
+  padding: .55em 1.2em;
+  font-weight: 600;
+  transition: background .15s, border-color .15s;
+}
+.ghost-btn:hover { background: rgba(246, 212, 140, .12); border-color: var(--brass-light); }
+
+.team-dot {
+  display: inline-block;
+  flex: none;
+  width: .8em; height: .8em;
+  border-radius: 50%;
+  background: var(--c, var(--brass));
+  box-shadow: 0 0 .5em var(--c, var(--brass));
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: .55; }
+  94% { opacity: 1; }
+  96% { opacity: .7; }
+  97% { opacity: 1; }
+}
+@keyframes pop-in {
+  0% { transform: scale(.4); opacity: 0; }
+  70% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes rise {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes pulse-glow {
+  0%, 100% { filter: drop-shadow(0 0 6px var(--glow, var(--neon-amber))); }
+  50% { filter: drop-shadow(0 0 22px var(--glow, var(--neon-amber))); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

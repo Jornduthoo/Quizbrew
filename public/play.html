@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f0805">
+  <title>Quizbrew</title>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/play.css">
+</head>
+<body class="phone">
+  <!-- Join: team name + colour -->
+  <section id="v-join" class="view" hidden>
+    <img class="logo" src="/img/logo.webp" alt="Quizbrew">
+    <form id="join-form" class="card panel" autocomplete="off">
+      <label class="label" for="team-name" data-i18n="play.teamName"></label>
+      <input id="team-name" maxlength="20" required data-i18n-attr="placeholder:play.teamNamePlaceholder" enterkeyhint="done">
+      <p class="label" data-i18n="play.pickColor"></p>
+      <div class="swatches" id="swatches"></div>
+      <p class="error" id="join-error" role="alert"></p>
+      <button class="brass-btn big" type="submit" data-i18n="play.join"></button>
+    </form>
+  </section>
+
+  <!-- No quiz loaded yet -->
+  <section id="v-idle" class="view center" hidden>
+    <img class="logo" src="/img/logo.webp" alt="Quizbrew">
+    <p class="say" data-i18n="play.noQuiz"></p>
+  </section>
+
+  <!-- Waiting: look at the big screen -->
+  <section id="v-wait" class="view center" hidden>
+    <div class="badge" id="wait-badge"></div>
+    <p class="say" id="wait-text"></p>
+  </section>
+
+  <!-- Answer buttons -->
+  <section id="v-question" class="view answer-view" hidden>
+    <div class="mini-head"><span id="q-num"></span><span id="q-time"></span></div>
+    <div class="choices" id="choices"></div>
+  </section>
+
+  <!-- Result after the reveal -->
+  <section id="v-reveal" class="view center" hidden>
+    <div class="result" id="result-icon"></div>
+    <p class="say big" id="result-text"></p>
+    <p class="sub" id="result-sub"></p>
+  </section>
+
+  <div class="team-bar" id="team-bar" hidden><span class="team-dot"></span><span id="bar-name"></span><span class="bar-score" id="bar-score"></span></div>
+  <div class="offline" id="offline" hidden data-i18n="play.reconnecting"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/play.js"></script>
+</body>
+</html>
