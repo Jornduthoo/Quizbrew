@@ -126,10 +126,12 @@ function create(dataDir = path.join(__dirname, '..', 'data')) {
     const copy = JSON.parse(JSON.stringify(quiz));
     for (const r of copy.rounds || []) {
       for (const q of r.questions || []) {
-        for (const f of MEDIA_FIELDS) {
-          const m = typeof q[f] === 'string' && q[f].match(/^data:([\w/+.-]+);base64,(.+)$/);
-          if (m) q[f] = addMedia(Buffer.from(m[2], 'base64'), m[1]);
-        }
+        const store = v => {
+          const m = typeof v === 'string' && v.match(/^data:([\w/+.-]+);base64,(.+)$/);
+          return m ? addMedia(Buffer.from(m[2], 'base64'), m[1]) : v;
+        };
+        for (const f of MEDIA_FIELDS) q[f] = store(q[f]);
+        if (Array.isArray(q.images)) q.images = q.images.map(store);
       }
     }
     return copy;
@@ -141,11 +143,14 @@ function create(dataDir = path.join(__dirname, '..', 'data')) {
     const mimeOf = Object.fromEntries(Object.entries(MEDIA_TYPES).map(([m, e]) => [e, m]));
     for (const r of copy.rounds || []) {
       for (const q of r.questions || []) {
-        for (const f of MEDIA_FIELDS) {
-          const m = typeof q[f] === 'string' && q[f].match(/^\/media\/([\w.]+)$/);
+        const inline = v => {
+          const m = typeof v === 'string' && v.match(/^\/media\/([\w.]+)$/);
           const file = m && mediaFile(m[1]);
-          if (file) q[f] = `data:${mimeOf[path.extname(file).slice(1)]};base64,${fs.readFileSync(file).toString('base64')}`;
-        }
+          return file ? `data:${mimeOf[path.extname(file).slice(1)]};base64,${fs.readFileSync(file).toString('base64')}` : v;
+        };
+        for (const f of MEDIA_FIELDS) q[f] = inline(q[f]);
+        // Odd one out: a list of pictures.
+        if (Array.isArray(q.images)) q.images = q.images.map(inline);
       }
     }
     return copy;
