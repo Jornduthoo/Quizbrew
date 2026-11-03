@@ -20,6 +20,17 @@
     await I18n.load(lang);
     if (state) render(state, true);
   });
+  // Reactions from the phones float up from the bottom edge, with a halo in the team colour.
+  // A separate layer on top of every view, so it never moves anything; at most 24 at once.
+  socket.on('react', ({ i, color } = {}) => {
+    const emoji = QB.REACTIONS[i];
+    const layer = $('#reactions');
+    if (!emoji || layer.childElementCount >= 24) return;
+    const x = 4 + Math.random() * 92;
+    const el = h('span', { class: 'reaction', style: `${teamVar(color)};left:${x}%;--drift:${Math.round(Math.random() * 120 - 60)}px;--spin:${Math.round(Math.random() * 40 - 20)}deg;--rise:${(2.6 + Math.random()).toFixed(2)}s` }, emoji);
+    el.addEventListener('animationend', () => el.remove());
+    layer.append(el);
+  });
   socket.on('media', action => (action === 'replay' ? Media.replay() : Media.stop()));
   // Browsers only play sound after a click on the page: show a button for that once.
   Media.onBlocked(() => { $('#sound-gate').hidden = MUTE; });

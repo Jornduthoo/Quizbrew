@@ -710,5 +710,6 @@
   "award.almost.text": "A solo {n} punto del podio|A solo {n} puntos del podio",
   "builder.stat": "{pct} % aciertos · {n} equipos",
   "builder.statHint": "De {n} noche de quiz|De {n} noches de quiz",
-  "host.sfx": "Efectos de sonido en la pantalla grande (sí/no)"
+  "host.sfx": "Efectos de sonido en la pantalla grande (sí/no)",
+  "play.react": "Enviar una reacción a la pantalla grande"
 }

@@ -23,6 +23,8 @@
   }
 
   const LETTERS = ['A', 'B', 'C', 'D'];
+  // Reactions a phone can send to the big screen. The server only takes an index into this list.
+  const REACTIONS = ['\u{1F602}', '\u{1F525}', '\u{1F631}', '\u{1F44F}', '\u{1F340}'];
   const teamVar = color => `--c: var(--team-${color})`;
   // The team's dot, or its photo in a ring of its colour when it took one.
   function dot(team) {
@@ -159,5 +161,5 @@
     return keys.length ? t(keys[(Math.random() * keys.length) | 0], vars) : '';
   }
 
-  window.QB = { quip, applyLook, $, h, showView, LETTERS, teamVar, dot, countdown, info, ROUND_THEMES, roundTheme, CROWN, split, countUp, later, clearLater };
+  window.QB = { quip, applyLook, $, h, showView, LETTERS, REACTIONS, teamVar, dot, countdown, info, ROUND_THEMES, roundTheme, CROWN, split, countUp, later, clearLater };
 })();

@@ -710,5 +710,6 @@
   "award.almost.text": "Net {n} punt naast het podium|Net {n} punten naast het podium",
   "builder.stat": "{pct}% juist · {n} ploegen",
   "builder.statHint": "Uit {n} quizavond|Uit {n} quizavonden",
-  "host.sfx": "Geluidseffecten op het grote scherm (aan/uit)"
+  "host.sfx": "Geluidseffecten op het grote scherm (aan/uit)",
+  "play.react": "Stuur een reactie naar het grote scherm"
 }
