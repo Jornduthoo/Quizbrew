@@ -2,6 +2,7 @@
   "title": "Quizavondpakket 1",
   "language": "nl",
   "jokers": true,
+  "powerUps": true,
   "tiebreak": true,
   "rounds": [
     {

@@ -2,6 +2,7 @@
   "title": "Quizabend-Paket 1",
   "language": "de",
   "jokers": true,
+  "powerUps": true,
   "tiebreak": true,
   "rounds": [
     {

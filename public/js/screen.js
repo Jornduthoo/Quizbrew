@@ -19,6 +19,7 @@
   socket.on('language', async lang => {
     await I18n.load(lang);
     renderBrand();
+    renderAudience();
     if (state) render(state, true);
   });
   // Reactions from the phones float up from the bottom edge, with a halo in the team colour.
@@ -106,6 +107,7 @@
     if (s.phase === 'awards' && fresh) renderAwards(s);
     if (s.phase === 'end' && fresh) renderEnd(s);
     renderBreak(s);
+    renderAudience();
   }
 
   // The break: a big clock, a line for the room and the standings, over whatever was on screen.
@@ -134,6 +136,20 @@
     breakBoard = sig;
     $('#break-board').replaceChildren(...rows.map((r, i) => h('li', { class: 'break-row', style: `${teamVar(r.color)};--k:${i}` },
       h('span', { class: 'br-rank' }, String(r.rank)), QB.dot(r), h('span', { class: 'br-name' }, r.name), h('span', { class: 'br-score' }, String(r.score)))));
+  }
+
+  // The audience: how many play along, how the room did on this question, who in the audience is best.
+  let audience = { count: 0, reveal: null, top: [] };
+  socket.on('audience', a => { audience = a || audience; if (I18n.dict['app.name']) renderAudience(); });
+  function renderAudience() {
+    const a = audience;
+    $('#aud-count').hidden = !a.count;
+    $('#aud-count').textContent = t('screen.audienceCount', { n: a.count });
+    $('#aud-pill').hidden = !a.reveal;
+    if (a.reveal) $('#aud-pill').textContent = t('screen.audienceRight', { pct: a.reveal.pct, n: a.reveal.answered });
+    const best = a.top && a.top[0];
+    $('#aud-best').hidden = !best || !(best.score > 0) || !state || state.phase !== 'end';
+    if (best) $('#aud-best').textContent = t('screen.audienceBest', { name: a.top.filter(r => r.rank === 1).map(r => r.name).join(', '), n: best.score });
   }
 
   // The venue and its sponsors (set by the quizmaster under "Venue & sponsors").

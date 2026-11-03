@@ -10,6 +10,7 @@ const { execFile } = require('child_process');
 const { Game, validateQuiz } = require('./game');
 const { Autopilot } = require('./autopilot');
 const Brand = require('./brand');
+const { Audience } = require('./audience');
 const { TEAM_COLORS } = require('./teams');
 const i18n = require('./i18n');
 const quizzes = require('./quizzes');
@@ -89,10 +90,12 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     try { fs.writeFileSync(statsFile, JSON.stringify(all)); } catch (err) { console.error('Could not save the statistics:', err.message); }
   };
   let autopilot = null;
+  let audience = null;
   const game = new Game({
     emit: (target, event, payload) => io.to(target).emit(event, payload),
     onChange: () => {
       if (autopilot) autopilot.check();
+      if (audience) audience.check();
       if (game.phase === 'end' && !statsSaved) saveStats();
       if (game.phase === 'idle' || saveSoon) return;
       saveSoon = setTimeout(saveLive, 500);
@@ -110,6 +113,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   }
   game.language = language();
   const brand = () => Brand.clean(settings.get('brand'));
+  audience = new Audience(game, { emit: (target, event, payload) => io.to(target).emit(event, payload) });
   autopilot = new Autopilot(game, { onUpdate: view => io.to('host').emit('auto', view) });
   autopilot.set(settings.get('autopilot') === true);
   const ai = Ai.create(settings);
@@ -430,6 +434,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     if (role === 'screen') {
       socket.join('screen');
       socket.emit('state', game.screenState());
+      socket.emit('audience', audience.screenView());
       return;
     }
 
@@ -469,10 +474,34 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       game.answer(teamId, choice);
     });
     on('vote', choice => teamId && game.castVote(teamId, choice));
+    // The audience: no team, a nickname, their own score.
+    let audienceId = null;
+    on('audienceJoin', ({ id, name } = {}, cb) => {
+      if (typeof cb !== 'function') return;
+      if (typeof id !== 'string' || !TEAM_ID.test(id)) return cb({ error: 'error.generic' });
+      const result = audience.join(id, name, socket.id);
+      if (result.ok) {
+        audienceId = id;
+        socket.leave('lobby');
+        socket.join(`aud:${id}`);
+        audience.update();
+      }
+      cb(result);
+    });
+    on('audienceAnswer', i => audienceId && audience.answer(audienceId, i));
+    on('audienceLeave', () => {
+      if (!audienceId) return;
+      socket.leave(`aud:${audienceId}`);
+      audience.leave(audienceId);
+      audienceId = null;
+      socket.join('lobby');
+      socket.emit('state', game.teamState(null));
+    });
     on('wager', amount => teamId && game.setWager(teamId, Number(amount)));
     on('bank', () => teamId && game.bankPot(teamId));
     on('lifeline', () => teamId && game.useLifeline(teamId));
     on('joker', () => teamId && game.playJoker(teamId));
+    on('power', name => teamId && game.usePower(teamId, String(name)));
     on('leftPage', () => teamId && game.leftPage(teamId));
     on('rate', stars => teamId && rate(teamId, stars));
     // Team photo: a small square picture from the phone (the phone makes it small first).
@@ -491,7 +520,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       lastReact = now;
       io.to('screen').emit('react', { i, color: team.color });
     });
-    socket.on('disconnect', () => teamId && game.disconnect(socket.id));
+    socket.on('disconnect', () => { if (teamId) game.disconnect(socket.id); if (audienceId) audience.disconnect(socket.id); });
   });
 
   return {

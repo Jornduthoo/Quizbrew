@@ -60,6 +60,8 @@ Build at home, play on the quiz laptop. In the builder, click **Quiz folder** an
 - **Autopilot**: switch on *Autopilot* under the big button and Quizbrew presses *Next* for you after a short pause (a bar fills the button). It waits in the lobby, during a break, for a buzzer or a clock round, and at the end. A line under the title tells you what to say or do at every step.
 - **Venue & sponsors**: the tile on the start page. Your venue name and logo appear in the lobby and on the phones; up to eight sponsors take turns on the round intros ("This round is brought to you by...") and are thanked during the break and at the end.
 - **Quiz Night Pack 1**: a complete night of seven rounds, ready to play, in English, Dutch, French, German and Spanish. The start page shows the version in your language.
+- **Power-ups**: tick *Power-ups* in the builder and every team gets a shield (no minus points in one round), a spy (see live what the other teams answer) and a 50/50, each once per evening.
+- **Audience**: people without a team tap *No team? Play along in the audience* on the join screen, pick a nickname and answer the multiple-choice and true/false questions. They never count for the teams; the big screen shows how the audience did and who in the audience is best.
 - **Paper teams**: a team without a phone? Type its name under the team list (*+ Paper team*) and print the *Answer sheet* (boxes for the choices, lines for the rest). Collect the sheets after each round and type the points in next to the team; typing again replaces the number.
 
 ## Round types

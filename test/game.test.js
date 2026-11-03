@@ -442,3 +442,59 @@ test('a paper team plays along: points per round typed in, never blocks a questi
   assert.deepEqual(game.teams.get(p.id).paper, { 0: 2 });
   clock.advance(0);
 });
+
+test('power-ups: shield, spy and 50/50, each once per evening', () => {
+  const clock = fakeClock();
+  const game = new Game({ clock });
+  game.load({ title: 'P', powerUps: true, rounds: [
+    { type: 'jackpot', title: 'J', questions: [{ category: 'C', question: 'Q?', answer: 'yes', time: 20, points: 5 }] },
+    { type: 'classic', title: 'R', questions: [
+      { question: 'Q1', answers: ['a', 'b', 'c', 'd'], correct: 2, time: 10 },
+      { question: 'Q2', answers: ['a', 'b', 'c', 'd'], correct: 0, time: 10 },
+    ] },
+  ] });
+  game.join('team1aaaa', 'A', 'amber', 's1');
+  game.join('team2aaaa', 'B', 'pink', 's2');
+  game.join('team3aaaa', 'C', 'cyan', 's3');
+  game.next(); // round intro of the jackpot
+  assert.equal(game.teamState('team1aaaa').powers.shield, true);
+  assert.equal(game.usePower('team1aaaa', 'spy'), false, 'no spy before a question');
+  assert.ok(game.usePower('team1aaaa', 'shield'));
+  assert.equal(game.usePower('team1aaaa', 'shield'), false, 'once per evening');
+  assert.equal(game.teamState('team1aaaa').powers.shieldNow, true);
+  game.next(); // wager
+  game.setWager('team1aaaa', 1);
+  game.setWager('team2aaaa', 1);
+  game.next(); // question
+  game.answer('team1aaaa', 'no');
+  game.answer('team2aaaa', 'no');
+  game.answer('team3aaaa', 'yes');
+  assert.equal(game.phase, 'reveal');
+  assert.equal(game.teams.get('team1aaaa').score, 0, 'the shield stops the minus points');
+  assert.ok(game.teams.get('team2aaaa').score < 0);
+  game.next(); game.next(); game.next(); // scoreboard, round 2 intro, question 1
+  assert.equal(game.phase, 'question');
+  assert.equal(game.teamState('team1aaaa').powers.shield, false);
+  game.answer('team2aaaa', 1);
+  assert.ok(game.usePower('team1aaaa', 'spy'));
+  assert.deepEqual(game.teamState('team1aaaa').spy, [0, 1, 0, 0]);
+  game.answer('team3aaaa', 2);
+  assert.deepEqual(game.teamState('team1aaaa').spy, [0, 1, 1, 0]);
+  assert.equal(game.teamState('team2aaaa').spy, null, 'only the spy sees it');
+  assert.ok(game.usePower('team1aaaa', 'fifty'));
+  const gone = game.teamState('team1aaaa').question.gone;
+  assert.equal(gone.length, 2);
+  assert.ok(!gone.includes(2));
+  assert.deepEqual(game.teamState('team1aaaa').powers.left, []);
+  clock.advance(10000);
+  game.next(); // question 2: no spy, no 50/50 left
+  assert.equal(game.teamState('team1aaaa').spy, null);
+  assert.equal(game.usePower('team1aaaa', 'fifty'), false);
+  assert.equal(game.teamState('team1aaaa').question.gone.length, 0);
+  // Without power-ups in the quiz there are none.
+  const { game: plain } = setup();
+  plain.join('team1aaaa', 'A', 'amber', 's1');
+  plain.next();
+  assert.equal(plain.teamState('team1aaaa').powers, null);
+  assert.equal(plain.usePower('team1aaaa', 'shield'), false);
+});

@@ -17,12 +17,90 @@
   let deviceLang = null;
   let stopTimer = null;
   let lastKey = '';
+  let lastQuestion = '';
 
   const socket = io({ query: { role: 'player', teamId } });
   socket.on('connect', () => { $('#offline').hidden = true; });
   socket.on('disconnect', () => { $('#offline').hidden = false; });
   socket.on('language', lang => { if (!deviceLang) I18n.load(lang).then(() => state && render(state, true)); });
-  socket.on('state', s => { state = s; if (I18n.dict['app.name']) render(s); });
+  socket.on('state', s => { state = s; if (I18n.dict['app.name'] && !audienceOn) render(s); });
+
+  // The audience: a nickname, answers along on multiple choice, its own score. Remembered on this phone.
+  let audienceId = store.get('qb.audienceId') || newId();
+  store.set('qb.audienceId', audienceId);
+  let audienceOn = store.get('qb.audience') === '1';
+  let aud = null;
+  let audKey = '';
+  socket.on('connect', () => {
+    if (!audienceOn) return;
+    socket.emit('audienceJoin', { id: audienceId }, res => {
+      if (res && res.ok) return;
+      audienceOn = false;
+      store.del('qb.audience');
+      if (state) render(state, true);
+    });
+  });
+  socket.on('audience', v => { aud = v; if (audienceOn && I18n.dict['app.name']) renderAudience(v); });
+  function renderAudience(v) {
+    showView('audience');
+    $('#react-bar').hidden = true;
+    $('#team-bar').hidden = true;
+    if (stopTimer) { stopTimer(); stopTimer = null; }
+    $('#aud-name').textContent = v.name;
+    $('#aud-score').textContent = t('play.score', { n: v.score });
+    const q = v.question;
+    const key = q ? `${q.key}:${v.phase}` : v.phase;
+    const fresh = key !== audKey;
+    audKey = key;
+    $('#aud-q').hidden = !q || !q.text;
+    if (q) $('#aud-q').textContent = q.text;
+    if (q && fresh) {
+      const tf = !q.answers;
+      const answers = tf ? [t('play.true'), t('play.false')] : q.answers;
+      $('#aud-choices').className = 'choices n' + answers.length + (tf ? ' tf' : '');
+      $('#aud-choices').replaceChildren(...answers.map((a, i) => h('button', {
+        class: 'choice', style: tf ? `--k: ${i}` : `--a: var(--ans-${i}); --k: ${i}`,
+        onclick: () => { if (navigator.vibrate) navigator.vibrate(25); socket.emit('audienceAnswer', i); },
+      }, h('span', { class: 'letter', 'data-shape': tf ? null : i }, tf ? (i === 0 ? '✓' : '✗') : LETTERS[i]), h('span', { class: 'text' }, a))));
+    }
+    if (!q) $('#aud-choices').replaceChildren();
+    [...$('#aud-choices').children].forEach((b, i) => {
+      b.disabled = v.phase !== 'question' || v.answer !== null;
+      b.classList.toggle('picked', v.answer === i);
+      b.classList.toggle('right', v.correct === i);
+      b.classList.toggle('dim', v.answer !== null && v.answer !== i && v.correct !== i);
+    });
+    let say = '';
+    if (v.phase === 'question' && q) say = v.answer === null ? t('play.audience.pick') : t('play.locked');
+    else if (v.phase === 'reveal' && q) say = v.answer === null ? t('play.audience.missed') : v.answer === v.correct ? t('play.audience.right') : t('play.audience.wrong');
+    else if (v.phase === 'end') say = t('play.audience.end', { rank: v.rank, n: v.people });
+    else say = t('play.audience.watch');
+    $('#aud-say').textContent = say;
+    $('#aud-top').hidden = !v.top;
+    if (v.top) $('#aud-top').replaceChildren(...v.top.map((r, i) => h('li', { class: 'st-row' + (r.name === v.name ? ' me' : ''), style: `--c: var(--brass-light); --k: ${i}` },
+      h('span', { class: 'st-rank' }, String(r.rank)), h('span', { class: 'st-name' }, r.name), h('span', { class: 'st-score' }, String(r.score)))));
+  }
+  $('#aud-open').addEventListener('click', () => {
+    $('#aud-form').hidden = false;
+    $('#aud-open').hidden = true;
+    $('#aud-input').focus();
+  });
+  $('#aud-form').addEventListener('submit', e => {
+    e.preventDefault();
+    socket.emit('audienceJoin', { id: audienceId, name: $('#aud-input').value }, res => {
+      if (!res || !res.ok) { $('#aud-error').textContent = t((res && res.error) || 'error.generic'); return; }
+      audienceOn = true;
+      store.set('qb.audience', '1');
+      if (aud) renderAudience(aud);
+    });
+  });
+  $('#aud-leave').addEventListener('click', () => {
+    audienceOn = false;
+    store.del('qb.audience');
+    socket.emit('audienceLeave');
+    $('#aud-form').hidden = true;
+    $('#aud-open').hidden = false;
+  });
   let mode = 'screen';
   // The venue of tonight, above the join form.
   let brand = null;
@@ -50,10 +128,15 @@
 
   function render(s, force) {
     renderBrand();
+    if (audienceOn) { if (aud) renderAudience(aud); return; }
     const key = [s.phase, s.round && s.round.index, s.questionIndex, s.team ? 1 : 0, s.answer, s.blocked, s.wager, s.voted, s.lifelineUsed].join(':');
     document.body.classList.toggle('silent', !!(s.round && s.round.twists.includes('silentRound')));
     const fresh = force || key !== lastKey;
     if (key !== lastKey) window.scrollTo(0, 0);
+    // A short buzz when a new question opens: also for whoever can't hear the room.
+    const qNow = s.phase === 'question' ? `${s.round && s.round.index}:${s.questionIndex}` : '';
+    if (qNow && qNow !== lastQuestion && s.team && navigator.vibrate) navigator.vibrate(60);
+    lastQuestion = qNow;
     lastKey = key;
     if (stopTimer) { stopTimer(); stopTimer = null; }
 
@@ -291,7 +374,18 @@
     const btn = $('#joker-btn');
     btn.hidden = !s.jokers || !s.team.jokerLeft;
     if (s.jokers && s.team.jokerNow) $('#wait-text').textContent = t('play.jokerPlayed');
+    // Power-ups: the shield is played here; the list shows what is still left tonight.
+    const p = s.powers;
+    $('#shield-btn').hidden = !(p && p.shield);
+    if (p && p.shieldNow) $('#wait-quip').textContent = t('play.power.shieldOn');
+    $('#power-left').hidden = !p;
+    if (p) $('#power-left').textContent = p.left.length ? t('play.power.left', { list: p.left.map(n => t(`play.power.${n}`)).join(' · ') }) : t('play.power.none');
   }
+  $('#shield-btn').addEventListener('click', () => {
+    if (!confirm(t('play.power.shieldConfirm'))) return;
+    socket.emit('power', 'shield');
+    if (navigator.vibrate) navigator.vibrate([30, 40, 30]);
+  });
   $('#joker-btn').addEventListener('click', () => {
     if (!confirm(t('play.jokerConfirm'))) return;
     socket.emit('joker');
@@ -589,6 +683,8 @@
   function wait(text, badge) {
     showView('wait');
     $('#joker-btn').hidden = true;
+    $('#shield-btn').hidden = true;
+    $('#power-left').hidden = true;
     const b = $('#wait-badge');
     b.textContent = badge || (state && state.team ? state.team.name.charAt(0).toUpperCase() : '');
     b.className = 'badge' + (badge ? ' filled' : ' pulse');
@@ -760,6 +856,18 @@
     const gone = new Set(s.question.gone || []);
     [...$('#choices').children].forEach((b, i) => { b.classList.toggle('gone', gone.has(i)); b.disabled = gone.has(i); });
     $('#lifeline-btn').hidden = !s.canLifeline;
+    // Power-ups during the question: spy on the other teams, or a 50/50 of your own.
+    const pw = s.powers;
+    $('#spy-btn').hidden = !(pw && pw.spy);
+    $('#fifty-btn').hidden = !(pw && pw.fifty);
+    $('#powers').hidden = $('#spy-btn').hidden && $('#fifty-btn').hidden;
+    [...$('#choices').children].forEach((b, i) => {
+      let tag = b.querySelector('.spy-n');
+      if (!s.spy) { if (tag) tag.remove(); return; }
+      if (!tag) b.append(tag = h('span', { class: 'spy-n' }));
+      tag.textContent = String(s.spy[i] || 0);
+      tag.setAttribute('aria-label', t('play.power.spyCount', { n: s.spy[i] || 0 }));
+    });
     const own = s.question.kind === 'level';
     $('#phone-q').hidden = !own;
     if (own) $('#phone-q').textContent = s.question.text;
@@ -770,6 +878,16 @@
       $('#q-time').textContent = Math.ceil(left / 1000);
     });
   }
+  $('#spy-btn').addEventListener('click', () => {
+    if (!confirm(t('play.power.spyConfirm'))) return;
+    socket.emit('power', 'spy');
+    if (navigator.vibrate) navigator.vibrate(20);
+  });
+  $('#fifty-btn').addEventListener('click', () => {
+    if (!confirm(t('play.power.fiftyConfirm'))) return;
+    socket.emit('power', 'fifty');
+    if (navigator.vibrate) navigator.vibrate([20, 30, 20]);
+  });
   $('#lifeline-btn').addEventListener('click', () => {
     if (!confirm(t('play.lifelineConfirm'))) return;
     socket.emit('lifeline');

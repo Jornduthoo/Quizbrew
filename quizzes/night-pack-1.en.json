@@ -2,6 +2,7 @@
   "title": "Quiz Night Pack 1",
   "language": "en",
   "jokers": true,
+  "powerUps": true,
   "tiebreak": true,
   "rounds": [
     {

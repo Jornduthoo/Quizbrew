@@ -122,7 +122,7 @@ class Game {
       name: clean, color, score: 0, phones: new Set([socketId]), connected: true,
       answer: null, answeredAt: 0, correct: false, lastPoints: 0, away: false, blocked: false, wager: null,
       jokerRound: -1, mem: freshMem(), memNext: null, bank: false, buzzOut: false,
-      id: teamId, lifelineRound: -1, fifty: null, vote: null,
+      id: teamId, lifelineRound: -1, fifty: null, vote: null, shieldRound: -1, spyKey: null, fiftyKey: null,
     });
     this.broadcast();
     return { ok: true, name: clean, color };
@@ -289,6 +289,43 @@ class Game {
     t.jokerRound = this.roundIndex;
     this.broadcast();
     return true;
+  }
+
+  // Power-ups (when the quiz has them): every team may use each one once per evening.
+  //   shield - played at the start of a round: no minus points in that round
+  //   spy    - during a choice question: see live how the other teams answer
+  //   fifty  - during a choice question: two wrong answers disappear on your phone
+  hasPowers() { return !!(this.quiz && this.quiz.powerUps); }
+  qKey() { return `${this.roundIndex}:${this.questionIndex}`; }
+  canPower(t, name) {
+    if (!t || t.paper || !this.hasPowers() || !this.round || this.round.tiebreak) return false;
+    if (name === 'shield') return this.phase === 'roundIntro' && !(t.shieldRound >= 0);
+    const open = this.phase === 'question' && t.answer === null && !this.sitsOut(t) && !t.blocked && !this.hasTwist('blackout') && !this.type.turns;
+    if (name === 'spy') return open && ['choice', 'trueFalse'].includes(this.kind) && !t.spyKey;
+    if (name === 'fifty') return open && this.kind === 'choice' && (this.question.answers || []).length > 2 && !t.fiftyKey && !t.fifty;
+    return false;
+  }
+  usePower(teamId, name) {
+    const t = this.teams.get(teamId);
+    if (!this.canPower(t, name)) return false;
+    if (name === 'shield') t.shieldRound = this.roundIndex;
+    if (name === 'spy') t.spyKey = this.qKey();
+    if (name === 'fifty') {
+      const q = this.question;
+      const gone = this.hiddenFor(t);
+      t.fifty = rounds.permutation(q.answers.length, q.question + '|fifty').filter(i => i !== q.correct && !gone.includes(i)).slice(0, Math.max(1, q.answers.length - 2 - gone.length));
+      t.fiftyKey = this.qKey();
+    }
+    this.broadcast();
+    return true;
+  }
+  // The spy: how many other teams picked each answer so far.
+  spyCounts(t) {
+    if (!t || t.spyKey !== this.qKey() || this.phase !== 'question') return null;
+    const n = this.kind === 'trueFalse' ? 2 : (this.question.answers || this.question.images || []).length;
+    const counts = Array.from({ length: n }, () => 0);
+    for (const x of this.teams.values()) if (x !== t && Number.isInteger(x.answer) && x.answer >= 0 && x.answer < n) counts[x.answer]++;
+    return counts;
   }
 
   openQuestion(index) {
@@ -618,6 +655,7 @@ class Game {
       if (this.hasTwist('suddenDeath') && !type.vote && !type.turns && !results[i].correct && !this.sitsOut(t)) mem = { ...(mem || t.mem), out: true };
       if (this.hasTwist('double')) p *= 2;
       if (t.jokerRound === this.roundIndex) p *= 2;
+      if (t.shieldRound === this.roundIndex && p < 0) p = 0;
       if (this.hasTwist('underdog') && this.underdogs.has(id) && p > 0) p = Math.round(p * 1.5);
       out.set(id, { points: p, correct: results[i].correct, mem, found: results[i].found });
     });
@@ -1097,6 +1135,11 @@ class Game {
       myTurn: !!this.type && !!this.type.turns && this.turnTeam === teamId,
       canWager: this.phase === 'wager' && this.canWager(teamId),
       canLifeline: this.canLifeline(t),
+      powers: this.hasPowers() && !t.paper ? {
+        shield: this.canPower(t, 'shield'), spy: this.canPower(t, 'spy'), fifty: this.canPower(t, 'fifty'),
+        shieldNow: t.shieldRound === this.roundIndex, left: ['shield', 'spy', 'fifty'].filter(n => (n === 'shield' ? !(t.shieldRound >= 0) : !t[`${n}Key`])),
+      } : null,
+      spy: this.spyCounts(t),
       lifelineUsed: t.lifelineRound === this.roundIndex,
       secret: this.actor === teamId && this.phase === 'question' ? this.question.answer : null,
       // Who's who: the teams you can choose from (by colour, never by id).
@@ -1181,7 +1224,7 @@ function validateQuiz(quiz) {
   const fail = msg => { throw new Error(`Invalid quiz: ${msg}`); };
   if (!quiz || typeof quiz !== 'object') fail('not an object');
   if (!Array.isArray(quiz.rounds) || quiz.rounds.length === 0) fail('no rounds');
-  const clean = { ...quiz, title: String(quiz.title || '').trim() || 'Quiz', jokers: !!quiz.jokers };
+  const clean = { ...quiz, title: String(quiz.title || '').trim() || 'Quiz', jokers: !!quiz.jokers, powerUps: !!quiz.powerUps };
   clean.rounds = quiz.rounds.map((r, ri) => {
     const type = rounds.get(r && r.type);
     if (!type) fail(`round ${ri + 1} has unsupported type "${r && r.type}"`);
