@@ -846,5 +846,22 @@
   "play.audience.leave": "Leave the audience",
   "screen.audienceCount": "+ {n} playing along in the audience",
   "screen.audienceRight": "Audience: {pct}% right",
-  "screen.audienceBest": "Best in the audience: {name} ({n})"
+  "screen.audienceBest": "Best in the audience: {name} ({n})",
+  "pictures.find": "Find a picture",
+  "pictures.title": "Find a picture",
+  "pictures.searchFor": "What should be in the picture?",
+  "pictures.search": "Search",
+  "pictures.hint": "Free pictures from Wikimedia Commons. Click one to use it; the maker and licence are kept with the question. You can also drag a picture from any website onto a picture field, or paste its link.",
+  "pictures.searching": "Searching…",
+  "pictures.none": "Nothing found. Try other words, in English works best.",
+  "pictures.paste": "or paste a link",
+  "pictures.offline": "Searching did not work. Is this computer online?",
+  "pictures.badLink": "That is not a link to a picture on the internet.",
+  "pictures.noPicture": "No picture found behind that link. Try right-click on the picture, \"Copy image address\".",
+  "pictures.tooBig": "That picture is too big (more than 15 MB).",
+  "print.credits": "Pictures",
+  "pictures.suggested": "Suggestions:",
+  "pictures.draw": "Make with AI",
+  "pictures.madeByAi": "Made with AI",
+  "ai.noImageKey": "Making pictures needs a Gemini key. Add one under AI keys."
 }

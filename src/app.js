@@ -18,6 +18,7 @@ const network = require('./network');
 const Settings = require('./settings');
 const Library = require('./library');
 const Cloud = require('./cloud');
+const Pictures = require('./pictures');
 const Ai = require('./ai');
 const csv = require('./csv');
 const rounds = require('./rounds');
@@ -27,7 +28,7 @@ const TEAM_ID = /^[a-z0-9]{8,40}$/;
 const LOOKS = ['pub', 'space', 'jungle', 'spooky', 'arcade'];
 const MODES = ['screen', 'phones'];
 
-function createServer({ port = 3000, settings = Settings.create(), library = Library.create(), lanAddresses = network.lanAddresses, hostFromAnywhere = false, cloudEvery = 60000 } = {}) {
+function createServer({ port = 3000, settings = Settings.create(), library = Library.create(), lanAddresses = network.lanAddresses, hostFromAnywhere = false, cloudEvery = 60000, webFetch = globalThis.fetch } = {}) {
   const app = express();
   const server = http.createServer(app);
   const io = new Server(server, { serveClient: true, pingInterval: 10000, pingTimeout: 8000, maxHttpBufferSize: 3e6 });
@@ -241,7 +242,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       if (req.method !== 'GET' && !req.path.startsWith('/cloud') && !req.path.startsWith('/ai')) cloudLater();
       res.json(out);
     } catch (err) {
-      if (/^cloud\./.test(err.message)) return res.status(400).json({ error: err.message });
+      if (/^(cloud|pictures)\./.test(err.message)) return res.status(400).json({ error: err.message });
       if (err instanceof Ai.AiError || /^ai\./.test(err.message)) return res.status(400).json({ error: err.key || err.message, detail: err.detail || '' });
       res.status(400).json({ error: 'error.generic', detail: err.message });
     }
@@ -309,6 +310,25 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     execFile('powershell', ['-NoProfile', '-STA', '-Command', ps], { windowsHide: true }, (err, out) => resolve(err ? { error: 'cloud.typeIt' } : { path: String(out).trim() }));
   })));
   api.post('/cloud/open', handle(() => { if (cloud.folder() && process.platform === 'win32') execFile('explorer', [cloud.folder()]); return { ok: true }; }));
+  // Free pictures: search Wikimedia Commons, or fetch the picture behind a dragged or pasted link.
+  api.get('/pictures', handle(async req => ({ results: await Pictures.search(req.query.q, { fetch: webFetch }) })));
+  api.get('/pictures/get', async (req, res) => {
+    try {
+      const { type, buffer } = await Pictures.get(req.query.url, { fetch: webFetch });
+      res.type(type).set('Cache-Control', 'no-store').send(buffer);
+    } catch (err) {
+      res.status(400).json({ error: /^pictures\./.test(err.message) ? err.message : 'pictures.noPicture' });
+    }
+  });
+  // A picture made by the image AI; the builder makes it small like any other picture.
+  api.post('/ai/image', async (req, res) => {
+    try {
+      const { type, buffer } = await ai.makeImage(req.body.prompt);
+      res.type(type).set('Cache-Control', 'no-store').send(buffer);
+    } catch (err) {
+      res.status(400).json({ error: err.key || 'ai.failed', detail: err.detail || '' });
+    }
+  });
   api.get('/ai/settings', handle(() => ai.publicSettings()));
   api.put('/ai/settings', handle(req => ai.update(req.body)));
   api.post('/ai/prompt', handle(req => ({ prompt: req.body.whole ? Ai.quizPrompt(req.body) : Ai.roundPrompt(req.body) })));

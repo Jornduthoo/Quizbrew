@@ -142,6 +142,21 @@
     </form>
   </dialog>
 
+  <!-- Free pictures from Wikimedia Commons -->
+  <dialog class="modal pic-modal" id="pic-modal">
+    <header class="modal-head">
+      <h2 data-i18n="pictures.title"></h2>
+      <form class="pic-form" id="pic-form">
+        <input class="search" id="pic-q" type="search" autocomplete="off" data-i18n-attr="placeholder:pictures.searchFor">
+        <button class="brass-btn small" type="submit" data-i18n="pictures.search"></button>
+      </form>
+      <button class="mini close" data-close data-i18n-attr="aria-label:builder.close"></button>
+    </header>
+    <p class="hint pic-hint" data-i18n="pictures.hint"></p>
+    <p class="pic-state" id="pic-state"></p>
+    <div class="pic-results" id="pic-results"></div>
+  </dialog>
+
   <!-- My quiz folder in OneDrive or Google Drive -->
   <dialog class="modal small" id="cloud-modal">
     <header class="modal-head">

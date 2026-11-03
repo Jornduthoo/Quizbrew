@@ -846,5 +846,22 @@
   "play.audience.leave": "Quitter le public",
   "screen.audienceCount": "+ {n} joueurs dans le public",
   "screen.audienceRight": "Public : {pct} % de bonnes réponses",
-  "screen.audienceBest": "Meilleur du public : {name} ({n})"
+  "screen.audienceBest": "Meilleur du public : {name} ({n})",
+  "pictures.find": "Chercher une image",
+  "pictures.title": "Chercher une image",
+  "pictures.searchFor": "Que doit montrer l'image ?",
+  "pictures.search": "Chercher",
+  "pictures.hint": "Images gratuites de Wikimedia Commons. Cliquez sur une image pour l'utiliser ; l'auteur et la licence restent avec la question. Vous pouvez aussi glisser une image de n'importe quel site sur un champ d'image, ou coller son lien.",
+  "pictures.searching": "Recherche…",
+  "pictures.none": "Rien trouvé. Essayez d'autres mots, l'anglais marche le mieux.",
+  "pictures.paste": "ou collez un lien",
+  "pictures.offline": "La recherche a échoué. Cet ordinateur est-il en ligne ?",
+  "pictures.badLink": "Ce n'est pas un lien vers une image sur internet.",
+  "pictures.noPicture": "Aucune image derrière ce lien. Essayez clic droit sur l'image, « Copier l'adresse de l'image ».",
+  "pictures.tooBig": "Cette image est trop grande (plus de 15 Mo).",
+  "print.credits": "Images",
+  "pictures.suggested": "Suggestions :",
+  "pictures.draw": "Créer avec l'IA",
+  "pictures.madeByAi": "Créé avec l'IA",
+  "ai.noImageKey": "Pour créer des images, il faut une clé Gemini. Ajoutez-la dans Clés IA."
 }

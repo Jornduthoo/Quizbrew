@@ -74,6 +74,11 @@ body.sheet {
 body.no-answers .q-table .ans > * { visibility: hidden; }
 body.no-answers .q-table td.ans { background: repeating-linear-gradient(0deg, transparent 0 6mm, var(--rule) 6mm calc(6mm + 1px)); }
 
+.credits { margin: 0 0 6mm; font-size: 8.5pt; color: var(--ink-soft); }
+.credits h3 { margin: 0 0 1.5mm; font-size: 10pt; color: var(--ink); }
+.credits ul { margin: 0; padding: 0; list-style: none; columns: 2; column-gap: 8mm; }
+.credits li { break-inside: avoid; margin-bottom: .8mm; }
+.credits b { color: var(--ink); }
 .scores { break-before: page; }
 .scores h2 { margin: 0 0 4mm; font-size: 18pt; }
 .s-table { width: 100%; border-collapse: collapse; }

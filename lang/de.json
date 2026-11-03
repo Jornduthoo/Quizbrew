@@ -846,5 +846,22 @@
   "play.audience.leave": "Publikum verlassen",
   "screen.audienceCount": "+ {n} spielen im Publikum mit",
   "screen.audienceRight": "Publikum: {pct} % richtig",
-  "screen.audienceBest": "Bester im Publikum: {name} ({n})"
+  "screen.audienceBest": "Bester im Publikum: {name} ({n})",
+  "pictures.find": "Bild suchen",
+  "pictures.title": "Bild suchen",
+  "pictures.searchFor": "Was soll auf dem Bild sein?",
+  "pictures.search": "Suchen",
+  "pictures.hint": "Kostenlose Bilder von Wikimedia Commons. Klick auf ein Bild, um es zu verwenden; Urheber und Lizenz bleiben bei der Frage. Du kannst auch ein Bild von jeder Website auf ein Bildfeld ziehen oder seinen Link einfügen.",
+  "pictures.searching": "Suche läuft…",
+  "pictures.none": "Nichts gefunden. Probier andere Wörter, Englisch klappt am besten.",
+  "pictures.paste": "oder Link einfügen",
+  "pictures.offline": "Die Suche hat nicht geklappt. Ist dieser Computer online?",
+  "pictures.badLink": "Das ist kein Link zu einem Bild im Internet.",
+  "pictures.noPicture": "Hinter diesem Link ist kein Bild. Probier Rechtsklick auf das Bild, „Bildadresse kopieren“.",
+  "pictures.tooBig": "Das Bild ist zu groß (mehr als 15 MB).",
+  "print.credits": "Bilder",
+  "pictures.suggested": "Vorschläge:",
+  "pictures.draw": "Mit KI erstellen",
+  "pictures.madeByAi": "Mit KI erstellt",
+  "ai.noImageKey": "Zum Erstellen von Bildern braucht es einen Gemini-Schlüssel. Trag ihn unter KI-Schlüssel ein."
 }
