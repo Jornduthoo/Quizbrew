@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quizbrew</title>
+  <link rel="preload" href="/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/host.css">
+  <link rel="stylesheet" href="/css/builder.css">
+</head>
+<body class="host builder">
+  <header class="topbar">
+    <a href="/host"><img class="logo" src="/img/logo.webp" alt="Quizbrew"></a>
+    <span class="quiz-name" data-i18n="builder.title"></span>
+    <div class="top-actions">
+      <span class="save-state" id="save-state"></span>
+      <button class="ghost-btn" id="ai-settings-btn" data-i18n="builder.aiSettings"></button>
+      <a class="ghost-btn" href="/host" data-i18n="builder.toHost"></a>
+    </div>
+  </header>
+
+  <div class="builder-wrap">
+    <!-- Library: folders and quizzes -->
+    <aside class="lib panel">
+      <div class="lib-actions">
+        <button class="brass-btn small" id="new-quiz" data-i18n="builder.newQuiz"></button>
+        <button class="ghost-btn small" id="new-folder" data-i18n="builder.newFolder"></button>
+        <label class="ghost-btn small file-btn"><span data-i18n="builder.import"></span><input type="file" id="import-file" accept=".json,.csv,.txt" hidden></label>
+      </div>
+      <nav class="lib-tree" id="lib-tree"></nav>
+      <h3 class="lib-head" data-i18n="builder.samples"></h3>
+      <ul class="lib-list" id="lib-samples"></ul>
+    </aside>
+
+    <!-- Welcome: nothing open yet -->
+    <main class="editor" id="welcome">
+      <section class="welcome panel">
+        <h1 class="neon" data-i18n="builder.welcomeTitle"></h1>
+        <p class="hint" data-i18n="builder.welcomeHint"></p>
+        <div class="welcome-actions">
+          <button class="brass-btn" id="welcome-new" data-i18n="builder.newQuiz"></button>
+          <button class="ghost-btn ai-btn" id="welcome-ai" data-i18n="builder.aiWhole"></button>
+        </div>
+      </section>
+    </main>
+
+    <!-- The open quiz -->
+    <main class="editor" id="editor" hidden>
+      <section class="quiz-head panel">
+        <input class="title-input" id="quiz-title" maxlength="80" data-i18n-attr="placeholder:builder.quizTitle,aria-label:builder.quizTitle">
+        <div class="head-row">
+          <label class="check"><input type="checkbox" id="quiz-jokers"> <span data-i18n="builder.jokers"></span></label>
+          <span class="meta" id="quiz-meta"></span>
+          <div class="head-buttons">
+            <button class="ghost-btn small" id="check-btn" data-i18n="builder.check"></button>
+            <button class="ghost-btn small" id="export-json" data-i18n="builder.exportJson"></button>
+            <button class="ghost-btn small" id="export-csv" data-i18n="builder.exportCsv"></button>
+            <button class="ghost-btn small danger" id="delete-quiz" data-i18n="builder.delete"></button>
+            <button class="brass-btn" id="play-btn" data-i18n="builder.play"></button>
+          </div>
+        </div>
+        <div class="check-result" id="check-result" hidden></div>
+      </section>
+
+      <section class="timeline" id="timeline" data-i18n-attr="aria-label:builder.rounds"></section>
+
+      <section class="round-editor panel" id="round-editor"></section>
+    </main>
+  </div>
+
+  <!-- Round type picker -->
+  <dialog class="modal picker" id="picker">
+    <header class="modal-head">
+      <h2 data-i18n="builder.pickType"></h2>
+      <input class="search" id="picker-search" type="search" data-i18n-attr="placeholder:builder.search">
+      <button class="mini close" data-close data-i18n-attr="aria-label:builder.close"></button>
+    </header>
+    <div class="chips" id="picker-families"></div>
+    <div class="type-grid" id="picker-grid"></div>
+  </dialog>
+
+  <!-- AI help -->
+  <dialog class="modal ai" id="ai-modal">
+    <header class="modal-head">
+      <h2 id="ai-title"></h2>
+      <button class="mini close" data-close data-i18n-attr="aria-label:builder.close"></button>
+    </header>
+    <form class="ai-form" id="ai-form">
+      <label><span data-i18n="ai.topic"></span><input id="ai-topic" maxlength="200" data-i18n-attr="placeholder:ai.topicHint"></label>
+      <label><span data-i18n="ai.theme"></span><input id="ai-theme" maxlength="200" data-i18n-attr="placeholder:ai.themeHint"></label>
+      <label><span data-i18n="ai.audience"></span><select id="ai-audience"></select></label>
+      <label><span data-i18n="ai.language"></span><select id="ai-language"></select></label>
+      <label><span data-i18n="ai.difficulty"></span><input id="ai-difficulty" type="range" min="1" max="5" value="3"><output id="ai-difficulty-out"></output></label>
+      <label class="for-round"><span data-i18n="ai.count"></span><input id="ai-count" type="number" min="1" max="30" value="8"></label>
+      <label class="for-whole"><span data-i18n="ai.roundCount"></span><input id="ai-rounds" type="number" min="1" max="12" value="6"></label>
+      <label class="for-whole"><span data-i18n="ai.minutes"></span><input id="ai-minutes" type="number" min="15" max="240" step="15" value="90"></label>
+    </form>
+    <div class="ai-ways">
+      <div class="ai-way">
+        <h3 data-i18n="ai.withKey"></h3>
+        <p class="hint" id="ai-key-state"></p>
+        <button class="brass-btn" id="ai-generate" data-i18n="ai.generate"></button>
+      </div>
+      <div class="ai-way">
+        <h3 data-i18n="ai.withoutKey"></h3>
+        <p class="hint" data-i18n="ai.withoutKeyHint"></p>
+        <button class="ghost-btn" id="ai-copy" data-i18n="ai.copyPrompt"></button>
+        <textarea id="ai-paste" rows="4" data-i18n-attr="placeholder:ai.pasteHere"></textarea>
+        <button class="ghost-btn" id="ai-read" data-i18n="ai.readIn"></button>
+      </div>
+    </div>
+    <p class="error" id="ai-error" role="alert"></p>
+    <div class="ai-result" id="ai-result"></div>
+  </dialog>
+
+  <!-- AI keys -->
+  <dialog class="modal small" id="settings-modal">
+    <header class="modal-head">
+      <h2 data-i18n="builder.aiSettings"></h2>
+      <button class="mini close" data-close data-i18n-attr="aria-label:builder.close"></button>
+    </header>
+    <form class="ai-form" id="settings-form">
+      <div class="chips" id="provider-chips"></div>
+      <label><span data-i18n="ai.key"></span><input id="set-key" type="password" autocomplete="off"></label>
+      <label><span data-i18n="ai.model"></span><input id="set-model" autocomplete="off"></label>
+      <p class="hint" data-i18n="ai.keyPrivacy"></p>
+      <button class="brass-btn" type="submit" data-i18n="builder.saveSettings"></button>
+    </form>
+  </dialog>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/builder.js"></script>
+</body>
+</html>

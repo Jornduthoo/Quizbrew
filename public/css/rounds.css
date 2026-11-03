@@ -1,0 +1,133 @@
+/* Round types: pictures, scrambled letters, clue ladders, typed answers and bets.
+   Loaded after screen.css / play.css / host.css; every rule is scoped to its screen. */
+
+/* ---------- big screen ---------- */
+body.screen .question { grid-template-rows: auto 1fr auto auto auto; }
+body.screen[data-phase="wager"] .bg-stage { opacity: 1; animation-play-state: running; }
+.screen .q-body { display: flex; gap: 3vw; min-height: 0; align-items: stretch; }
+.screen .q-main { flex: 1; display: flex; flex-direction: column; gap: 2.2vh; min-width: 0; justify-content: center; }
+.screen .q-main .q-board { flex: 1; min-height: 18vh; }
+.screen.has-media .q-board h1 { font-size: 2.6em; }
+.screen.has-media .q-board.long h1 { font-size: 2em; }
+
+/* A picture in a brass frame. The zoom-out round starts far inside the picture. */
+.screen .q-media {
+  flex: 0 0 46%; position: relative; overflow: hidden; border-radius: 18px; margin: 1.1vh;
+  background: #000;
+  box-shadow: 0 0 0 1.1vh #5a3519, 0 0 0 calc(1.1vh + 3px) var(--brass), 0 30px 70px rgba(0, 0, 0, .65);
+  animation: board-in .7s cubic-bezier(.2, 1.2, .4, 1) both;
+}
+.screen .q-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 45%; }
+@keyframes zoom-out { from { transform: scale(9); } to { transform: scale(1); } }
+
+.screen .q-category {
+  margin: 0; align-self: center; padding: .35em 1.2em; border-radius: 999px; font-weight: 800; font-size: 1.3em;
+  color: #1a0e08; background: var(--theme, var(--brass)); box-shadow: 0 0 22px var(--theme, var(--brass));
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.screen .type-hint { margin: 0; text-align: center; font-size: 1.5em; font-weight: 700; color: var(--brass-light); animation: hint-pulse 2.4s ease-in-out infinite; }
+@keyframes hint-pulse { 50% { opacity: .55; } }
+
+/* Scrambled letters as wooden tiles. */
+.screen .tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 1vw; }
+.screen .tile {
+  width: 7vh; height: 8vh; display: grid; place-items: center; border-radius: 10px;
+  font-size: 2.4em; font-weight: 800; color: #2a1606;
+  background: linear-gradient(180deg, var(--brass-light), var(--brass) 60%, var(--brass-dark));
+  box-shadow: 0 4px 0 #4a3010, 0 10px 24px rgba(0, 0, 0, .5);
+  transform: rotate(var(--r, 0deg));
+  animation: tile-drop .6s cubic-bezier(.2, 1.4, .4, 1) both; animation-delay: calc(.3s + var(--k) * .07s);
+}
+.screen .tile.solved { transform: none; background: linear-gradient(180deg, #c6ffd9, var(--good) 60%, #1f9c52); box-shadow: 0 4px 0 #0d4a25, 0 0 24px rgba(93, 255, 154, .5); }
+@keyframes tile-drop { from { transform: translateY(-20vh) rotate(40deg); opacity: 0; } }
+
+/* Clues that switch on one by one, hardest first. */
+.screen .clues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1.4vh; counter-reset: clue; }
+.screen .clue {
+  display: flex; align-items: center; gap: 1.2vw; padding: 1.4vh 1.6vw; border-radius: 14px; font-size: 1.6em; font-weight: 700;
+  border: 2px dashed rgba(246, 212, 140, .25); color: transparent; background: rgba(0, 0, 0, .3);
+  transition: color .4s, border-color .4s, box-shadow .4s, background .4s;
+}
+.screen .clue { counter-increment: clue; }
+.screen .clue::before { content: counter(clue); min-width: 1.8em; height: 1.8em; display: grid; place-items: center; border-radius: 50%; background: rgba(246, 212, 140, .15); color: var(--muted); font-size: .8em; }
+.screen .clue.on { color: var(--cream); border: 2px solid var(--theme, var(--brass)); box-shadow: 0 0 18px color-mix(in srgb, var(--theme, var(--brass)) 50%, transparent); background: rgba(0, 0, 0, .45); animation: tube-on .7s linear both; }
+.screen .clue.on::before { background: var(--theme, var(--brass)); color: #1a0e08; }
+.screen .clue-pts { order: 2; margin-left: auto; font-size: .8em; color: var(--good); text-shadow: 0 0 10px var(--good); }
+.screen .clue-pts:empty { display: none; }
+
+/* True or false: two big tubes, green and red. */
+.screen .answers.tf .answer:nth-child(1) { --a: #5dff9a; }
+.screen .answers.tf .answer:nth-child(2) { --a: #ff5a5a; }
+.screen .answers.tf .answer { font-size: 2.4em; justify-content: center; }
+
+/* The solution of a typed question, and what each team typed. */
+.screen .q-solution {
+  align-self: center; display: flex; align-items: baseline; gap: 1vw; padding: 1.2vh 2.4vw; border-radius: 16px;
+  background: rgba(0, 0, 0, .55); border: 3px solid var(--good); box-shadow: 0 0 30px rgba(93, 255, 154, .45);
+  animation: pop-in .6s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+.screen .sol-label { color: var(--good); font-weight: 800; text-transform: uppercase; letter-spacing: .1em; font-size: 1em; }
+.screen .sol-text { font-size: 2.6em; font-weight: 800; color: #fff; text-shadow: 0 0 18px rgba(93, 255, 154, .6); }
+.screen .team-answers { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(22vw, 1fr)); gap: 1.2vh 1.4vw; max-height: 30vh; overflow: hidden; }
+.screen .team-answer {
+  display: grid; grid-template-columns: auto minmax(0, .9fr) minmax(0, 1fr) auto; align-items: center; gap: .8vw;
+  padding: 1vh 1vw; border-radius: 12px; background: rgba(0, 0, 0, .5); border-left: 5px solid var(--c); font-size: 1.15em; font-weight: 700;
+  animation: rise .45s ease both; animation-delay: calc(.4s + var(--k) * .08s);
+}
+.screen .ta-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.screen .ta-answer { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.screen .team-answer.right .ta-answer { color: var(--good); }
+.screen .team-answer.wrong .ta-answer { color: #ff9a9a; text-decoration: line-through rgba(255, 90, 90, .6); }
+.screen .team-answer.none { opacity: .45; }
+.screen .ta-pts { color: var(--good); font-weight: 800; }
+.screen .ta-pts.minus { color: var(--bad); }
+.screen .answered-dots .dot.blocked { border-color: var(--bad); background: repeating-linear-gradient(45deg, var(--bad) 0 3px, transparent 3px 6px); opacity: .8; }
+
+/* Bets */
+.screen .wager-category { font-size: 4.4em; margin: 2vh 0; --glow: var(--theme, var(--neon-amber)); }
+.screen .answered-dots.big { gap: 1.4vw; margin-top: 4vh; }
+.screen .answered-dots.big .dot { width: 3vh; height: 3vh; }
+
+/* ---------- phone ---------- */
+.phone .choices.tf { grid-template-rows: 1fr 1fr; }
+.phone .choices.tf .choice:nth-child(1) { --a: #5dff9a; }
+.phone .choices.tf .choice:nth-child(2) { --a: #ff5a5a; }
+.phone .choices.tf .choice { font-size: 1.6em; justify-content: center; }
+.phone .choices.blackout .choice .text { display: none; }
+.phone .choices.blackout .choice { justify-content: center; }
+.phone .choices.blackout .choice .letter { width: 2.4em; height: 2.4em; font-size: 1.4em; }
+.phone .type-card { margin-top: 8vh; }
+.phone .type-row { display: flex; align-items: center; gap: 8px; }
+.phone .type-row input {
+  flex: 1; min-width: 0; font-size: 1.5em; padding: .55em .7em; border-radius: 14px; text-align: center;
+  border: 2px solid var(--me, var(--brass)); background: rgba(0, 0, 0, .4); box-shadow: 0 0 18px color-mix(in srgb, var(--me, var(--brass)) 35%, transparent);
+}
+.phone .type-row input:focus { outline: none; }
+.phone .unit { font-weight: 700; color: var(--muted); }
+.phone .unit:empty { display: none; }
+.phone .wager-amount { font-size: 4.4em; font-weight: 800; color: #fff; text-shadow: 0 0 22px var(--me, var(--brass)); margin: 2vh 0 1vh; }
+.phone .wager-range { width: min(86vw, 360px); accent-color: var(--me, var(--brass)); height: 36px; }
+.phone #wager-send { margin-top: 3vh; }
+.phone .joker-btn { margin-top: 4vh; background: linear-gradient(180deg, #fff2a8, #ffcf3c 55%, #b07a12); box-shadow: 0 0 26px rgba(255, 207, 60, .55), 0 2px 0 #4a3010; }
+.phone .joker-btn::before { content: '★ '; }
+
+/* ---------- quizmaster ---------- */
+.host .card-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.host .card-actions a, .host .builder-card a { text-decoration: none; color: var(--cream); }
+.host .builder-card a.brass-btn { color: #2a1606; }
+.host .builder-card { border-top: 3px solid #b07cff; }
+.host .builder-card h3.neon { --glow: #b07cff; }
+.host .builder-card .brass-btn { align-self: flex-start; }
+.host .host-img { max-width: 260px; max-height: 160px; border-radius: 10px; margin-top: 10px; display: block; }
+.host .answer-key { margin: 12px 0 0; padding: 10px 14px; border-radius: 10px; background: rgba(93, 255, 154, .1); color: var(--good); font-weight: 700; display: inline-block; }
+.host .judge-list { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.host .judge-row { display: grid; grid-template-columns: 14px minmax(0, 1fr) minmax(0, 1.4fr) auto auto; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: rgba(0, 0, 0, .3); border-left: 3px solid var(--c); }
+.host .judge-row .name { font-weight: 700; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.host .judge-row .given { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+.host .judge-row.right .given { color: var(--good); }
+.host .judge-row.wrong .given { color: #ff9a9a; }
+.host .judge-row .pts { font-weight: 800; font-variant-numeric: tabular-nums; }
+.host .judge { display: flex; gap: 4px; }
+.host .judge .mini.ok.on { background: rgba(93, 255, 154, .3); border-color: var(--good); }
+.host .judge .mini.no.on { background: rgba(255, 90, 90, .3); border-color: var(--bad); }
+.host .joker-star { color: #ffcf3c; }

@@ -1,0 +1,68 @@
+{
+  "title": "Round Tour",
+  "language": "en",
+  "jokers": true,
+  "rounds": [
+    {
+      "type": "trueFalse",
+      "title": "True or Bluff",
+      "scoring": "speed",
+      "questions": [
+        { "question": "A day on Venus is longer than a year on Venus.", "correct": true },
+        { "question": "Goldfish only remember things for three seconds.", "correct": false },
+        { "question": "Octopuses have three hearts.", "correct": true }
+      ]
+    },
+    {
+      "type": "closest",
+      "title": "Closest Wins",
+      "questions": [
+        { "question": "How tall is the Eiffel Tower, in metres?", "answer": 330, "unit": "m" },
+        { "question": "In which year did the first person walk on the Moon?", "answer": 1969 }
+      ]
+    },
+    {
+      "type": "scramble",
+      "title": "Letter Mix",
+      "questions": [
+        { "answer": "WAFFLE", "question": "Belgian treat" },
+        { "answer": "PLANET", "question": "Mars is one" }
+      ]
+    },
+    {
+      "type": "commonThread",
+      "title": "Common Thread",
+      "questions": [
+        { "clues": ["Diamond", "Club", "Heart", "Spade"], "answer": "Playing cards", "accept": ["Cards", "Card suits", "Suits"] },
+        { "clues": ["Mercury", "Venus", "Earth", "Mars"], "answer": "Planets", "accept": ["Planet", "Solar system"] }
+      ]
+    },
+    {
+      "type": "open",
+      "title": "Open Answer",
+      "scoring": "risk",
+      "twists": ["double"],
+      "questions": [
+        { "question": "Which painter cut off part of his own ear?", "answer": "Vincent van Gogh", "accept": ["Van Gogh"] },
+        { "question": "What is the capital of Australia?", "answer": "Canberra" }
+      ]
+    },
+    {
+      "type": "speed",
+      "title": "Speed Round",
+      "twists": ["blackout"],
+      "questions": [
+        { "question": "How many sides has a hexagon?", "answers": ["5", "6", "7", "8"], "correct": 1 },
+        { "question": "Which colour do you get by mixing blue and yellow?", "answers": ["Green", "Purple", "Orange", "Brown"], "correct": 0 },
+        { "question": "Which animal is the largest?", "answers": ["Elephant", "Blue whale", "Giraffe", "Orca"], "correct": 1 }
+      ]
+    },
+    {
+      "type": "jackpot",
+      "title": "The Jackpot",
+      "questions": [
+        { "category": "Space", "question": "What is the name of the largest volcano in our solar system?", "answer": "Olympus Mons", "accept": ["Olympus"], "points": 5 }
+      ]
+    }
+  ]
+}

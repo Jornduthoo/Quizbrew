@@ -25,18 +25,27 @@
   $('#lang').addEventListener('change', e => socket.emit('language', e.target.value));
 
   function loadQuizzes() {
-    socket.emit('quizzes', list => {
-      $('#quiz-list').replaceChildren(...list.map(q => h('li', { class: 'quiz-card panel' },
+    socket.emit('quizzes', ({ samples, library }) => {
+      const card = (q, ref, edit) => h('li', { class: 'quiz-card panel' },
         h('div', { class: 'quiz-info' },
-          h('h3', {}, q.title),
+          h('h3', {}, q.title || q.name),
           h('p', {}, t('host.quizMeta', { rounds: q.rounds, questions: q.questions }))),
-        h('button', { class: 'brass-btn', onclick: () => socket.emit('load', q.file) }, t('host.open')))));
+        h('div', { class: 'card-actions' },
+          h('button', { class: 'brass-btn', onclick: () => socket.emit('load', ref, res => { if (res && res.error) alert(t('error.quizInvalid') + '\n' + (res.detail || '')); }) }, t('host.open')),
+          edit ? h('a', { class: 'ghost-btn', href: '/builder?open=' + encodeURIComponent(edit) }, t('host.edit')) : null));
+      $('#quiz-list').replaceChildren(
+        h('li', { class: 'quiz-card panel builder-card' },
+          h('div', { class: 'quiz-info' }, h('h3', { class: 'neon' }, t('builder.title')), h('p', {}, t('host.builderHint'))),
+          h('a', { class: 'brass-btn', href: '/builder' }, t('host.openBuilder'))),
+        ...library.map(q => card(q, { library: q.path }, q.path)),
+        ...samples.map(q => card(q, q.file, null)));
     });
   }
 
   const NEXT_LABEL = {
     lobby: () => 'host.startQuiz',
     roundIntro: () => 'host.firstQuestion',
+    wager: () => 'host.showQuestion',
     question: () => 'host.reveal',
     reveal: s => (s.lastQuestion ? 'host.showScores' : 'host.nextQuestion'),
     scoreboard: s => (s.lastRound ? 'host.showWinner' : 'host.nextRound'),
@@ -68,14 +77,42 @@
       }
     } else if (s.phase === 'roundIntro') {
       kicker.textContent = t('screen.roundOf', { n: s.round.index + 1, total: s.round.total });
-      title.textContent = s.round.title;
+      title.textContent = s.round.title || t(`round.${s.round.type}`);
+      const rules = [t(`round.${s.round.type}`)];
+      if (s.round.scoring) rules.push(t(`scoring.${s.round.scoring}`));
+      s.round.twists.forEach(tw => rules.push(t(`twist.${tw}`)));
+      preview.append(h('p', { class: 'hint' }, rules.join(' · ')));
+    } else if (s.phase === 'wager') {
+      kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('host.phase.wager')}`;
+      title.textContent = s.category || '';
+      preview.append(h('p', { class: 'hint' }, t('host.wagered', { n: s.teams.filter(x => x.wagered).length, total: s.teams.length })));
+      if (s.answerKey) preview.append(h('p', { class: 'answer-key' }, t('host.answerKey', { text: s.answerKey.answerText })));
     } else if (s.phase === 'question' || s.phase === 'reveal') {
-      kicker.textContent = `${s.round.title} · ${t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions })}`;
-      title.textContent = s.question.text;
-      const key = s.phase === 'reveal' ? s.correct : s.answerKey;
-      preview.append(h('ol', { class: 'mini-answers' }, s.question.answers.map((a, i) => h('li', { class: i === key ? 'key' : '', style: `--a: var(--ans-${i})` },
-        h('span', { class: 'letter' }, LETTERS[i]), a,
-        s.phase === 'reveal' && s.counts ? h('span', { class: 'n' }, s.counts[i]) : null))));
+      kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions })}`;
+      const q = s.question;
+      title.textContent = q.text || (q.clues ? q.clues.join(' · ') : '') || (q.scrambled || '');
+      if (q.image) preview.append(h('img', { class: 'host-img', src: q.image, alt: '' }));
+      const kind = q.kind;
+      if (kind === 'choice' || kind === 'trueFalse') {
+        const key = s.phase === 'reveal' ? s.correct : s.answerKey && s.answerKey.correct;
+        const answers = kind === 'trueFalse' ? [t('play.true'), t('play.false')] : q.answers;
+        preview.append(h('ol', { class: 'mini-answers' }, answers.map((a, i) => h('li', { class: i === key ? 'key' : '', style: `--a: var(--ans-${i})` },
+          h('span', { class: 'letter' }, kind === 'trueFalse' ? (i === 0 ? '✓' : '✗') : LETTERS[i]), a,
+          s.phase === 'reveal' && s.counts ? h('span', { class: 'n' }, s.counts[i]) : null))));
+      } else {
+        const keyText = s.phase === 'reveal' ? s.reveal.answerText : s.answerKey && s.answerKey.answerText;
+        preview.append(h('p', { class: 'answer-key' }, t('host.answerKey', { text: keyText + (q.unit ? ' ' + q.unit : '') })));
+        const rows = s.phase === 'reveal' ? s.answers : s.liveAnswers;
+        if (rows && rows.length) {
+          preview.append(h('ul', { class: 'judge-list' }, rows.map(a => h('li', { class: 'judge-row' + (s.phase === 'reveal' ? (a.correct ? ' right' : ' wrong') : ''), style: teamVar(a.color) },
+            h('span', { class: 'team-dot' }), h('span', { class: 'name' }, a.name), h('span', { class: 'given' }, a.answer === null ? '—' : String(a.answer)),
+            s.phase === 'reveal' ? h('span', { class: 'pts' }, (a.points > 0 ? '+' : '') + a.points) : null,
+            s.canJudge && a.answer !== null ? h('span', { class: 'judge' },
+              h('button', { class: 'mini ok' + (a.correct ? ' on' : ''), title: t('host.markRight'), onclick: () => socket.emit('judge', { teamId: a.id, correct: true }) }, '✓'),
+              h('button', { class: 'mini no' + (!a.correct ? ' on' : ''), title: t('host.markWrong'), onclick: () => socket.emit('judge', { teamId: a.id, correct: false }) }, '✗')) : null))));
+          if (s.canJudge) preview.append(h('p', { class: 'hint' }, t('host.judgeHint')));
+        }
+      }
       preview.append(h('p', { class: 'hint' }, t('screen.answeredCount', { n: s.answered, total: s.teams.length })));
     } else if (s.phase === 'scoreboard') {
       kicker.textContent = t('host.phase.scoreboard');
@@ -94,13 +131,13 @@
     const byName = Object.fromEntries(s.teams.map(tm => [tm.name, tm]));
     $('#team-list').replaceChildren(...s.ranking.map(r => {
       const tm = byName[r.name] || {};
-      const status = !tm.connected ? 'away' : (s.phase === 'question' && tm.answered) ? 'answered' : '';
+      const status = !tm.connected ? 'away' : tm.blocked ? 'blocked' : tm.away ? 'left' : (s.phase === 'question' && tm.answered) ? 'answered' : '';
       return h('li', { class: 'team-row ' + status, style: teamVar(r.color) },
         h('span', { class: 'rank' }, r.rank),
         h('span', { class: 'team-dot' }),
-        h('span', { class: 'name', title: !tm.connected ? t('host.offline') : '' }, r.name),
-        h('span', { class: 'tag' + (status === 'answered' ? ' ok' : status === 'away' ? ' warn' : ''), title: status === 'answered' ? t('host.answered') : null },
-          status === 'answered' ? '✓' : status === 'away' ? t('host.offline') : ''),
+        h('span', { class: 'name', title: !tm.connected ? t('host.offline') : '' }, r.name, tm.joker ? h('span', { class: 'joker-star', title: t('host.jokerPlayed') }, ' ★') : null),
+        h('span', { class: 'tag' + (status === 'answered' ? ' ok' : status ? ' warn' : ''), title: status === 'answered' ? t('host.answered') : null },
+          status === 'answered' ? '✓' : status === 'away' ? t('host.offline') : status === 'left' ? t('host.leftPage') : status === 'blocked' ? t('host.blocked') : ''),
         h('span', { class: 'score' }, r.score),
         h('span', { class: 'adjust' },
           h('button', { class: 'mini', title: t('host.minusPoint'), onclick: () => socket.emit('score', { teamId: r.id, delta: -1 }) }, '−'),
