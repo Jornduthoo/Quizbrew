@@ -709,5 +709,6 @@
   "award.almost": "Bijna-prijs",
   "award.almost.text": "Net {n} punt naast het podium|Net {n} punten naast het podium",
   "builder.stat": "{pct}% juist · {n} ploegen",
-  "builder.statHint": "Uit {n} quizavond|Uit {n} quizavonden"
+  "builder.statHint": "Uit {n} quizavond|Uit {n} quizavonden",
+  "host.sfx": "Geluidseffecten op het grote scherm (aan/uit)"
 }

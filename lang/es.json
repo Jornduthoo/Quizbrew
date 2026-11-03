@@ -709,5 +709,6 @@
   "award.almost": "Casi",
   "award.almost.text": "A solo {n} punto del podio|A solo {n} puntos del podio",
   "builder.stat": "{pct} % aciertos · {n} equipos",
-  "builder.statHint": "De {n} noche de quiz|De {n} noches de quiz"
+  "builder.statHint": "De {n} noche de quiz|De {n} noches de quiz",
+  "host.sfx": "Efectos de sonido en la pantalla grande (sí/no)"
 }

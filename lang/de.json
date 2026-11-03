@@ -709,5 +709,6 @@
   "award.almost": "Knapp daneben",
   "award.almost.text": "Nur {n} Punkt vom Podest entfernt|Nur {n} Punkte vom Podest entfernt",
   "builder.stat": "{pct} % richtig · {n} Teams",
-  "builder.statHint": "Aus {n} Quizabend|Aus {n} Quizabenden"
+  "builder.statHint": "Aus {n} Quizabend|Aus {n} Quizabenden",
+  "host.sfx": "Soundeffekte auf dem großen Bildschirm (an/aus)"
 }

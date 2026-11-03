@@ -170,3 +170,5 @@ body.remote .key-hint { display: none; }
 .resume { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 22px 26px; margin: 0 auto 26px; max-width: 1100px; border-color: rgb(var(--k-amber) / .7); box-shadow: 0 0 30px rgb(var(--k-amber) / .25); animation: rise .4s ease both; }
 .resume-title { margin: 4px 0; font-size: 1.8em; }
 .resume .hint { margin: 0; }
+.sfx-btn { min-width: 46px; padding-left: 10px; padding-right: 10px; font-size: 1.1em; }
+.sfx-btn.off { opacity: .6; }

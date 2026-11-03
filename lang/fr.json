@@ -709,5 +709,6 @@
   "award.almost": "Si près",
   "award.almost.text": "À {n} point du podium|À {n} points du podium",
   "builder.stat": "{pct} % de bonnes réponses · {n} équipes",
-  "builder.statHint": "Sur {n} soirée quiz|Sur {n} soirées quiz"
+  "builder.statHint": "Sur {n} soirée quiz|Sur {n} soirées quiz",
+  "host.sfx": "Effets sonores sur le grand écran (oui/non)"
 }
