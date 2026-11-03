@@ -1,7 +1,8 @@
 /* The big screen: everything in vw/vh so it reads from the back of the room on any TV. */
 body.screen {
   overflow: hidden;
-  font-size: clamp(14px, 1.6vw, 40px);
+  /* Width and height both count: with the browser bar still showing, the screen is lower and the text a bit smaller. */
+  font-size: clamp(12px, min(1.6vw, 2.85vh), 40px);
 }
 /* Backgrounds: one layer per phase, cross-faded, drifting slowly like a camera pan. */
 .bg {
@@ -190,7 +191,7 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .round-kicker { display: flex; align-items: center; gap: 1.2vw; font-size: 1.5em; color: var(--brass-light); text-transform: uppercase; letter-spacing: .3em; margin: 0; font-weight: 700; }
 .round-kicker::before, .round-kicker::after { content: ''; height: 3px; width: 8vw; border-radius: 3px; background: linear-gradient(90deg, transparent, var(--brass)); }
 .round-kicker::after { transform: scaleX(-1); }
-.round-title { font-size: 5.4em; line-height: 1.02; margin: 2.4vh 0 1.6vh; font-weight: 800; letter-spacing: -.02em; --glow: var(--theme); max-width: 14em; }
+.round-title { font-size: 5.4em; line-height: 1.02; margin: 2.4vh 0 1.6vh; font-weight: 800; letter-spacing: -.02em; --glow: var(--theme); max-width: min(14em, 100%); text-wrap: balance; }
 .round-title .ch { display: inline-block; white-space: pre; }
 .ri-type {
   margin: 0 0 1.4vh; padding: .35em 1.2em; border-radius: 999px;
@@ -216,7 +217,7 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 @keyframes line-grow { from { width: 0; opacity: 0; } }
 
 /* Question */
-.question { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 2.6vh; padding: 3vh 6vw 7vh; }
+.question { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 2.2vh; padding: 3vh 5vw 2.6vh; }
 .question .q-body { min-height: 0; }
 .q-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; font-size: 1.15em; color: var(--brass-light); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .q-answered { justify-self: end; }
@@ -567,3 +568,22 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .screen-alert .icon { font-size: 1.2em; }
 .screen-alert.out { opacity: 0; transform: translateY(3vh); }
 @keyframes screen-alert-in { from { transform: translateY(6vh) scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Full screen button: top right, a brass pill. Quiet during the quiz, it only comes back when the mouse moves. */
+.fs-btn {
+  position: fixed; top: 2vh; right: 1.6vw; z-index: 60; cursor: pointer;
+  display: flex; align-items: center; gap: .6em; padding: .55em 1.1em .55em .8em; border-radius: 999px;
+  font: inherit; font-size: .95em; color: var(--cream); text-align: left;
+  background: rgb(var(--k-wood-9) / .82); border: 2px solid var(--brass);
+  box-shadow: 0 0 22px rgb(var(--k-amber) / .35), 0 10px 30px rgb(0 0 0 / .5);
+  transition: opacity .5s, transform .2s;
+}
+.fs-btn:hover { transform: scale(1.05); }
+.fs-btn svg { width: 1.6em; height: 1.6em; fill: none; stroke: var(--brass-light); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.fs-text { display: flex; flex-direction: column; line-height: 1.15; }
+.fs-text strong { font-weight: 800; }
+.fs-text small { font-size: .78em; color: var(--muted); }
+.fs-btn.quiet { opacity: 0; pointer-events: none; }
+body.mouse .fs-btn.quiet { opacity: .9; pointer-events: auto; }
+/* The other teams under the podium stay clear of the "Made with" corner and the sponsors. */
+.end .rest { max-width: calc(100vw - 2 * (2.5vw + 13.5em)); }

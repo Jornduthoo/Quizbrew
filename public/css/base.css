@@ -297,3 +297,6 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible) { outline: none; }
 .letter[data-shape="2"]::after { border-radius: 50%; }
 .letter[data-shape="3"]::after { width: .3em; height: .3em; right: .17em; bottom: .17em; }
 a.ghost-btn { color: var(--cream); text-decoration: none; }
+
+/* A word of a title that lights up letter by letter: it wraps as one piece, never in the middle. */
+.w { display: inline-block; white-space: nowrap; }

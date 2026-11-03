@@ -293,3 +293,9 @@ body.remote .key-hint { display: none; }
 .alert.out { opacity: 0; transform: translateX(30px); }
 @keyframes alert-in { from { transform: translateX(60px) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
 body.remote .alerts { top: 12px; left: 12px; right: 12px; width: auto; }
+
+/* On a small laptop the top bar wraps onto a second row instead of pushing the page sideways. */
+.topbar { flex-wrap: wrap; row-gap: 8px; }
+.top-actions { flex-wrap: wrap; justify-content: flex-end; min-width: 0; row-gap: 8px; }
+.top-actions .ghost-btn { white-space: nowrap; }
+.quiz-name { min-width: 0; flex: 0 1 auto; }
