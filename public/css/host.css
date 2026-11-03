@@ -143,6 +143,7 @@ body.host {
 body.remote .topbar { padding: 8px 14px; gap: 10px; }
 body.remote .topbar .logo { height: 32px; }
 body.remote .key-hint { display: none; }
+.remote-offline { position: fixed; top: 0; left: 0; right: 0; z-index: 20; padding: 10px 14px; text-align: center; background: var(--bad); color: #fff; font-weight: 700; }
 @media (max-width: 900px) {
   /* No entrance animation here: a transform would trap the fixed button bar inside the page. */
   body.host .view { padding: 16px 12px 120px; animation: none; }

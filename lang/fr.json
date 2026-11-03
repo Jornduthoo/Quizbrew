@@ -611,6 +611,7 @@
   "host.tagline": "Brasse un quiz en quelques secondes",
   "host.network": "Soirée quiz sur ton propre réseau",
   "host.screenHint": "Glisse-le sur la télé ou le projecteur. Les équipes scannent le QR code.",
+  "host.remoteExpired": "Ce lien de télécommande a expiré : Quizbrew a redémarré. Scannez à nouveau le QR de la télécommande sur l’ordinateur.",
   "host.remoteTileHint": "Pilote le quiz depuis ton téléphone ou ta tablette en te déplaçant.",
   "host.tagBuild": "Créer",
   "host.tagScreen": "Montrer",

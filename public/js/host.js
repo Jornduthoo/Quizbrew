@@ -18,6 +18,21 @@
   });
   socket.on('state', s => { state = s; if (I18n.dict['app.name']) render(s); });
 
+  // The remote phone may sleep or lose the wifi: show it, and connect again as soon as it is back.
+  if (remote) {
+    const banner = $('#remote-offline');
+    const show = key => { banner.textContent = key ? t(key) : ''; banner.hidden = !key; };
+    socket.on('connect', () => show(null));
+    socket.on('disconnect', reason => {
+      // The server sends us away when the secret key is wrong: Quizbrew was restarted and has a new link.
+      show(reason === 'io server disconnect' ? 'host.remoteExpired' : 'play.reconnecting');
+    });
+    const retry = () => { if (!document.hidden && !socket.connected) socket.connect(); };
+    document.addEventListener('visibilitychange', retry);
+    addEventListener('online', retry);
+    addEventListener('pageshow', retry);
+  }
+
   QB.info().then(info => {
     languages = info.languages;
     joinInfo = info;

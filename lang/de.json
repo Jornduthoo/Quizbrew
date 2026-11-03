@@ -611,6 +611,7 @@
   "host.tagline": "Brau ein Quiz in Sekunden",
   "host.network": "Quizabend in deinem eigenen Netzwerk",
   "host.screenHint": "Zieh ihn auf den Fernseher oder Beamer. Die Teams scannen den QR-Code.",
+  "host.remoteExpired": "Dieser Fernbedienungs-Link ist abgelaufen: Quizbrew wurde neu gestartet. Scanne den Fernbedienungs-QR am Laptop erneut.",
   "host.remoteTileHint": "Steuere das Quiz vom Handy oder Tablet, während du herumläufst.",
   "host.tagBuild": "Bauen",
   "host.tagScreen": "Zeigen",
