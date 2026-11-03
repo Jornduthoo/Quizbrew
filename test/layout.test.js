@@ -18,8 +18,13 @@ const SCREENS = [
   { name: 'tv-browserbar', width: 1920, height: 940 },
   { name: 'laptop', width: 1366, height: 768 },
 ];
-const TEAMS = ['Ik ben geslaagd vrr', 'MegaMachtigeMuizen', 'Jorn', 'Voet', 'De Quizzende Kwissers', 'Team Tafel Nummer 7', 'Pubquizpiraten', 'Wablieft Wat Zegt Ge'];
-const COLORS = ['amber', 'pink', 'cyan', 'lime', 'violet', 'orange', 'red', 'teal'];
+// 8 teams by default; LAYOUT_TEAMS=18 (up to 24, one per colour) for a big night.
+const NAMES = ['Ik ben geslaagd vrr', 'MegaMachtigeMuizen', 'Jorn', 'Voet', 'De Quizzende Kwissers', 'Team Tafel Nummer 7', 'Pubquizpiraten', 'Wablieft Wat Zegt Ge',
+  'De Slimme Sloebers', 'Quiz Khalifa', 'Tafel 11', 'Les Cerveaux Fous', 'Die Besserwisser', 'Los Sabelotodos', 'Bier en Bitterballen', 'De Laatste Rij',
+  'Kwis Kwis Kwis', 'Antwoord 42', 'De Nerds van Nu', 'Smart Alecs', 'Mama Mia', 'Opa en de Kleinkids', 'Team Onverwacht', 'Wie Is Dit'];
+const TEAM_COUNT = Math.min(24, Number(process.env.LAYOUT_TEAMS) || 8);
+const TEAMS = NAMES.slice(0, TEAM_COUNT);
+const COLORS = require('../src/teams').TEAM_COLORS;
 const NO_MOTION = '*, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition: none !important; }';
 
 // Runs in the page: every visible block of the current view stays inside the screen and inside its own zone,
@@ -97,7 +102,7 @@ function pageProblems() {
   return out;
 }
 
-test('big screen, phone, host and remote: no overlap, nothing sticks out, every round type with long texts and 8 teams', { skip: !chromium && 'Playwright is not installed', timeout: 900000 }, async t => {
+test('big screen, phone, host and remote: no overlap, nothing sticks out, every round type with long texts and many teams', { skip: !chromium && 'Playwright is not installed', timeout: 900000 }, async t => {
   const settingsData = { language: 'nl', sfx: false };
   const qb = createServer({ port: 0, settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } }, library: require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-'))), lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
@@ -194,7 +199,7 @@ test('big screen, phone, host and remote: no overlap, nothing sticks out, every 
       if (s.phase === 'question') {
         await check(step, true);
         // Team 'Jorn' answers first, so its phone shows the locked answer before the reveal.
-        for (const i of [2, 0, 1, 3, 4, 5, 6, 7]) {
+        for (const i of [2, ...teams.keys()].filter((x, k, all) => all.indexOf(x) === k)) {
           const q = teams[i].last && teams[i].last.question;
           if (q) teams[i].emit('answer', answerFor(q, i));
           if (i === 2) { await settle(); await checkOthers(`${step}-locked`); }

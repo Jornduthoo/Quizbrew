@@ -68,6 +68,18 @@
   --team-blue: #4f8bff;
   --team-mint: #9dffd6;
   --team-rose: #ffa3c4;
+  --team-white: #f4f1ea;
+  --team-silver: #b9c2cf;
+  --team-magenta: #ff3df2;
+  --team-purple: #8a4dff;
+  --team-sky: #8fd3ff;
+  --team-indigo: #6c6cff;
+  --team-green: #3ddc5a;
+  --team-olive: #c8c84a;
+  --team-peach: #ffc59a;
+  --team-coral: #ff6f61;
+  --team-lavender: #d9b8ff;
+  --team-ice: #c9f6ff;
 
   /* Backgrounds per phase, painted per look. */
   --bg-lobby: url('/img/look/pub-lobby.webp');

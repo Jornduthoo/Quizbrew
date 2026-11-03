@@ -239,6 +239,9 @@
     requestAnimationFrame(() => {
       if (board.offsetParent === null) return;
       if (!teamsBox.hidden) QB.fit(teamsBox, { height: innerHeight * 0.22, min: 0.55 });
+      // Pots, streaks and who is out: one pill per team, so many teams make the pills smaller.
+      const roundBoard = $('#round-board');
+      if (!roundBoard.hidden) QB.fit(roundBoard, { height: innerHeight * (teamsBox.hidden ? 0.2 : 0.14), min: 0.45 });
       const clocks = $('#clock-board');
       if (!clocks.hidden) QB.fit(clocks, { height: innerHeight * 0.42, min: 0.5 });
       // The lists under the board: everything inside .q-main is sized in em, so one font size scales it all.
@@ -266,7 +269,23 @@
       }
     });
   }
+  // The vote screen: the question gets at most two lines, then all cards shrink together until the grid fits.
+  function fitBallot() {
+    const grid = $('#ballot-grid');
+    QB.fit($('#vote-q'), { lines: 2, min: 0.5 });
+    grid.style.fontSize = '';
+    if (grid.offsetParent === null) return;
+    let size = parseFloat(getComputedStyle(grid).fontSize);
+    const min = size * 0.45;
+    while (size > min && grid.scrollHeight > grid.clientHeight + 1) {
+      size *= 0.93;
+      grid.style.fontSize = size + 'px';
+    }
+    // Long team names stay on one line in their card.
+    grid.querySelectorAll('.bc-by').forEach(el => QB.fit(el, { min: 0.4 }));
+  }
   const refit = () => {
+    if (!$('#v-vote').hidden) fitBallot();
     if (!$('#v-question').hidden) fitQuestion();
     if (!$('#v-roundIntro').hidden) QB.fit($('#round-title'), { lines: 2, min: 0.45 });
     if (!$('#v-scoreboard').hidden) fitScoreboard();
@@ -533,7 +552,7 @@
     }
 
     // The zones change size when the reveal adds the solution, the team answers or a list: fit them again.
-    const zoneKey = [s.questionIndex, reveal, (s.answers || []).length, s.board ? s.teams.length : 0, (s.reveal && s.reveal.found || []).length].join(':');
+    const zoneKey = [s.questionIndex, reveal, (s.answers || []).length, s.board ? s.teams.map(tm => (tm.out ? 'o' : '') + (tm.banked ? 'b' : '') + (tm.pot || '') + (tm.streak || '')).join(',') : 0, (s.reveal && s.reveal.found || []).length].join(':');
     if (fresh || zoneKey !== lastZoneKey) fitQuestion();
     lastZoneKey = zoneKey;
 
@@ -685,7 +704,10 @@
     if (fresh) split($('#vote-q'), s.question.text || t(`round.${s.round.type}`), 'word');
     const most = reveal ? Math.max(0, ...s.ballot.map(b => (b.votes || []).length)) : -1;
     const grid = $('#ballot-grid');
-    grid.className = 'ballot-grid n' + Math.min(s.ballot.length, 8) + (s.ballot.some(b => b.image) ? ' pics' : '');
+    const n = s.ballot.length;
+    grid.className = 'ballot-grid n' + Math.min(n, 8) + (n > 8 ? ' many' : '') + (s.ballot.some(b => b.image) ? ' pics' : '');
+    // Up to 8 cards keep the classic columns; more teams get more columns: 4 up to 12, then 5 or 6.
+    grid.style.setProperty('--cols', n <= 8 ? '' : n <= 12 ? 4 : n <= 15 ? 5 : 6);
     grid.replaceChildren(...s.ballot.map((b, i) => {
       const win = reveal && mode !== 'match' && (b.truth || (mode === 'best' && most > 0 && (b.votes || []).length === most));
       return h('li', { class: 'ballot-card' + (b.image ? ' pic' : '') + (b.truth ? ' truth' : '') + (win ? ' win' : ''), style: `--k: ${i}` + (reveal && b.by ? `; ${teamVar(b.by.color)}` : '') },
@@ -696,6 +718,7 @@
     }));
     // A long entry gets smaller, so every card keeps the same size and nothing runs over the letter.
     grid.querySelectorAll('.bc-text').forEach(el => QB.fit(el, { lines: 3, min: 0.5 }));
+    fitBallot();
     if (stopTimer) stopTimer();
     if (reveal) {
       $('#vote-time').textContent = '';
