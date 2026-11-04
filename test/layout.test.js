@@ -45,6 +45,9 @@ function pageProblems() {
     while (p && p !== document.body) { const o = getComputedStyle(p).overflowX; if (o !== 'visible') { clipped = true; break; } p = p.parentElement; }
     if (!clipped && (r.right > vw + 3 || r.left < -3)) { out.push(`${el.id ? '#' + el.id : el.tagName + '.' + String(el.className).split(' ')[0]} (${el.textContent.trim().slice(0, 24)}) sticks out on the side`); break; }
   }
+  // The answer buttons fit the phone: nobody has to scroll to find answer D.
+  const qv = document.querySelector('#v-question');
+  if (qv && !qv.hidden && qv.scrollHeight > innerHeight + 2) out.push(`the answer buttons do not fit the phone (${qv.scrollHeight}px high)`);
   const b = document.querySelector('#wait-badge');
   if (b && b.offsetParent && b.classList.contains('filled')) {
     const inner = b.firstElementChild && b.firstElementChild.classList.contains('badge-text') ? b.firstElementChild : null;
@@ -56,7 +59,7 @@ function pageProblems() {
   return out;
 }
 
-test('big screen, phone, host and remote: no overlap, nothing sticks out, every round type with long texts and many teams', { skip: !chromium && 'Playwright is not installed', timeout: 900000 }, async t => {
+test('big screen, phone, host and remote: no overlap, nothing sticks out, every round type with long texts and many teams', { skip: !chromium && 'Playwright is not installed', timeout: 2400000 }, async t => {
   // LAYOUT_LOOK=<look> checks the layout with that look's font (each display font has its own width).
   const settingsData = { language: 'nl', sfx: false, look: process.env.LAYOUT_LOOK || 'pub' };
   const qb = createServer({ port: 0, settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } }, library: require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-'))), lanAddresses: () => ['192.168.1.50'] });
@@ -116,13 +119,41 @@ test('big screen, phone, host and remote: no overlap, nothing sticks out, every 
       case 'order': return [...Array(q.items.length).keys()];
       case 'pairs': return [...Array(q.left.length).keys()];
       case 'groups': return { groups: Array.from({ length: q.groupCount }, (_, g) => [0, 1, 2, 3].map(k => (g * 4 + k + i) % (q.groupCount * 4))), links: ['Rivieren in Europa', 'Planeten', 'Een hele lange foute gok van dit team'] };
-      case 'list': return ['Nederland', 'Belgie'];
-      case 'point': return { x: 0.1 * (i + 1), y: 0.5 };
+      case 'list': return ['Nederland', 'Belgie', 'Frankrijk', 'Een heel lang land dat niet bestaat'].slice(0, 1 + i % 4);
+      case 'point': return { x: 0.05 + 0.9 * (i % 10) / 9, y: 0.2 + 0.15 * (i % 5) };
       case 'level': return { l: i % 3, i: 0 };
       case 'buzz': return 'buzz';
-      default: return i === 2 ? 'Broodje eekhoorntjes' : ['de Backstreet Boys', 'Take That en nog wat', 'sinck', 'Olympus Mons', 'Een hele lange foute gok van dit team'][i % 5];
+      case 'draw': case 'photo': return media.pictures[i % media.pictures.length];
+      default: return i === 2 ? 'Broodje eekhoorntjes' : ['de Backstreet Boys', 'Take That en nog wat', 'sinck', 'Olympus Mons', 'Een hele lange foute gok van dit team', 'Het Atomium in Brussel of toch de Eiffeltoren'][i % 6];
     }
   };
+
+  // Part c needs real files: one second of sound, a clip and drawings / photos like the phones send.
+  const media = { video: '/img/awake.mp4', pictures: [] };
+  const post = async (body, type) => (await (await fetch(`${url}/api/host/media`, { method: 'POST', headers: { 'Content-Type': type }, body })).json()).url;
+  async function upload() {
+    const rate = 8000, n = rate;
+    const wav = Buffer.alloc(44 + n * 2);
+    wav.write('RIFF', 0); wav.writeUInt32LE(36 + n * 2, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
+    wav.writeUInt32LE(rate, 24); wav.writeUInt32LE(rate * 2, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(n * 2, 40);
+    for (let k = 0; k < n; k++) wav.writeInt16LE(Math.round(Math.sin(k / 8) * 3000), 44 + k * 2);
+    media.audio = await post(wav, 'audio/wav');
+    const maker = await browser.newPage();
+    for (let i = 0; i < 4; i++) {
+      const png = await maker.evaluate(i => {
+        const c = document.createElement('canvas');
+        c.width = 600; c.height = i % 2 ? 400 : 800;
+        const g = c.getContext('2d');
+        g.fillStyle = '#1a120c'; g.fillRect(0, 0, c.width, c.height);
+        g.lineWidth = 10; g.strokeStyle = ['#7df9ff', '#ffe066', '#ff6bd6', '#8dff8a'][i];
+        g.beginPath(); g.arc(c.width / 2, c.height / 2, 120, 0, 7); g.stroke();
+        return c.toDataURL('image/png').split(',')[1];
+      }, i);
+      media.pictures.push(await post(Buffer.from(png, 'base64'), 'image/png'));
+    }
+    await maker.close();
+    assert.ok(media.audio && media.pictures.every(Boolean), 'media uploaded');
+  }
 
   async function play(quiz, part) {
     const saved = await (await fetch(`${url}/api/host/library/quiz`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quiz }) })).json();
@@ -158,7 +189,8 @@ test('big screen, phone, host and remote: no overlap, nothing sticks out, every 
         // Team 'Jorn' answers first, so its phone shows the locked answer before the reveal.
         for (const i of [2, ...teams.keys()].filter((x, k, all) => all.indexOf(x) === k)) {
           const q = teams[i].last && teams[i].last.question;
-          if (q) teams[i].emit('answer', answerFor(q, i));
+          // A list is sent one line at a time, like the phone does.
+          if (q) [].concat(q.kind === 'list' ? answerFor(q, i) : [answerFor(q, i)]).forEach(a => teams[i].emit('answer', a));
           if (i === 2) { await settle(); await checkOthers(`${step}-locked`); }
         }
         await settle();
@@ -180,10 +212,14 @@ test('big screen, phone, host and remote: no overlap, nothing sticks out, every 
     await settle();
   }
 
-  // LAYOUT_PART=a or b plays only one half (quicker while working on one screen).
+  // LAYOUT_PART=a, b or c plays only one part (quicker while working on one screen).
   const part = process.env.LAYOUT_PART;
   if (!part || part === 'a') await play(quiz, 'a');
   if (!part || part === 'b') await play(quiz.more, 'b');
+  if (!part || part === 'c') {
+    await upload();
+    await play(quiz.media(media), 'c');
+  }
   assert.deepEqual(failures, []);
 });
 
