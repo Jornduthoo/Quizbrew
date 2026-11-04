@@ -392,7 +392,9 @@
     if (k === 'trueFalse') return s.answer === 0 ? '✓' : '✗';
     if (k === 'order' || k === 'pairs' || k === 'point' || k === 'groups') return '✓';
     if (k === 'level') return LETTERS[s.answer.i];
-    return String(s.answer).slice(0, 14);
+    // The whole answer, smaller until it fits (fitBadge); only a very long one ends in …
+    const text = String(s.answer);
+    return text.length > 40 ? text.slice(0, 38).trimEnd() + '…' : text;
   }
 
   // A joker doubles the points of one round per evening; it can only be played at the start of a round.
@@ -843,6 +845,26 @@
     if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
   }
 
+  // The typed answer in the circle: smaller until every word fits inside the circle (in the square that fits in it),
+  // a word that is still too long breaks as a last step. Again when the fonts arrive, the text size or the screen changes.
+  function fitBadge() {
+    const b = $('#wait-badge');
+    const span = b && b.querySelector('.badge-text');
+    if (!span || b.offsetParent === null || !b.clientWidth) return;
+    span.style.fontSize = '';
+    span.classList.remove('break');
+    const room = b.clientWidth * 0.72;
+    const tooBig = () => span.scrollWidth > span.clientWidth + 1 || span.scrollHeight > room;
+    let size = parseFloat(getComputedStyle(span).fontSize);
+    while (size > 18 && tooBig()) {
+      size *= 0.92;
+      span.style.fontSize = size + 'px';
+    }
+    if (tooBig()) span.classList.add('break');
+  }
+  addEventListener('resize', fitBadge);
+  if (document.fonts) document.fonts.ready.then(fitBadge);
+
   function wait(text, badge) {
     showView('wait');
     $('#joker-btn').hidden = true;
@@ -855,13 +877,8 @@
     if (String(mark).length > 2) {
       b.classList.add('word');
       b.replaceChildren(h('span', { class: 'badge-text' }, mark));
-      const span = b.firstChild;
-      let size = parseFloat(getComputedStyle(span).fontSize);
-      const room = b.clientWidth * 0.8;
-      while (size > 12 && (span.scrollWidth > span.clientWidth + 1 || span.offsetHeight > room)) {
-        size *= 0.9;
-        span.style.fontSize = size + 'px';
-      }
+      fitBadge();
+      requestAnimationFrame(fitBadge);
     } else b.textContent = mark;
     $('#wait-text').textContent = text;
     $('#wait-quip').textContent = '';
@@ -951,6 +968,7 @@
     const on = !document.body.classList.contains('big-text');
     store.set('qb.bigText', on ? '1' : '0');
     setBigText(on);
+    fitBadge();
   });
 
   // Reactions: tap an emoji and it floats up on the big screen. Not during a question, so nobody is distracted.

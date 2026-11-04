@@ -77,7 +77,7 @@ body.screen[data-phase="wager"] .bg-stage { opacity: 1; animation-play-state: ru
   padding: 1vh 1vw; border-radius: 12px; background: rgba(0, 0, 0, .5); border-left: 5px solid var(--c); font-size: 1.15em; font-weight: 700;
   animation: rise .45s ease both; animation-delay: calc(.4s + var(--k) * .08s);
 }
-.screen .ta-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.screen .ta-name { color: var(--muted); }
 .screen .ta-answer { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .screen .team-answer.right .ta-answer { color: var(--good); }
 .screen .team-answer.wrong .ta-answer { color: #ff9a9a; text-decoration: line-through rgba(255, 90, 90, .6); }

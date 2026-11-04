@@ -195,6 +195,12 @@ h1, h2, .display { font-family: var(--display); font-weight: 400; font-synthesis
   box-shadow: 0 0 .5em var(--c, var(--brass));
 }
 
+/* A team name that is always shown in full (QB.fitName): one line, or two lines with .two, … only as a last resort. */
+.tn { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.15; }
+.tn.two { white-space: normal; }
+.tn.break { overflow-wrap: anywhere; }
+.tn.cut { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+
 @keyframes flicker {
   0%, 100% { opacity: 1; }
   92% { opacity: 1; }
