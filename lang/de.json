@@ -604,6 +604,7 @@
   "print.withAnswers": "Mit Antworten",
   "print.withScoreSheet": "Punktebogen",
   "print.print": "Drucken",
+  "print.close": "✕ Schließen",
   "print.loading": "Quiz wird geladen...",
   "print.notFound": "Dieses Quiz wurde nicht gefunden.",
   "print.question": "Frage",

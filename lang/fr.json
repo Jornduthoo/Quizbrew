@@ -604,6 +604,7 @@
   "print.withAnswers": "Avec réponses",
   "print.withScoreSheet": "Feuille de scores",
   "print.print": "Imprimer",
+  "print.close": "✕ Fermer",
   "print.loading": "Chargement du quiz...",
   "print.notFound": "Ce quiz est introuvable.",
   "print.question": "Question",

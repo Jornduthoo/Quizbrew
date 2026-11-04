@@ -185,6 +185,13 @@
   $('#show-answers').addEventListener('change', applyToggles);
   $('#show-scores').addEventListener('change', applyToggles);
   $('#print-now').addEventListener('click', () => print());
+  // The sheet opens in its own tab: close it, or go back when the browser refuses.
+  const closeSheet = () => {
+    window.close();
+    setTimeout(() => { if (history.length > 1) history.back(); else location.href = params.get('open') ? '/builder' : '/host'; }, 150);
+  };
+  $('#close-sheet').addEventListener('click', closeSheet);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 
   (async () => {
     const info = await fetch('/api/info').then(r => r.json());
