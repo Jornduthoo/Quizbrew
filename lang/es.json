@@ -604,6 +604,7 @@
   "print.withAnswers": "Con respuestas",
   "print.withScoreSheet": "Hoja de puntos",
   "print.print": "Imprimir",
+  "print.close": "✕ Cerrar",
   "print.loading": "Cargando el quiz...",
   "print.notFound": "No se ha encontrado este quiz.",
   "print.question": "Pregunta",

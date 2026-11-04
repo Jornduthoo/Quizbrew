@@ -483,7 +483,7 @@ const TYPES = [
     defaults: { time: 20, points: 1, scoring: 'points' },
     fields: ['audio', 'question', 'answerOrChoices', 'time', 'points'],
     validate(q, fail) { need.audio(q, fail); if (Array.isArray(q.answers) && q.answers.length) need.answers(q, fail); else need.answer(q, fail); },
-    aiShape: '{"question": "What makes this sound?", "answers": ["...", "...", "...", "..."], "correct": 0, "sound": "description of the sound to record or find"}',
+    aiShape: '{"question": "What makes this sound?", "answers": ["...", "...", "...", "..."], "correct": 0, "sound": "short description of the sound to record or find, in the language of the quiz"}',
     fromAI: it => ({ question: str(it.question), ...choiceOrTextAI(it), audioHint: str(it.sound) || songOf(it) }),
   },
   {
