@@ -126,10 +126,11 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .view { position: fixed; inset: 0; padding: 4vh 4vw; animation: rise .6s ease both; }
 .view.center { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 
-.logo { width: 22vw; max-width: 520px; display: block; filter: drop-shadow(0 0 24px rgb(var(--k-amber) / .25)); }
+/* The logo carries its own neon glow: no extra filter on top (that only smudged it), never wider than the file. */
+.logo { width: 22vw; max-width: 520px; display: block; }
 .logo.big { width: 46vw; max-width: 1000px; }
 .flicker { animation: flicker 6s infinite; }
-.tagline { font-size: 1.4em; color: var(--muted); margin-top: 2vh; letter-spacing: .02em; }
+.tagline { font-size: 1.4em; color: var(--muted); margin-top: 3vh; position: relative; letter-spacing: .02em; }
 
 /* Lobby */
 .lobby { display: grid; grid-template-columns: 1.05fr 1fr; gap: 4vw; align-items: center; }

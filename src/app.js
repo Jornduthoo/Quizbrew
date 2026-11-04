@@ -241,7 +241,9 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   const quizFor = ref => (ref && typeof ref === 'object' && ref.library ? library.read(String(ref.library)) : quizzes.load(String(ref)));
 
   app.disable('x-powered-by');
-  app.use('/img', express.static(path.join(pub, 'img'), { maxAge: '7d' }));
+  // Images are checked again on every load (a cheap 304 on the local network), so a new logo or
+  // background shows straight after an update instead of an old copy from the browser cache.
+  app.use('/img', express.static(path.join(pub, 'img'), { maxAge: 0 }));
   // Pages go through the routes below, so the host page stays on this laptop.
   app.use((req, res, next) => (req.path.endsWith('.html') ? res.redirect(req.path.slice(0, -5)) : next()));
   app.use(express.static(pub, { index: false }));
