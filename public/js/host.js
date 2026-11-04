@@ -221,8 +221,18 @@
     socket.emit('quizzes', data => {
       allQuizzes = { ratings: {}, ...data };
       renderQuizzes();
+      renderRestore();
     });
   }
+
+  // Settings: bring back the examples that were removed.
+  function renderRestore() {
+    if (!$('#samples-restore')) return;
+    const n = allQuizzes.hiddenSamples || 0;
+    $('#samples-restore-row').hidden = !n;
+    $('#samples-restore-count').textContent = t('manage.samplesHidden', { count: n });
+  }
+  if ($('#samples-restore')) $('#samples-restore').addEventListener('click', () => act(() => manage('/library/restore-samples', {})));
 
   function renderQuizzes() {
     const { samples, library, ratings } = allQuizzes;
@@ -251,6 +261,9 @@
         ] : [
           { label: t('host.print'), href: printUrl, target: '_blank' },
           { label: t('manage.export'), href: exportUrl },
+          { label: t('builder.delete'), danger: true, run: () => {
+            if (confirm(t('manage.confirmHideSample', { title: q.title || q.name }))) act(() => manage('/library/hide-sample', { sample: ref }));
+          } },
         ]),
       }, '⋯');
       return h('li', { class: 'quiz-card panel' },

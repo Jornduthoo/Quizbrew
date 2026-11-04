@@ -44,3 +44,27 @@ test('the host page manages quizzes over the API', async t => {
   assert.ok(library.read(sample.path).rounds.length > 0);
   assert.deepEqual(library.tree().quizzes.map(q => q.path).sort(), ['Quiz night.json', 'Tweede avond.json', sample.path].sort());
 });
+
+test('examples can be removed, stay removed after a restart, and come back from Settings', async t => {
+  const library = Library.create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-manage-')));
+  const v = { language: 'nl' };
+  const settings = { get: k => v[k], set: (k, x) => { v[k] = x; } };
+  const start = async () => { const qb = createServer({ port: 0, settings, library, lanAddresses: () => ['192.168.1.50'] }); const port = await qb.listen(); t.after(() => qb.close()); return port; };
+  let port = await start();
+  const api = (p, url, body) => fetch(`http://127.0.0.1:${p}/api/host${url}`, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}).then(r => r.json());
+  const files = async p => (await api(p, '/library')).samples.map(s => s.file);
+
+  assert.ok((await files(port)).includes('night-pack-1.nl.json'));
+  assert.equal((await api(port, '/library/hide-sample', { sample: 'night-pack-1.nl.json' })).hidden, 1);
+  await api(port, '/library/hide-sample', { sample: 'pub-warm-up.json' });
+  assert.deepEqual(v.hiddenSamples, ['night-pack-1', 'pub-warm-up']);
+  // All language versions of a pack go away, also after a restart.
+  port = await start();
+  assert.ok(!(await files(port)).some(f => /^night-pack-1|pub-warm-up/.test(f)));
+  v.language = 'fr';
+  assert.ok(!(await files(port)).some(f => f.startsWith('night-pack-1')));
+  assert.ok((await files(port)).includes('round-tour.json'));
+  await api(port, '/library/restore-samples', {});
+  assert.ok((await files(port)).includes('night-pack-1.fr.json'));
+  assert.ok((await files(port)).includes('pub-warm-up.json'));
+});
