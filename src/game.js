@@ -1001,6 +1001,7 @@ class Game {
         index: this.roundIndex, total: this.regularRounds(), title: round.tiebreak ? i18n.dictionary(this.language)['round.tiebreak'] : mystery ? '? ? ?' : round.title,
         tiebreak: round.tiebreak ? round.tiebreak.teams.map(team).filter(Boolean) : null, type: round.type, family: (rounds.get(round.type) || {}).family || 'classic', mystery: !!mystery,
         questions: round.questions.length, scoring: round.scoring, twists: round.twists,
+        underdogs: this.hasTwist('underdog') ? [...this.underdogs].map(team).filter(Boolean) : [],
       } : null,
       questionIndex: this.questionIndex,
       question: showQuestion ? this.publicQuestion() : null,
@@ -1073,13 +1074,15 @@ class Game {
       const n = kind === 'trueFalse' ? 2 : (this.question.answers || this.question.images).length;
       state.counts = Array.from({ length: n }, (_, i) => teams.filter(t => t.answer === i).length);
     }
-    if (reveal && ['text', 'number', 'point', 'order', 'pairs', 'list', 'level', 'buzz'].includes(kind)) {
+    if (reveal && ['text', 'number', 'point', 'order', 'pairs', 'list', 'level', 'buzz', 'groups'].includes(kind)) {
       state.answers = [...this.teams.entries()].filter(([id]) => !this.round.tiebreak || this.round.tiebreak.teams.includes(id)).map(([id, t]) => ({
         id, name: t.name, color: t.color, answer: t.answer, correct: t.correct, points: t.lastPoints, wager: t.wager, found: t.found,
       }));
     }
     // Strategy rounds show their round memory: pots, streaks and who is out.
     if (this.type && (this.type.sitsOut || this.type.id === 'hotStreak')) state.board = true;
+    // One mistake and out: the room sees who is still in.
+    if (this.hasTwist('suddenDeath') && !this.type.vote && !this.type.turns && !this.finalists && ['question', 'reveal'].includes(this.phase)) state.board = true;
     return state;
   }
 
@@ -1156,6 +1159,7 @@ class Game {
       myTurn: !!this.type && !!this.type.turns && this.turnTeam === teamId,
       canWager: this.phase === 'wager' && this.canWager(teamId),
       canLifeline: this.canLifeline(t),
+      underdog: this.hasTwist('underdog') && this.underdogs.has(teamId),
       powers: this.hasPowers() && !t.paper ? {
         shield: this.canPower(t, 'shield'), spy: this.canPower(t, 'spy'), fifty: this.canPower(t, 'fifty'),
         shieldNow: t.shieldRound === this.roundIndex, left: ['shield', 'spy', 'fifty'].filter(n => (n === 'shield' ? !(t.shieldRound >= 0) : !t[`${n}Key`])),

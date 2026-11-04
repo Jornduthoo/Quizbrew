@@ -453,6 +453,11 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .aw-team .team-dot.photo { width: 1.8em; height: 1.8em; }
 .aw-text { color: var(--muted); font-size: 1.05em; }
 .aw-team { flex-wrap: wrap; justify-content: center; }
+/* Four prizes fit on one row; five or six get two smaller rows, so nothing falls off the screen. */
+.award-grid.n4 { grid-template-columns: repeat(4, 21vw); gap: 2.6vh 1.4vw; }
+.award-grid.many { grid-template-columns: repeat(3, 24vw); gap: 2vh 1.6vw; font-size: .82em; }
+.award-grid.many .award { padding: 1.8vh 1.2vw 1.6vh; }
+.award-grid.many .aw-icon { font-size: 2.4em; }
 
 /* Raffle: a dark curtain over the screen, one big reel in the middle. */
 .raffle { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3vh; background: radial-gradient(circle at 50% 45%, rgb(30 16 8 / .94), rgb(6 3 1 / .97)); animation: rise .4s ease both; }

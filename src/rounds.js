@@ -734,6 +734,50 @@ const TYPES = [
     fromAI: textType.fromAI,
   },
   {
+    // Word web: 12 or 16 words on the board hide 3 or 4 groups of 4. Teams sort them on the phone and name each link.
+    id: 'wordWeb', family: 'puzzle', kind: 'groups',
+    defaults: { time: 120, points: 1 },
+    fields: ['question', 'groups', 'time', 'points'],
+    scorings: [],
+    validate(q, fail) {
+      const g = webGroups(q);
+      if (g.length < 3 || g.length > 4) fail('needs 3 or 4 groups');
+      if (g.some(x => !x.link || x.words.length !== 4)) fail('every group needs a link and 4 words');
+      const all = g.flatMap(x => x.words.map(w => normalize(w)));
+      if (new Set(all).size !== all.length) fail('every word may appear only once');
+    },
+    // The phone sends groups of 4 indexes into the shown (shuffled) words, plus a link per group.
+    parse(raw, q) {
+      const n = webGroups(q).length;
+      if (!raw || !Array.isArray(raw.groups) || raw.groups.length !== n) return undefined;
+      const flat = raw.groups.flat();
+      if (raw.groups.some(g => !Array.isArray(g) || g.length !== 4) || flat.length !== n * 4 || new Set(flat).size !== flat.length || flat.some(i => !Number.isInteger(i) || i < 0 || i >= n * 4)) return undefined;
+      const shown = webOrder(q);
+      const links = Array.from({ length: n }, (_, i) => String((Array.isArray(raw.links) && raw.links[i]) || '').trim().slice(0, 60));
+      return { groups: raw.groups.map(g => g.map(i => shown[i]).sort((a, b) => a - b)), links };
+    },
+    // A point for every group found, and a point for every link named (the group may have one word wrong).
+    score(entries, q, base) {
+      const groups = webGroups(q);
+      return entries.map(e => {
+        if (!e.answer) return { points: 0, correct: false, found: { g: 0, l: 0 } };
+        const gotGroup = new Set();
+        const gotLink = new Set();
+        e.answer.groups.forEach((g, i) => {
+          const counts = groups.map((_, r) => g.filter(w => Math.floor(w / 4) === r).length);
+          const r = counts.indexOf(Math.max(...counts));
+          if (counts[r] === 4) gotGroup.add(r);
+          if (counts[r] >= 3 && textMatches(e.answer.links[i], { answer: groups[r].link, accept: groups[r].accept })) gotLink.add(r);
+        });
+        return { points: (gotGroup.size + gotLink.size) * base, correct: gotGroup.size === groups.length, found: { g: gotGroup.size, l: gotLink.size } };
+      });
+    },
+    publicQ: q => ({ words: webOrder(q).map(i => webGroups(q)[Math.floor(i / 4)].words[i % 4]), groupCount: webGroups(q).length }),
+    revealQ: q => ({ groups: webGroups(q).map(g => ({ link: g.link, words: g.words })), answerText: webGroups(q).map(g => g.link).join(' · ') }),
+    aiShape: '{"question": "Find the 3 groups of 4 and what links them", "groups": [{"link": "what the 4 words share", "words": ["word", "word", "word", "word"]}, {"link": "...", "words": ["...", "...", "...", "..."]}, {"link": "...", "words": ["...", "...", "...", "..."]}]}  (exactly 3 groups of 4 single words; put in words that seem to fit another group too, that makes it fun)',
+    fromAI: it => ({ question: str(it.question), groups: (Array.isArray(it.groups) ? it.groups : []).slice(0, 4).map(g => ({ link: str(g && g.link), words: list(g && g.words).slice(0, 4) })) }),
+  },
+  {
     id: 'clueLadder', family: 'puzzle', ...textType,
     defaults: { time: 50, points: 5, scoring: 'ladder' },
     fields: ['clues', 'answer', 'time', 'points'],
@@ -856,6 +900,15 @@ const isTurn = type => !!(type && type.turns);
 // Twists that hide or remove answer options only work on questions with options to tap.
 const CHOICE_TWISTS = ['shrinkingOptions', 'lifeline'];
 const twistFits = (type, tw) => !CHOICE_TWISTS.includes(tw) || (!!type && (type.kind === 'choice' || !!type.kindOf));
+
+// Word web helpers: the groups as written, and the same shuffle for everyone (word ids are group * 4 + place).
+function webGroups(q) {
+  return (Array.isArray(q.groups) ? q.groups : []).map(g => ({ link: str(g && g.link), accept: list(g && g.accept), words: list(g && g.words) }));
+}
+function webOrder(q) {
+  const g = webGroups(q);
+  return permutation(g.length * 4, g.map(x => x.words.join('|')).join('/'));
+}
 
 // Fill the defaults of the round type into a round, without changing what the quizmaster set.
 function withDefaults(round) {

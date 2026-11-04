@@ -172,6 +172,7 @@ test('big screen, phone, host and remote: no overlap, nothing sticks out, every 
       case 'number': return 1000 + i * 77;
       case 'order': return [...Array(q.items.length).keys()];
       case 'pairs': return [...Array(q.left.length).keys()];
+      case 'groups': return { groups: Array.from({ length: q.groupCount }, (_, g) => [0, 1, 2, 3].map(k => (g * 4 + k + i) % (q.groupCount * 4))), links: ['Rivieren in Europa', 'Planeten', 'Een hele lange foute gok van dit team'] };
       case 'list': return ['Nederland', 'Belgie'];
       case 'point': return { x: 0.1 * (i + 1), y: 0.5 };
       case 'level': return { l: i % 3, i: 0 };
