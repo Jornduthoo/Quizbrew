@@ -74,6 +74,36 @@ body.spot-winner .beams i { animation: none; transform: rotate(var(--aim, 0deg))
   background:
     radial-gradient(ellipse at 50% 55%, rgb(var(--k-wood-9) / .1) 0%, rgb(var(--k-wood-9) / .5) 60%, rgb(var(--k-wood-9) / .9) 100%);
 }
+/* Each newer look has its own slow light in the room: only light, nothing falls. */
+.vignette::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 1.2s; }
+:root[data-look="winter"] .vignette::before {
+  opacity: 1; background: radial-gradient(ellipse 45% 40% at 88% 100%, rgb(255 160 70 / .32), transparent 70%);
+  animation: fire-flicker 3.2s ease-in-out infinite;
+}
+@keyframes fire-flicker { 0%, 100% { opacity: .75; } 30% { opacity: 1; } 55% { opacity: .82; } 70% { opacity: .95; } }
+:root[data-look="disco"] .vignette::before {
+  opacity: .55; inset: -50%; mix-blend-mode: screen;
+  background: repeating-conic-gradient(from 0deg at 50% 50%, rgb(255 62 165 / .14) 0 5deg, transparent 5deg 20deg, rgb(255 207 58 / .1) 20deg 24deg, transparent 24deg 40deg);
+  animation: disco-spin 40s linear infinite;
+}
+@keyframes disco-spin { to { transform: rotate(360deg); } }
+:root[data-look="beach"] .vignette::before {
+  opacity: 1; background: radial-gradient(ellipse 60% 30% at 50% 100%, rgb(255 190 110 / .22), transparent 70%);
+  animation: sun-breathe 7s ease-in-out infinite alternate;
+}
+@keyframes sun-breathe { from { opacity: .6; } to { opacity: 1; } }
+:root[data-look="stadium"] .vignette::before {
+  opacity: .8;
+  background: radial-gradient(ellipse 30% 45% at 6% -5%, rgb(255 255 255 / .22), transparent 70%), radial-gradient(ellipse 30% 45% at 94% -5%, rgb(255 255 255 / .22), transparent 70%);
+}
+:root[data-look="stadium"] body[data-phase="reveal"] .vignette::before { animation: floodlight .9s ease-out 1; }
+@keyframes floodlight { 0% { opacity: .8; } 15% { opacity: 1; filter: brightness(2.2); } 100% { opacity: .8; } }
+:root[data-look="gala"] .vignette::before {
+  opacity: 1; background: linear-gradient(105deg, transparent 40%, rgb(247 226 170 / .1) 50%, transparent 60%) -150% 0 / 250% 100% no-repeat;
+  animation: gala-sweep 9s ease-in-out infinite;
+}
+@keyframes gala-sweep { 0%, 30% { background-position: -150% 0; } 70%, 100% { background-position: 250% 0; } }
+.fx-low .vignette::before, .fx-off .vignette::before { animation: none; }
 body[data-phase="lobby"] .vignette,
 body[data-phase="idle"] .vignette { background: radial-gradient(ellipse at 50% 45%, transparent 0%, rgb(var(--k-wood-9) / .35) 60%, rgb(var(--k-wood-9) / .85) 100%); }
 body[data-phase="question"] .vignette,
