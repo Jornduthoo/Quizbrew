@@ -983,5 +983,14 @@
   "play.tw.blackout": "Blackout : lisez la question sur le grand écran",
   "play.tw.underdogMe": "Vous êtes derniers : vos points comptent ×1,5 !",
   "play.tw.suddenDeath": "Une erreur et vous êtes éliminés de cette manche",
-  "ai.fromClipboard": "Réponse de l’IA trouvée dans le presse-papiers !"
+  "ai.fromClipboard": "Réponse de l’IA trouvée dans le presse-papiers !",
+  "host.scoreOpen": "Donner ou retirer des points",
+  "host.scoreNow": "Score actuel :",
+  "host.scoreOther": "ex. 3 ou -2",
+  "host.scoreGive": "Donner",
+  "host.scoreHint": "Un moins retire des points. Le grand écran affiche ta décision quelques secondes.",
+  "screen.callTag": "Quizmaster",
+  "screen.callScore": "{n} pour {name}",
+  "screen.callRight": "La réponse de {name} compte finalement !",
+  "screen.callWrong": "La réponse de {name} ne compte pas"
 }

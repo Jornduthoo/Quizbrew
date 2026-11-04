@@ -983,5 +983,14 @@
   "play.tw.blackout": "Blackout: read the question on the big screen",
   "play.tw.underdogMe": "You're last: your points count ×1.5!",
   "play.tw.suddenDeath": "One mistake and you're out of this round",
-  "ai.fromClipboard": "AI answer found on the clipboard!"
+  "ai.fromClipboard": "AI answer found on the clipboard!",
+  "host.scoreOpen": "Give or take points",
+  "host.scoreNow": "Score now:",
+  "host.scoreOther": "e.g. 3 or -2",
+  "host.scoreGive": "Give",
+  "host.scoreHint": "Use a minus to take points off. The big screen shows your call for a few seconds.",
+  "screen.callTag": "Quizmaster",
+  "screen.callScore": "{n} for {name}",
+  "screen.callRight": "{name}'s answer counts after all!",
+  "screen.callWrong": "{name}'s answer does not count"
 }

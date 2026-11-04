@@ -475,6 +475,8 @@
     // Don't redraw under the quizmaster's fingers while they type the points of a paper team.
     if (document.activeElement && document.activeElement.classList.contains('paper-pts')) { pendingTeams = s; return; }
     pendingTeams = null;
+    lastRanking = s.ranking || [];
+    if (scoreTeam) drawScore();
     const paper = Object.fromEntries((s.paperTeams || []).map(p => [p.id, p]));
     $('#paper-hint').hidden = !(s.paperTeams || []).length;
     $('#team-total').textContent = s.teams.length;
@@ -490,7 +492,7 @@
         h('span', { class: 'name', title: !tm.connected ? t('host.offline') : '' }, r.name, tm.joker ? h('span', { class: 'joker-star', title: t('host.jokerPlayed') }, ' ★') : null, tm.phones > 1 ? h('span', { class: 'phones' }, ' ' + t('host.phones', { n: tm.phones })) : null),
         h('span', { class: 'tag' + (status === 'answered' ? ' ok' : status === 'paper' ? ' paper' : status ? ' warn' : ''), title: status === 'answered' ? t('host.answered') : null },
           status === 'paper' ? t('host.paperTag') : status === 'answered' ? '✓' : status === 'away' ? t('host.offline') : status === 'left' ? t('host.leftPage') : status === 'blocked' ? t('host.blocked') : ''),
-        h('span', { class: 'score' }, r.score),
+        h('button', { class: 'score', type: 'button', title: t('host.scoreOpen'), onclick: () => openScore(r.id) }, r.score),
         pt && s.paperRound >= 0 ? h('label', { class: 'paper-in', title: t('host.paperPoints', { n: s.paperRound + 1 }) },
           h('span', {}, t('host.paperRound', { n: s.paperRound + 1 })),
           h('input', { class: 'paper-pts', type: 'number', inputmode: 'numeric', step: 1, value: pt.points === null ? '' : String(pt.points), placeholder: '0', 'aria-label': t('host.paperPoints', { n: s.paperRound + 1 }),
@@ -503,6 +505,37 @@
           h('button', { class: 'mini kick', title: t('host.kick'), onclick: () => { if (confirm(t('host.confirmKick', { name: r.name }))) socket.emit('kick', r.id); } }, '×')));
     }));
   }
+
+  // The quizmaster's call: tap a score to give or take points (a dispute, a bonus, a penalty).
+  let scoreTeam = null;
+  let lastRanking = [];
+  function drawScore() {
+    const r = lastRanking.find(x => x.id === scoreTeam);
+    if (!r) { if ($('#score-modal').open) $('#score-modal').close(); return; }
+    $('#score-modal').setAttribute('style', teamVar(r.color));
+    $('#score-title').replaceChildren(QB.dot(r), h('span', { class: 'who' }, r.name));
+    $('#score-now').replaceChildren(t('host.scoreNow'), ' ', h('b', {}, String(r.score)));
+  }
+  function giveScore(delta) {
+    if (!scoreTeam || !Number.isFinite(delta) || !delta) return;
+    socket.emit('score', { teamId: scoreTeam, delta });
+    if (navigator.vibrate) navigator.vibrate(20);
+  }
+  function openScore(id) {
+    scoreTeam = id;
+    $('#score-amount').value = '';
+    drawScore();
+    $('#score-modal').showModal();
+  }
+  $('#score-steps').replaceChildren(...[-10, -5, -1, 1, 5, 10].map(d =>
+    h('button', { type: 'button', class: d > 0 ? 'plus' : 'minus', onclick: () => giveScore(d) }, (d > 0 ? '+' : '−') + Math.abs(d))));
+  $('#score-form').addEventListener('submit', e => {
+    e.preventDefault();
+    giveScore(Math.trunc(Number($('#score-amount').value)));
+    $('#score-amount').value = '';
+  });
+  $('#score-modal [data-close]').addEventListener('click', () => $('#score-modal').close());
+  $('#score-modal').addEventListener('close', () => { scoreTeam = null; });
 
   let pendingTeams = null;
   $('#paper-form').addEventListener('submit', e => {

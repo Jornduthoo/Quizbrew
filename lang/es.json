@@ -983,5 +983,14 @@
   "play.tw.blackout": "Apagón: lee la pregunta en la pantalla grande",
   "play.tw.underdogMe": "Vais últimos: ¡vuestros puntos cuentan ×1,5!",
   "play.tw.suddenDeath": "Un error y quedáis fuera de esta ronda",
-  "ai.fromClipboard": "¡Respuesta de la IA encontrada en el portapapeles!"
+  "ai.fromClipboard": "¡Respuesta de la IA encontrada en el portapapeles!",
+  "host.scoreOpen": "Dar o quitar puntos",
+  "host.scoreNow": "Puntos ahora:",
+  "host.scoreOther": "p. ej. 3 o -2",
+  "host.scoreGive": "Dar",
+  "host.scoreHint": "Con un menos quitas puntos. La pantalla grande muestra tu decisión unos segundos.",
+  "screen.callTag": "Presentador",
+  "screen.callScore": "{n} para {name}",
+  "screen.callRight": "¡La respuesta de {name} sí cuenta!",
+  "screen.callWrong": "La respuesta de {name} no cuenta"
 }

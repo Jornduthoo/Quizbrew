@@ -402,3 +402,22 @@ body.remote .alerts { top: 12px; left: 12px; right: 12px; width: auto; }
 .net-option.best { border-color: rgb(var(--k-cyan) / .55); box-shadow: 0 0 22px rgb(var(--k-cyan) / .15); }
 .net-option.best em { display: inline-block; margin-bottom: 6px; font-style: normal; font-size: .72em; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--neon-cyan); text-shadow: 0 0 8px rgb(var(--k-cyan) / .6); }
 .top-actions a.ghost-btn { color: var(--cream); }
+
+/* The quizmaster's call: points for one team */
+.team-row .score { cursor: pointer; border: 0; background: none; padding: 4px 6px; margin: -4px 0; border-radius: 8px; color: inherit; font: inherit; font-weight: 800; }
+.team-row .score:hover, .team-row .score:focus-visible { background: rgb(var(--k-brass-l) / .15); color: var(--brass-light); }
+.score-modal { width: min(440px, calc(100vw - 32px)); }
+.score-modal .modal-head h2 { display: flex; align-items: center; gap: .5em; min-width: 0; }
+.score-modal .modal-head h2 .who { padding: 0 .2em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--c); text-shadow: 0 0 12px var(--c); }
+.score-body { display: flex; flex-direction: column; gap: 14px; padding: 18px 22px 22px; }
+.score-now { margin: 0; color: var(--muted); }
+.score-now b { color: var(--cream); font-size: 1.3em; font-variant-numeric: tabular-nums; }
+.score-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.score-steps button { min-height: 52px; border-radius: 12px; font-size: 1.2em; font-weight: 800; font-variant-numeric: tabular-nums; border: 1.5px solid; background: rgba(0, 0, 0, .3); }
+.score-steps .plus { color: var(--good); border-color: rgb(93 255 154 / .45); }
+.score-steps .plus:hover { background: rgb(93 255 154 / .12); box-shadow: 0 0 14px rgb(93 255 154 / .25); }
+.score-steps .minus { color: var(--neon-amber); border-color: rgb(var(--k-amber) / .45); }
+.score-steps .minus:hover { background: rgb(var(--k-amber) / .12); box-shadow: 0 0 14px rgb(var(--k-amber) / .25); }
+.score-own { display: flex; gap: 8px; }
+.score-own input { flex: 1; min-width: 0; padding: .7em .9em; border-radius: 12px; border: 1.5px solid rgb(var(--k-brass-l) / .3); background: rgba(0, 0, 0, .35); color: var(--cream); font: inherit; font-size: 1.1em; }
+.score-body .hint { margin: 0; }
