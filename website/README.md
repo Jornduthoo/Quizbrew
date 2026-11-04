@@ -4,7 +4,7 @@ The promo site: plain HTML, CSS and a little JavaScript. No build step, no libra
 
 - **Price, demo, links, contact**: `js/config.js` (one place).
 - **Texts in 5 languages**: `js/i18n.js`. The page picks `?lang=`, then the visitor's earlier choice, then their country (Cloudflare's `/cdn-cgi/trace`; in Belgium, Switzerland, Luxembourg and Canada the browser language picks among the local languages), then the browser language.
-- **Round types**: `js/rounds.js` is made from the app's own `lang/*.json`: `node website/tools/build.js`.
+- **Round types and version stamp**: `node website/tools/build.js` makes `js/rounds.js` from the app's own `lang/*.json` and gives the CSS and JS links in `index.html` a new `?v=` stamp. Run it after every change to the CSS or JS, or visitors keep the old files for up to an hour.
 - **Screenshots**: `node website/tools/shots.js [pub|space|jungle|spooky|arcade]` plays an English sample night with Playwright and saves webp files in `img/shots`.
 
 ## Hosting on Cloudflare Pages
