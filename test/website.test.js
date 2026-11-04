@@ -26,6 +26,7 @@ test('website: price and links come from config.js', () => {
   const C = load('js/config.js').QB_SITE;
   assert.equal(typeof C.price, 'number');
   assert.ok(C.demoTeams > 0 && C.maxTeams > C.demoTeams);
+  assert.equal(C.maxTeams, require('../src/teams').MAX_TEAMS, 'maxTeams in website/js/config.js must match src/teams.js');
 });
 
 test('website: every file the page and stylesheet use exists', () => {

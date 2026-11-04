@@ -7,4 +7,14 @@ The promo site: plain HTML, CSS and a little JavaScript. No build step, no libra
 - **Round types**: `js/rounds.js` is made from the app's own `lang/*.json`: `node website/tools/build.js`.
 - **Screenshots**: `node website/tools/shots.js [pub|space|jungle|spooky|arcade]` plays an English sample night with Playwright and saves webp files in `img/shots`.
 
-Hosting: the folder works as-is on GitHub Pages, Netlify or Cloudflare Pages.
+## Hosting on Cloudflare Pages
+
+Cloudflare dashboard → Workers & Pages → Create → Pages → Connect to Git → pick `Jornduthoo/Quizbrew`, then:
+
+- Production branch: `main`
+- Framework preset: None
+- Build command: (empty)
+- Build output directory: `website`
+
+Every merge to `main` then updates the site. Add the domain under the project's Custom domains tab.
+`_headers` sets caching; `preview.html` is local only (gitignored).
