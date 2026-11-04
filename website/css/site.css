@@ -171,7 +171,22 @@ figcaption { margin-top: 14px; text-align: center; font-weight: 700; font-size: 
 .family h3 { font: 400 1.2rem var(--display); color: var(--chalk); }
 .count { margin-left: auto; font: 700 .8rem var(--font); color: var(--wood-8); background: var(--brass-l); border-radius: 99px; padding: 2px 9px; font-variant-numeric: tabular-nums; }
 .family ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.family li { font-size: .88rem; padding: 3px 10px; border-radius: 99px; background: rgb(236 230 218 / .08); color: var(--chalk); }
+.round-chip { font: 600 .88rem var(--font); padding: 4px 11px; border: 0; border-radius: 99px; background: rgb(236 230 218 / .08); color: var(--chalk); cursor: pointer; }
+.round-chip:hover, .round-chip:focus-visible { background: var(--brass); color: var(--wood-8); outline: none; }
+.tap-hint { margin: -22px 0 22px; color: var(--brass-l); font-weight: 600; }
+
+/* One round type up close */
+.round-view { width: min(860px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 22px; border: 1px solid rgb(217 165 74 / .5); border-radius: 16px; background: var(--wood-8); color: var(--cream); overflow: auto; }
+.round-view::backdrop { background: rgb(8 4 2 / .78); }
+.rv-tv { margin: 0; }
+.rv-tv img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 6px; background: #000; }
+.rv-copy { margin-top: 16px; }
+.rv-family { font-weight: 700; font-size: .8rem; letter-spacing: .14em; text-transform: uppercase; color: var(--brass-l); }
+.round-view h3 { font: 400 1.6rem/1.2 var(--display); color: var(--cream); margin: 4px 0 6px; }
+.round-view p#rv-desc { color: var(--muted); font-size: 1.05rem; }
+.rv-nav { display: flex; gap: 10px; margin-top: 18px; }
+.rv-nav button { font: 700 .95rem var(--font); color: var(--cream); background: rgb(217 165 74 / .1); border: 1px solid rgb(217 165 74 / .45); border-radius: 99px; padding: 8px 18px; cursor: pointer; }
+.rv-nav .rv-close { margin-left: auto; background: var(--brass); color: var(--wood-8); }
 
 /* AI */
 .ai { background: radial-gradient(ellipse at 15% 50%, rgb(176 124 255 / .16), transparent 55%), var(--wood-9); }

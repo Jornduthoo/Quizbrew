@@ -1,4 +1,4 @@
-// Copies the round type names out of the app's own language files into website/js/rounds.js,
+// Copies the round type names and their one-line explanations out of the app's own language files into website/js/rounds.js,
 // so the website always lists the same 45 round types in the same 5 languages. Run: node website/tools/build.js
 const fs = require('fs');
 const path = require('path');
@@ -9,7 +9,11 @@ const types = Array.isArray(TYPES) ? TYPES : Object.values(TYPES);
 const out = FAMILIES.map(f => ({
   id: f,
   name: Object.fromEntries(LANGS.map(l => [l, lang[l][`family.${f}`] || lang.en[`family.${f}`]])),
-  rounds: types.filter(t => t.family === f).map(t => Object.fromEntries(LANGS.map(l => [l, lang[l][`round.${t.id}`] || lang.en[`round.${t.id}`]]))),
+  rounds: types.filter(t => t.family === f).map(t => ({
+    id: t.id,
+    ...Object.fromEntries(LANGS.map(l => [l, lang[l][`round.${t.id}`] || lang.en[`round.${t.id}`]])),
+    desc: Object.fromEntries(LANGS.map(l => [l, lang[l][`round.${t.id}.desc`] || lang.en[`round.${t.id}.desc`]])),
+  })),
 }));
 const file = path.join(__dirname, '..', 'js', 'rounds.js');
 fs.writeFileSync(file, '// Made by website/tools/build.js from lang/*.json: do not edit by hand.\nwindow.QB_ROUNDS = ' + JSON.stringify(out) + ';\n');

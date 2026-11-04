@@ -7,6 +7,7 @@ The promo site: plain HTML, CSS and a little JavaScript. No build step, no libra
 - **Round types and version stamp**: `node website/tools/build.js` makes `js/rounds.js` from the app's own `lang/*.json` and gives the CSS and JS links in `index.html` a new `?v=` stamp. Run it after every change to the CSS or JS, or visitors keep the old files for up to an hour.
 - **Screenshots**: `node website/tools/shots.js [pub|space|jungle|spooky|arcade]` plays an English sample night with Playwright and saves webp files in `img/shots`.
 - **Builder screenshots**: `node website/tools/builder-shots.js` opens the real quiz builder (with a stand-in for the AI, so no key) and saves `img/shots/builder-*.webp`.
+- **Round screenshots**: `node website/tools/round-shots.js [type ...]` plays one English question of every round type and saves `img/rounds/<type>.webp` for the round viewer.
 
 ## Hosting on Cloudflare Pages
 
