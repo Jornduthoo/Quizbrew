@@ -20,7 +20,7 @@ module.exports = {
   lyricGap: { question: 'We will, we will ___ you', answer: 'rock', song: 'Queen - We Will Rock You' },
   pixelFog: { question: 'Who is this?', answer: 'Eddy Merckx', accept: ['Merckx'], imagePrompt: 'a cyclist in the 1970s', imageSearch: 'Eddy Merckx' },
   silhouette: { question: 'Whose shadow is this?', answer: 'giraffe', imagePrompt: 'a giraffe on a white background', imageSearch: 'giraffe' },
-  oddOneOut: { question: 'Which one is not a river?', captions: ['Scheldt', 'Meuse', 'Ardennes', 'Yser'], correct: 2, imagePrompts: ['the Scheldt', 'the Meuse', 'the Ardennes forest', 'the Yser'] },
+  oddOneOut: { question: 'Which one is not a river?', captions: ['Scheldt', 'Meuse', 'Ardennes', 'Yser'], correct: 2, imagePrompts: ['the Scheldt', 'the Meuse', 'the Ardennes forest', 'the Yser'], imageSearches: ['Scheldt river', 'Meuse river', 'Ardennes forest', 'Yser river'] },
   emoji: { emoji: '🦁👑', question: 'Which film?', answer: 'The Lion King' },
   orderUp: { question: 'Put these in order from oldest to newest', items: ['Moon landing', 'Fall of the Berlin Wall', 'The euro coins', 'The first iPhone'] },
   pairUp: { question: 'Match the country to its capital', pairs: [['France', 'Paris'], ['Spain', 'Madrid'], ['Italy', 'Rome'], ['Portugal', 'Lisbon']] },

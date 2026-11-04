@@ -245,7 +245,7 @@ function lenient(str, start) {
 const QUESTION_KEYS = ['question', 'answer', 'statement', 'items', 'clues', 'category', 'levels', 'options', 'groups', 'pairs', 'captions', 'emoji', 'word'];
 const looksLikeQuestion = x => !!x && typeof x === 'object' && !Array.isArray(x) && QUESTION_KEYS.some(k => k in canon(x));
 // Lists inside one question (its answers, levels, options ...) are never the list of questions.
-const INSIDE_QUESTION = new Set(['answers', 'choices', 'options', 'levels', 'groups', 'pairs', 'items', 'clues', 'captions', 'words', 'accept', 'imagePrompts']);
+const INSIDE_QUESTION = new Set(['answers', 'choices', 'options', 'levels', 'groups', 'pairs', 'items', 'clues', 'captions', 'words', 'accept', 'imagePrompts', 'imageSearches']);
 
 // The first array of question-like objects anywhere in the data ("questions", "vragen", nested, ...).
 function findArray(data, key, depth = 0) {
@@ -269,7 +269,7 @@ const KEY_ALIASES = {
   correctindex: 'correct', correctoption: 'correct', answerindex: 'correct', rightindex: 'correct', correctanswerindex: 'correct', correctchoice: 'correct',
   correctanswer: 'correctAnswer', rightanswer: 'correctAnswer',
   alternatives: 'accept', alsoaccept: 'accept', acceptable: 'accept', accepted: 'accept', acceptedanswers: 'accept', alternativeanswers: 'accept', variants: 'accept', synonyms: 'accept',
-  imageprompt: 'imagePrompt', imagesearch: 'imageSearch', imagesearchterm: 'imageSearch', searchterm: 'imageSearch', imageprompts: 'imagePrompts',
+  imageprompt: 'imagePrompt', imagesearch: 'imageSearch', imagesearchterm: 'imageSearch', searchterm: 'imageSearch', imageprompts: 'imagePrompts', imagesearches: 'imageSearches',
   hints: 'clues', emojis: 'emoji', clipstart: 'clipStart', starttime: 'clipStart', start: 'clipStart', maphint: 'mapHint',
   funfact: 'fact', didyouknow: 'fact', trivia: 'fact', extrafact: 'fact', weetje: 'fact', explanation: 'fact',
   roundtype: 'type', categories: 'categories',

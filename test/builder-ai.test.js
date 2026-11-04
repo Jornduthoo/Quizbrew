@@ -31,7 +31,7 @@ function textsOf(sample) {
     else if (typeof v === 'number' && !Number.isInteger(v)) out.push(String(v));
     else if (Array.isArray(v)) v.forEach(x => walk(x, depth + 1));
     // One "did you know" line per question: the ones inside levels or categories have no field of their own.
-    else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) if (!(k === 'fact' && depth > 0) && !['imagePrompt', 'imagePrompts', 'imageSearch', 'song', 'sound', 'clip', 'mapHint', 'clipStart', 'correct'].includes(k)) walk(x, depth + 1);
+    else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) if (!(k === 'fact' && depth > 0) && !['imagePrompt', 'imagePrompts', 'imageSearch', 'imageSearches', 'song', 'sound', 'clip', 'mapHint', 'clipStart', 'correct'].includes(k)) walk(x, depth + 1);
   };
   walk(sample);
   return out;

@@ -517,7 +517,7 @@ const TYPES = [
     isCorrect: (a, q) => a === q.correct,
     publicQ: q => ({ images: q.images, answers: q.images.map((_, i) => (q.captions && q.captions[i]) || '') }),
     revealQ: q => ({ correct: q.correct, answerText: (q.captions && q.captions[q.correct]) || '' }),
-    aiShape: '{"question": "Which one does not belong?", "captions": ["...", "...", "...", "..."], "correct": 2, "imagePrompts": ["...", "...", "...", "..."]}',
+    aiShape: '{"question": "Which one does not belong?", "captions": ["...", "...", "...", "..."], "correct": 2, "imagePrompts": ["...", "...", "...", "..."], "imageSearches": ["1 to 3 plain English words per picture for a photo search, for example emperor penguin", "...", "...", "..."]}',
     fromAI: it => {
       const given = list(it.captions).length ? { answers: list(it.captions).slice(0, 4), marked: -1 } : list(it.items).length ? { answers: list(it.items).slice(0, 4), marked: -1 } : choicesOf(it);
       const captions = given.answers;
@@ -526,7 +526,8 @@ const TYPES = [
       const prompts = list(it.imagePrompts).length ? list(it.imagePrompts) : list(it.imagePrompt);
       // Pictures that are already there stay in their slot (a quiz file read again); new questions get empty slots.
       const images = captions.map((_, i) => (Array.isArray(it.images) ? str(it.images[i]) : ''));
-      return { question: str(it.question), captions, correct: Math.min(captions.length - 1, correct), images, imagePrompt: prompts.join(' | ') || str(it.imagePrompt) };
+      const searches = (Array.isArray(it.imageSearches) ? it.imageSearches.map(x => str(x)) : list(it.imageSearches)).slice(0, captions.length);
+      return { question: str(it.question), captions, correct: Math.min(captions.length - 1, correct), images, imagePrompt: prompts.join(' | ') || str(it.imagePrompt), ...(searches.some(Boolean) ? { imageSearches: searches } : {}) };
     },
   },
   {

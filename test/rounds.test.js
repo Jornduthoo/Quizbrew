@@ -997,4 +997,8 @@ test('odd one out from the AI comes with an empty picture slot per caption', () 
   assert.deepEqual(q.images, ['', '', '', '']);
   assert.equal(q.correct, 2);
   assert.equal(rounds.get('oddOneOut').fromAI({ captions: ['a', 'b', 'c'], correct: 9 }).correct, 2);
+  // Search words per picture, in the slot order, so the builder can suggest a photo for every slot.
+  const s = rounds.get('oddOneOut').fromAI({ captions: ['Schelde', 'Maas', 'Rijn'], imageSearches: ['Scheldt river', '', 'Rhine river'] });
+  assert.deepEqual(s.imageSearches, ['Scheldt river', '', 'Rhine river']);
+  assert.match(rounds.get('oddOneOut').aiShape, /imageSearches/);
 });

@@ -394,7 +394,8 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   })));
   api.post('/cloud/open', handle(() => { if (cloud.folder() && process.platform === 'win32') execFile('explorer', [cloud.folder()]); return { ok: true }; }));
   // Free pictures: search Wikimedia Commons and Openverse, or fetch the picture behind a dragged or pasted link.
-  api.get('/pictures', handle(req => Pictures.search(req.query.q, { fetch: webFetch })));
+  const findPictures = Pictures.cached();
+  api.get('/pictures', handle(req => findPictures(req.query.q, { fetch: webFetch })));
   api.get('/pictures/get', async (req, res) => {
     try {
       const { type, buffer } = await Pictures.get(req.query.url, { fetch: webFetch });
