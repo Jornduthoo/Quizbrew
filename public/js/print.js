@@ -33,6 +33,10 @@
       out.push(h('div', { class: 'a-block' }, q.options.map(o => h('p', {}, h('span', { class: 'cat' }, o.category), ' ', o.question, ' → ', h('strong', {}, `${LETTERS[o.correct]} ${o.answers[o.correct] || ''}`)))));
       return out;
     }
+    if (q.groups) {
+      out.push(h('div', { class: 'a-block' }, q.groups.map(g => h('p', {}, h('span', { class: 'cat' }, g.link || '?'), ' ', (g.words || []).join(', ')))));
+      return out;
+    }
     if (q.levels) {
       out.push(h('div', { class: 'a-block' }, q.levels.map((l, i) => h('p', {}, h('span', { class: 'cat' }, t(`play.level${i}`)), ' ', l.question, ' → ', h('strong', {}, l.answers[l.correct] || '')))));
       return out;
@@ -61,6 +65,7 @@
     if (q.category) out.push(h('span', { class: 'cat' }, q.category));
     if (q.emoji) out.push(h('span', { class: 'emoji' }, q.emoji));
     if (q.question) out.push(h('p', { class: 'q-text' }, q.question));
+    if (q.groups) out.push(h('p', { class: 'q-text mono web-words' }, q.groups.flatMap(g => g.words || []).sort((a, b) => String(a).localeCompare(String(b))).join(' · ')));
     if (q.clues) out.push(h('ol', { class: 'clues' }, q.clues.filter(Boolean).map(c => h('li', {}, c))));
     if (type && type.id === 'scramble') out.push(h('p', { class: 'q-text mono' }, String(q.answer || '').toUpperCase()));
     const media = [];

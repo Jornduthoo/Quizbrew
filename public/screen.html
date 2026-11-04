@@ -68,7 +68,7 @@
   <!-- Question + reveal -->
   <section id="v-question" class="view question" hidden>
     <header class="q-head">
-      <span class="q-count" id="q-count"></span>
+      <div class="q-left"><span class="q-count" id="q-count"></span><span class="q-twists" id="q-twists"></span></div>
       <div class="timer" id="timer">
         <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="track" cx="50" cy="50" r="44"/><circle class="ring" id="timer-ring" cx="50" cy="50" r="44"/></svg>
         <span id="timer-num"></span>
@@ -84,6 +84,7 @@
         <div class="tiles" id="q-tiles" hidden></div>
         <ol class="order-list" id="q-items" hidden></ol>
         <div class="pair-cols" id="q-pairs" hidden></div>
+        <div class="web-board" id="q-web" hidden></div>
         <ol class="clues" id="q-clues" hidden></ol>
         <ol class="level-cards" id="q-levels" hidden></ol>
         <ul class="list-board" id="q-list" hidden></ul>

@@ -353,8 +353,9 @@
       title.textContent = s.round.title || t(`round.${s.round.type}`);
       const rules = [t(`round.${s.round.type}`)];
       if (s.round.scoring) rules.push(t(`scoring.${s.round.scoring}`));
-      s.round.twists.forEach(tw => rules.push(t(`twist.${tw}`)));
       preview.append(h('p', { class: 'hint' }, rules.join(' · ')));
+      const chips = QB.twistChips(s);
+      if (chips.length) preview.append(h('p', { class: 'twist-chips' }, chips));
       if (s.round.mystery) preview.append(h('p', { class: 'answer-key' }, t('host.realTitle', { title: s.realTitle })));
     } else if (s.phase === 'wager') {
       kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('host.phase.wager')}`;
@@ -372,6 +373,8 @@
       kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions })}`;
       const q = s.question;
       title.textContent = q.text || (q.clues ? q.clues.join(' · ') : '') || (q.scrambled || '');
+      const chips = QB.twistChips(s);
+      if (chips.length) preview.append(h('p', { class: 'twist-chips' }, chips));
       if (s.actor) preview.append(h('p', { class: 'hint' }, t('screen.actsNow', { name: s.actor.name })));
       if (s.phase === 'reveal' && s.ballot) {
         preview.append(h('ol', { class: 'mini-answers ballot-mini' }, s.ballot.map((b, i) => h('li', { class: b.truth ? 'key' : '' },
@@ -459,6 +462,7 @@
   function given(a, kind, key) {
     if (a === null || a === undefined) return '—';
     if (kind === 'order') return key && key.order ? a.map(i => key.order[i]).join(' → ') : '✓';
+    if (kind === 'groups') return a && a.links ? a.links.filter(Boolean).join(' · ') || '✓' : '✓';
     if (kind === 'pairs') return key && key.pairs ? t('host.pairsRight', { n: a.filter((v, i) => v === i).length, total: a.length }) : '✓';
     if (kind === 'list') return t('host.items', { n: a.length });
     if (kind === 'level') return `${t(`play.level${a.l}`)} · ${LETTERS[a.i]}`;

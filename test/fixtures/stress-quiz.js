@@ -36,6 +36,14 @@ module.exports = {
     { type: 'listRush', title: 'Lijstjesrace', questions: [
       { question: 'Noem zoveel mogelijk landen die grenzen aan Duitsland', items: ['Nederland', 'België', 'Luxemburg', 'Frankrijk', 'Zwitserland', 'Oostenrijk', 'Tsjechië', 'Polen', 'Denemarken'], fact },
     ] },
+    { type: 'wordWeb', title: 'Woordweb: zoek de verbanden', questions: [
+      { question: 'Zoek de vier groepjes van vier en wat hen verbindt', groups: [
+        { link: 'Rivieren in Europa', words: ['Donau', 'Schelde', 'Theems', 'Wolga'] },
+        { link: 'Planeten', words: ['Mercurius', 'Saturnus', 'Jupiter', 'Neptunus'] },
+        { link: 'Chocoladerepen', words: ['Bounty', 'Twix', 'Snickers', 'Galaxy'] },
+        { link: 'Dansstijlen', words: ['Wals', 'Tango', 'Samba', 'Foxtrot'] },
+      ], fact },
+    ] },
     { type: 'clueLadder', title: 'Wie ben ik?', questions: [
       { clues: ['Ik ben geboren in een klein dorp aan de rand van een groot bos in het jaar 1853.', 'Ik heb in mijn leven maar één schilderij verkocht, terwijl ik er honderden maakte.', 'Ik woonde een tijd in de Borinage, waar ik voor de mijnwerkers preekte.', 'Mijn bekendste werk toont gele bloemen in een vaas.', 'Ik sneed een stuk van mijn eigen oor af.'], answer: 'Vincent van Gogh', accept: ['Van Gogh'], fact },
     ] },

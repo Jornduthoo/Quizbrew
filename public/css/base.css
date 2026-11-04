@@ -312,3 +312,31 @@ a.ghost-btn { color: var(--cream); text-decoration: none; }
 
 /* A word of a title that lights up letter by letter: it wraps as one piece, never in the middle. */
 .w { display: inline-block; white-space: nowrap; }
+
+/* Twist chips: the round's twists stay in sight on the phone, the big screen and the host. */
+.twist-chip {
+  --tw: rgb(var(--k-amber));
+  display: inline-flex; align-items: center; gap: .45em; padding: .22em .75em .22em .5em; border-radius: 999px;
+  border: 1.5px solid var(--tw); color: var(--tw); background: rgb(0 0 0 / .5);
+  font-weight: 800; letter-spacing: .02em; text-transform: none; line-height: 1.2; white-space: nowrap;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--tw) 45%, transparent), inset 0 0 8px color-mix(in srgb, var(--tw) 20%, transparent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--tw) 60%, transparent);
+  animation: twist-in .6s cubic-bezier(.2, 1.4, .4, 1) both, twist-glow 2.4s ease-in-out .6s infinite;
+}
+.twist-chip i { font-style: normal; font-weight: 900; }
+.twist-chip.tw-lockdown, .twist-chip.tw-lifeline { --tw: rgb(var(--k-cyan)); }
+.twist-chip.tw-blackout { --tw: rgb(var(--k-violet)); }
+.twist-chip.tw-underdog { --tw: var(--good); }
+.twist-chip.tw-mysteryCategory { --tw: rgb(var(--k-pink)); }
+.twist-chip.tw-suddenDeath { --tw: var(--bad); }
+.twist-chip.tw-silentRound { --tw: rgb(var(--k-cream)); animation: twist-in .6s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes twist-in { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+@keyframes twist-glow { 50% { box-shadow: 0 0 22px color-mix(in srgb, var(--tw) 70%, transparent), inset 0 0 10px color-mix(in srgb, var(--tw) 30%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .twist-chip { animation: none; } }
+.twist-line, .twist-chips, .q-twists { display: flex; flex-wrap: wrap; gap: .4em; }
+.twist-line { justify-content: center; margin: 8px 0 4px; font-size: .9em; }
+.twist-line .twist-chip { white-space: normal; text-align: left; }
+.twist-chips { margin: .4em 0 0; font-size: .85em; }
+.q-left { display: flex; flex-direction: column; align-items: flex-start; gap: .45em; min-width: 0; }
+.q-twists { font-size: .78em; }
+.q-twists:empty { display: none; }

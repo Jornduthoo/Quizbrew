@@ -35,6 +35,25 @@
     return el;
   }
 
+  // Twists stay in sight during the whole round: a glowing chip per twist, with what it means right now.
+  // phone: true uses the phone's own words (what the team must do), and `me` knows the team's state.
+  const TWIST_ICON = { double: '×2', lockdown: '🔒', blackout: '🌑', underdog: '🐾', mysteryCategory: '❓', suddenDeath: '💥', shrinkingOptions: '⏳', lifeline: '🛟', silentRound: '🤫' };
+  function twistChips(s, { phone = false } = {}) {
+    if (!s.round || !s.round.twists || !s.round.twists.length) return [];
+    return s.round.twists.map(tw => {
+      let text = t(`twist.${tw}`);
+      const under = s.round.underdogs || [];
+      if (tw === 'underdog' && phone) text = s.underdog ? t('play.tw.underdogMe') : under.length ? t('twist.underdogFor', { names: under.map(x => x.name).join(', ') }) : text;
+      else if (tw === 'underdog' && under.length) text = t('twist.underdogFor', { names: under.map(x => x.name).join(', ') });
+      else if (phone && ['lockdown', 'blackout', 'suddenDeath'].includes(tw)) text = t(`play.tw.${tw}`);
+      if (tw === 'shrinkingOptions' && s.phase === 'question' && s.question && s.question.kind === 'choice' && s.question.points > 1 && s.question.answers) {
+        const n = s.question.answers.length;
+        text = t('twist.shrinkNow', { n: Math.max(1, Math.round(s.question.points * (n - (s.question.gone || []).length) / n)) });
+      }
+      return h('span', { class: `twist-chip tw-${tw}` }, h('i', { 'aria-hidden': 'true' }, TWIST_ICON[tw] || '✦'), h('span', {}, text));
+    });
+  }
+
   // Countdown that follows the server: remaining ms at the moment the state arrived.
   function countdown(remainingMs, totalMs, onTick) {
     const end = performance.now() + remainingMs;
@@ -121,6 +140,7 @@
     whosWho: { glow: '#2fe0b8', icon: '<circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M3 19c0-3 2.5-5 5-5M21 19c0-3-2.5-5-5-5"/><path d="M11 16h2"/>' },
     stakeIt: { glow: '#ffcf3c', icon: '<circle cx="9" cy="9" r="5"/><path d="M14.5 6.5a5 5 0 1 1-5 9"/><path d="M9 7v4M7.5 8.5h3"/>' },
     localLegend: { glow: '#ff9a3c', icon: '<path d="M4 20h16"/><path d="M6 20V10l6-5 6 5v10"/><path d="M10 20v-5h4v5"/>' },
+    wordWeb: { glow: '#c9a2ff', icon: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M10 6.5h4M6.5 10v4M17.5 10v4M10 17.5h4"/>' },
     clueLadder: { glow: '#9dffd6', icon: '<path d="M7 3v18M17 3v18M7 7h10M7 12h10M7 17h10"/>' },
     fiveFacts: { glow: '#5dff9a', icon: '<path d="M6 4h12v16H6z"/><path d="M9 8h6M9 12h6M9 16h3"/>' },
     clipRecall: { glow: '#4f8bff', icon: '<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/>' },
@@ -198,5 +218,5 @@
     return keys.length ? t(keys[(Math.random() * keys.length) | 0], vars) : '';
   }
 
-  window.QB = { quip, applyLook, $, h, showView, LETTERS, cardLetter, REACTIONS, teamVar, dot, countdown, mmss, info, ROUND_THEMES, roundTheme, CROWN, split, fit, countUp, later, clearLater };
+  window.QB = { twistChips, quip, applyLook, $, h, showView, LETTERS, cardLetter, REACTIONS, teamVar, dot, countdown, mmss, info, ROUND_THEMES, roundTheme, CROWN, split, fit, countUp, later, clearLater };
 })();
