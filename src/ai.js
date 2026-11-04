@@ -241,17 +241,57 @@ function lenient(str, start) {
   } catch { return null; }
 }
 
+// Keys that make an object look like one question, for every round type.
+const QUESTION_KEYS = ['question', 'answer', 'statement', 'items', 'clues', 'category', 'levels', 'options', 'groups', 'pairs', 'captions', 'emoji', 'word'];
+const looksLikeQuestion = x => !!x && typeof x === 'object' && !Array.isArray(x) && QUESTION_KEYS.some(k => k in canon(x));
+// Lists inside one question (its answers, levels, options ...) are never the list of questions.
+const INSIDE_QUESTION = new Set(['answers', 'choices', 'options', 'levels', 'groups', 'pairs', 'items', 'clues', 'captions', 'words', 'accept', 'imagePrompts']);
+
 // The first array of question-like objects anywhere in the data ("questions", "vragen", nested, ...).
 function findArray(data, key, depth = 0) {
   if (!data || typeof data !== 'object' || depth > 4) return null;
   if (Array.isArray(data)) return data.some(x => x && typeof x === 'object' && !Array.isArray(x)) ? data : null;
   if (Array.isArray(data[key])) return data[key];
-  for (const v of Object.values(data)) {
-    const found = Array.isArray(v) && key === 'questions' && v.some(x => x && typeof x === 'object' && !Array.isArray(x) && ('question' in x || 'answer' in x || 'statement' in x || 'items' in x || 'clues' in x))
+  for (const [k, v] of Object.entries(data)) {
+    if (key === 'questions' && INSIDE_QUESTION.has(canonKey(k))) continue;
+    const found = Array.isArray(v) && key === 'questions' && v.some(looksLikeQuestion)
       ? v : (v && typeof v === 'object' && !Array.isArray(v) ? findArray(v, key, depth + 1) : null);
     if (found) return found;
   }
   return null;
+}
+
+// AIs do not always use our key names: "Question", "correct_answer", "vraag", "fun_fact" ... Map them to ours.
+const KEY_ALIASES = {
+  q: 'question', vraag: 'question', prompt: 'question', text: 'question', questiontext: 'question', frage: 'question', pregunta: 'question',
+  antwoord: 'answer', solution: 'answer', reponse: 'answer', antwort: 'answer', respuesta: 'answer',
+  antwoorden: 'answers', possibleanswers: 'answers', answeroptions: 'answers', multiplechoice: 'answers',
+  correctindex: 'correct', correctoption: 'correct', answerindex: 'correct', rightindex: 'correct', correctanswerindex: 'correct', correctchoice: 'correct',
+  correctanswer: 'correctAnswer', rightanswer: 'correctAnswer',
+  alternatives: 'accept', alsoaccept: 'accept', acceptable: 'accept', accepted: 'accept', acceptedanswers: 'accept', alternativeanswers: 'accept', variants: 'accept', synonyms: 'accept',
+  imageprompt: 'imagePrompt', imagesearch: 'imageSearch', imagesearchterm: 'imageSearch', searchterm: 'imageSearch', imageprompts: 'imagePrompts',
+  hints: 'clues', emojis: 'emoji', clipstart: 'clipStart', starttime: 'clipStart', start: 'clipStart', maphint: 'mapHint',
+  funfact: 'fact', didyouknow: 'fact', trivia: 'fact', extrafact: 'fact', weetje: 'fact', explanation: 'fact',
+  roundtype: 'type', categories: 'categories',
+};
+const canonKey = k => {
+  const n = String(k).toLowerCase().replace(/[\s_-]/g, '');
+  return KEY_ALIASES[n] || CANON_KEYS[n] || k;
+};
+const CANON_KEYS = Object.fromEntries(['question', 'answer', 'answers', 'correct', 'accept', 'unit', 'clues', 'category', 'items', 'pairs', 'levels', 'options', 'groups', 'link', 'words',
+  'captions', 'emoji', 'song', 'sound', 'clip', 'statement', 'hint', 'fact', 'type', 'title', 'questions', 'rounds', 'word', 'artist', 'choices', 'truth', 'left', 'right'].map(k => [k.toLowerCase(), k]));
+function canon(v, depth = 0) {
+  if (Array.isArray(v)) return depth > 5 ? v : v.map(x => canon(x, depth + 1));
+  if (!v || typeof v !== 'object' || depth > 5) return v;
+  const out = {};
+  for (const [k, val] of Object.entries(v)) {
+    const c = canonKey(k);
+    // Our own key wins over an alias ("explanation" next to "fact").
+    if (c in out && c !== k) continue;
+    out[c] = canon(val, depth + 1);
+  }
+  if (!('question' in out) && typeof out.statement === 'string') out.question = out.statement;
+  return out;
 }
 
 function extract(raw, check, key) {
@@ -281,7 +321,7 @@ function extract(raw, check, key) {
       at = (got && got.end > at ? got.end : at + 1) + next;
     }
     // Loose question objects one after the other, without a list around them.
-    const items = loose.filter(x => 'question' in x || 'answer' in x || 'statement' in x);
+    const items = loose.filter(looksLikeQuestion);
     if (key === 'questions' && items.length) return { questions: items };
   }
   throw new Error('ai.noJson');
@@ -298,18 +338,29 @@ function parseRound(text, typeId) {
   const type = rounds.get(typeId);
   if (!type) throw new Error('Unknown round type');
   const data = extract(text, d => Array.isArray(d.questions), 'questions');
-  const questions = data.questions.filter(it => it && typeof it === 'object').map(it => withFact(it, type.fromAI(it)));
+  const questions = data.questions.filter(it => it && typeof it === 'object' && !Array.isArray(it)).map(canon).map(it => withFact(it, type.fromAI(it)));
   if (!questions.length) throw new Error('ai.noQuestions');
   return questions;
 }
 
+// One question in the AI's shape (or a file's), read into Quizbrew's shape.
+function readQuestion(it, typeId) {
+  const type = rounds.get(typeId);
+  const q = canon(it);
+  return withFact(q, type.fromAI(q));
+}
+
 function parseQuiz(text) {
-  const data = extract(text, d => Array.isArray(d.rounds), 'rounds');
+  const data = canon(extract(text, d => Array.isArray(d.rounds), 'rounds'));
   const out = { title: rounds.str(data.title) || 'AI quiz', rounds: [] };
   for (const r of data.rounds) {
-    const type = r && rounds.get(r.type);
-    if (!type || !Array.isArray(r.questions)) continue;
-    out.rounds.push({ type: type.id, title: rounds.str(r.title), scoring: type.defaults.scoring, questions: r.questions.filter(q => q && typeof q === 'object').map(q => withFact(q, type.fromAI(q))) });
+    if (!r || typeof r !== 'object') continue;
+    const id = rounds.typeFrom(r.type) || rounds.typeFrom(r.id) || rounds.typeFrom(r.kind);
+    const type = id && rounds.get(id);
+    const list = Array.isArray(r.questions) ? r.questions : findArray({ ...r, type: undefined }, 'questions');
+    if (!type || !Array.isArray(list)) continue;
+    const questions = list.filter(q => q && typeof q === 'object' && !Array.isArray(q)).map(canon).map(q => withFact(q, type.fromAI(q)));
+    if (questions.length) out.rounds.push({ type: type.id, title: rounds.str(r.title), scoring: type.defaults.scoring || null, questions });
   }
   if (!out.rounds.length) throw new Error('ai.noQuestions');
   return out;
@@ -474,4 +525,4 @@ function create(settings) {
   };
 }
 
-module.exports = { create, roundPrompt, quizPrompt, parseRound, parseQuiz, extract, PROVIDERS, AUDIENCES, TYPE_HELP, AiError };
+module.exports = { readQuestion, canon, create, roundPrompt, quizPrompt, parseRound, parseQuiz, extract, PROVIDERS, AUDIENCES, TYPE_HELP, AiError };
