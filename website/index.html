@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#1a0e08">
 <link rel="icon" href="img/favicon.png">
 <link rel="preload" href="fonts/alfa-slab-one.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="css/site.css?v=202611041620">
+<link rel="stylesheet" href="css/site.css?v=202611041643">
 </head>
 <body>
 
@@ -159,9 +159,24 @@
     <div class="wrap">
       <h2 class="title" data-t="rounds.title">46 round types</h2>
       <p class="sub" data-t="rounds.lead"></p>
+      <p class="tap-hint" data-t="rounds.tap">Tap a round type to see it on the big screen.</p>
       <div class="families" id="families"></div>
     </div>
   </section>
+
+  <dialog id="round-view" class="round-view" aria-labelledby="rv-name">
+    <figure class="tv rv-tv"><img id="rv-img" alt="" width="800" height="450"></figure>
+    <div class="rv-copy">
+      <p class="rv-family" id="rv-family"></p>
+      <h3 id="rv-name"></h3>
+      <p id="rv-desc"></p>
+    </div>
+    <div class="rv-nav">
+      <button type="button" id="rv-prev" data-t="rounds.prev">Previous</button>
+      <button type="button" id="rv-next" data-t="rounds.next">Next</button>
+      <button type="button" id="rv-close" class="rv-close" data-t="rounds.close">Close</button>
+    </div>
+  </dialog>
 
   <section id="looks" class="band">
     <div class="wrap">
@@ -256,9 +271,9 @@
   </div>
 </footer>
 
-<script src="js/config.js?v=202611041620"></script>
-<script src="js/i18n.js?v=202611041620"></script>
-<script src="js/rounds.js?v=202611041620"></script>
-<script src="js/site.js?v=202611041620"></script>
+<script src="js/config.js?v=202611041643"></script>
+<script src="js/i18n.js?v=202611041643"></script>
+<script src="js/rounds.js?v=202611041643"></script>
+<script src="js/site.js?v=202611041643"></script>
 </body>
 </html>

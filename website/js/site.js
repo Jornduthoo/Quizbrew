@@ -78,7 +78,13 @@
       const h = Object.assign(document.createElement('h3'), { textContent: f.name[lang] || f.name.en });
       const n = Object.assign(document.createElement('span'), { className: 'count', textContent: f.rounds.length });
       const ul = document.createElement('ul');
-      ul.append(...f.rounds.map(r => Object.assign(document.createElement('li'), { textContent: r[lang] || r.en })));
+      ul.append(...f.rounds.map(r => {
+        const li = document.createElement('li');
+        const b = Object.assign(document.createElement('button'), { type: 'button', className: 'round-chip', textContent: r[lang] || r.en });
+        b.addEventListener('click', () => showRound(r.id));
+        li.append(b);
+        return li;
+      }));
       const head = document.createElement('summary');
       head.className = 'family-head';
       head.append(img, h, n);
@@ -86,6 +92,27 @@
       return card;
     }));
   }
+
+  // A round type up close: its screenshot on the big screen and what it is, with previous and next.
+  const ALL = R.flatMap(f => f.rounds.map(r => ({ ...r, family: f.name })));
+  const view = document.getElementById('round-view');
+  let at = 0;
+  function showRound(id) {
+    at = Math.max(0, ALL.findIndex(r => r.id === id));
+    const r = ALL[at], lang = document.documentElement.lang;
+    document.getElementById('rv-img').src = `img/rounds/${r.id}.webp`;
+    document.getElementById('rv-family').textContent = r.family[lang] || r.family.en;
+    document.getElementById('rv-name').textContent = r[lang] || r.en;
+    document.getElementById('rv-desc').textContent = r.desc[lang] || r.desc.en;
+    new Image().src = `img/rounds/${ALL[(at + 1) % ALL.length].id}.webp`;
+    if (!view.open) view.showModal();
+  }
+  const step = d => showRound(ALL[(at + d + ALL.length) % ALL.length].id);
+  document.getElementById('rv-prev').addEventListener('click', () => step(-1));
+  document.getElementById('rv-next').addEventListener('click', () => step(1));
+  document.getElementById('rv-close').addEventListener('click', () => view.close());
+  view.addEventListener('click', e => { if (e.target === view) view.close(); });
+  view.addEventListener('keydown', e => { if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1); });
 
   // The promo film in the page language. It loads and plays only once it scrolls into view.
   const video = document.getElementById('promo');
