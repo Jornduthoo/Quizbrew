@@ -149,7 +149,7 @@ async function record(lang, tall) {
   await scene('looks');
   host.emit('next');
   await wait(1100);
-  for (const look of ['space', 'jungle', 'spooky', 'arcade', 'pub']) { host.emit('look', look); await wait(950); }
+  for (const look of ['space', 'winter', 'disco', 'beach', 'stadium', 'gala', 'jungle', 'spooky', 'arcade', 'pub']) { host.emit('look', look); await wait(620); }
   // 9. End card.
   await page.evaluate(() => window.card('outro', true));
   await wait(3800);
