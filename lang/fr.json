@@ -892,6 +892,7 @@
   "host.alertBlocked": "{name} a quitté la page du quiz : réponse bloquée",
   "host.alertTimes": "({n} fois)|({n} fois)",
   "host.alertBack": "{name} est revenu après {n} s",
+  "host.alertSleep": "L'écran de {name} s'est éteint tout seul (non compté)",
   "screen.alertLeft": "{name} a quitté la page du quiz !",
   "play.leftTitle": "Vous avez quitté la page du quiz",
   "play.leftText": "Le quizmaster et le grand écran l'ont vu. Restez sur cette page pendant que vous répondez.",

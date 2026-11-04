@@ -612,7 +612,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     on('lifeline', () => teamId && game.useLifeline(teamId));
     on('joker', () => teamId && game.playJoker(teamId));
     on('power', name => teamId && game.usePower(teamId, String(name)));
-    on('leftPage', () => teamId && game.leftPage(teamId));
+    on('leftPage', info => teamId && game.leftPage(teamId, { sleep: !!(info && info.sleep === true) }));
     on('backOnPage', ms => teamId && game.backOnPage(teamId, ms));
     on('rate', stars => teamId && rate(teamId, stars));
     // Team photo: a small square picture from the phone (the phone makes it small first).

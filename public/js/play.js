@@ -22,6 +22,13 @@
   const socket = io({ query: { role: 'player', teamId } });
   socket.on('connect', () => { $('#offline').hidden = true; });
   socket.on('disconnect', () => { $('#offline').hidden = false; });
+  // Back from a dark screen or a dropped wifi: reconnect straight away instead of waiting for the next retry.
+  // The team id rides along, so the phone is back in its team with the current question.
+  const wake = () => { if (!document.hidden && !socket.connected) socket.connect(); };
+  document.addEventListener('visibilitychange', wake);
+  addEventListener('pageshow', wake);
+  addEventListener('online', wake);
+  addEventListener('focus', wake);
   socket.on('language', lang => { if (!deviceLang) I18n.load(lang).then(() => state && render(state, true)); });
   socket.on('state', s => { state = s; if (I18n.dict['app.name'] && !audienceOn) render(s); });
 
@@ -718,24 +725,33 @@
   // Anti-cheat: leaving the page while you can answer (another app, a browser tab, the notification shade)
   // is reported to the quizmaster and the big screen. Back on the page, the phone says so too.
   const ANSWER_PHASES = ['question', 'wager', 'vote'];
+  // The screen stays on (awake.js). A phone where that does not work and that went dark after a long while
+  // untouched fell asleep by itself: that is no cheating, so it only gets a quiet note for the quizmaster.
+  const SLEEP_AFTER = 25000;
   let leftAt = 0;
+  let leftAsleep = false;
   let blurTimer = null;
-  function leave() {
+  let touchedAt = Date.now();
+  for (const ev of ['pointerdown', 'keydown', 'touchstart']) document.addEventListener(ev, () => { touchedAt = Date.now(); }, { passive: true, capture: true });
+  function leave(fromBlur) {
     if (leftAt || !state || !state.team || !ANSWER_PHASES.includes(state.phase)) return;
     leftAt = Date.now();
-    socket.emit('leftPage');
+    leftAsleep = fromBlur !== true && document.hidden && Date.now() - touchedAt >= SLEEP_AFTER
+      && !!window.QBAwake && QBAwake.state() === 'none';
+    socket.emit('leftPage', { sleep: leftAsleep });
   }
   function comeBack() {
     clearTimeout(blurTimer);
     if (!leftAt) return;
-    socket.emit('backOnPage', Date.now() - leftAt);
+    if (!leftAsleep) socket.emit('backOnPage', Date.now() - leftAt);
     leftAt = 0;
-    showLeftWarning();
+    touchedAt = Date.now();
+    if (!leftAsleep) showLeftWarning();
   }
   document.addEventListener('visibilitychange', () => (document.hidden ? leave() : comeBack()));
   addEventListener('pagehide', leave);
   // A window blur without hiding the page: split screen, a floating app, another window on a laptop.
-  addEventListener('blur', () => { clearTimeout(blurTimer); blurTimer = setTimeout(() => { if (!document.hasFocus()) leave(); }, 1200); });
+  addEventListener('blur', () => { clearTimeout(blurTimer); blurTimer = setTimeout(() => { if (!document.hasFocus()) leave(true); }, 1200); });
   addEventListener('focus', comeBack);
 
   function showLeftWarning() {
