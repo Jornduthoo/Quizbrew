@@ -334,7 +334,7 @@
   // Drawings and photos: try every number of columns and keep the one with the biggest pictures. The rows share
   // the height under the question equally, so the grid can never run off the screen or under the title.
   function fitPictures(grid) {
-    const cards = [...grid.children];
+    const cards = [...grid.children].filter(c => !c.classList.contains('off'));
     const n = cards.length;
     if (!n) return;
     const W = grid.clientWidth, H = grid.clientHeight;
@@ -356,18 +356,20 @@
       const picW = cellW - f * 1.2, picH = cellH - f * (reveal ? 4 : 1.2);
       if (picW <= 0 || picH <= 0) continue;
       const area = picW / picH > aspect ? picH * picH * aspect : picW * picW / aspect;
-      if (!best || area > best.area) best = { cols, rows, gap, f, area };
+      if (!best || area > best.area) best = { cols, rows, gap, f, area, colW: Math.min(cellW, Math.max(Math.min(picW, picH * aspect) + f * 1.2, f * 12)) };
     }
     if (!best) best = { cols: Math.ceil(Math.sqrt(n * 1.6)), rows: 0, gap: 6, f: 11 };
     best.rows = best.rows || Math.ceil(n / best.cols);
     grid.style.setProperty('--cols', best.cols);
     grid.style.setProperty('--rows', best.rows);
     grid.style.setProperty('--gap', best.gap + 'px');
+    // Cards as wide as their pictures (an upright drawing alone gets an upright card), the row centered.
+    if (best.colW) grid.style.setProperty('--colw', Math.floor(best.colW) + 'px'); else grid.style.removeProperty('--colw');
     grid.style.fontSize = best.f + 'px';
-    grid.querySelectorAll('.bc-text').forEach(el => QB.fit(el, { lines: 3, min: 0.5 }));
-    grid.querySelectorAll('.bc-by').forEach(el => QB.fit(el, { min: 0.4 }));
+    cards.flatMap(c => [...c.querySelectorAll('.bc-text')]).forEach(el => QB.fit(el, { lines: 3, min: 0.5 }));
+    cards.flatMap(c => [...c.querySelectorAll('.bc-by')]).forEach(el => QB.fit(el, { min: 0.4 }));
     // Many votes on one drawing: one row of dots and a count for the rest, so the drawing keeps its size.
-    for (const dots of grid.querySelectorAll('.bc-votes')) {
+    for (const dots of cards.flatMap(c => [...c.querySelectorAll('.bc-votes')])) {
       const all = [...dots.querySelectorAll('.team-dot')];
       dots.querySelector('.more')?.remove();
       all.forEach(d => { d.hidden = false; });
@@ -832,6 +834,58 @@
     refitQueued = true;
     requestAnimationFrame(() => { refitQueued = false; if (!$('#v-vote').hidden) fitBallot(); });
   };
+  // More than 12 drawings: pages of at most 12 that turn by themselves, so every drawing stays big enough to see from
+  // the back of the room (the phones still list them all to vote). At the reveal the winners get their own page first.
+  const PAGE = 12;
+  const PAGE_MS = Number(new URLSearchParams(location.search).get('pagems')) || 7000;
+  let pager = { key: '', step: 0, timer: null };
+  function ballotPages(grid) {
+    const cards = [...grid.children];
+    if (!grid.classList.contains('pics') || cards.length <= PAGE) return [cards];
+    const count = Math.ceil(cards.length / PAGE), per = Math.ceil(cards.length / count);
+    const pages = [];
+    for (let i = 0; i < cards.length; i += per) pages.push(cards.slice(i, i + per));
+    const wins = cards.filter(c => c.classList.contains('win'));
+    if (wins.length && wins.length <= PAGE) pages.unshift(wins);
+    return pages;
+  }
+  function showPage(grid, animate) {
+    const pages = ballotPages(grid);
+    const step = pager.step % pages.length;
+    const on = pages[step];
+    const set = new Set(on);
+    [...grid.children].forEach(c => c.classList.toggle('off', !set.has(c)));
+    on.forEach((c, k) => {
+      c.style.setProperty('--k', k);
+      if (animate) { c.style.animation = 'none'; void c.offsetWidth; c.style.animation = ''; }
+    });
+    const dots = $('#ballot-pages');
+    dots.hidden = pages.length < 2;
+    const winPage = pages.length > 1 && pages[0].some(c => c.classList.contains('win')) && pages[0].length < grid.children.length / 2;
+    dots.replaceChildren(...pages.map((p, i) => h('i', { class: (i === step ? 'on' : '') + (winPage && i === 0 ? ' star' : '') })));
+    if (animate) fitBallot();
+  }
+  function startPager(grid, key) {
+    if (pager.key !== key) { clearInterval(pager.timer); pager = { key, step: 0, timer: null }; }
+    if (ballotPages(grid).length > 1 && !pager.timer) {
+      pager.timer = setInterval(() => {
+        if ($('#v-vote').hidden) { clearInterval(pager.timer); pager = { key: '', step: 0, timer: null }; return; }
+        pager.step++;
+        showPage(grid, true);
+      }, PAGE_MS);
+    }
+    showPage(grid, false);
+  }
+  // Arrow keys on the big screen's keyboard turn the pages by hand; the carousel then waits a full page again.
+  addEventListener('keydown', e => {
+    if ((e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') || $('#v-vote').hidden || !pager.timer) return;
+    const grid = $('#ballot-grid');
+    pager.step += e.key === 'ArrowRight' ? 1 : ballotPages(grid).length - 1;
+    clearInterval(pager.timer);
+    pager.timer = null;
+    startPager(grid, pager.key);
+    showPage(grid, true);
+  });
   function renderVote(s, fresh) {
     const reveal = s.phase === 'reveal';
     document.body.classList.toggle('revealed', reveal);
@@ -854,6 +908,7 @@
         reveal ? h('span', { class: 'bc-by' }, b.truth ? t('screen.theTruth') : b.by ? b.by.name : '') : null,
         reveal && mode !== 'match' ? h('span', { class: 'bc-votes' }, (b.votes || []).map(v => h('i', { class: 'team-dot', style: teamVar(v.color), title: v.name }))) : null);
     }));
+    startPager(grid, `${s.round.index}/${s.questionIndex}/${s.phase}`);
     // The view may only be shown after this render, so measure on the next frame.
     requestAnimationFrame(fitBallot);
     if (stopTimer) stopTimer();

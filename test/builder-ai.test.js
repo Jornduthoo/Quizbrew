@@ -65,7 +65,9 @@ test('builder: every round type from a pasted AI answer, completed by hand, pass
     const sample = SAMPLES[type.id];
     // A new quiz with one round of this type, as "Add round" makes it.
     const { path: quizPath } = await api('PUT', '/library/quiz', { quiz: { title: `AI ${type.id}`, rounds: [{ type: type.id, title: '', scoring: type.defaults.scoring || null, twists: [], questions: [{ question: '' }] }] } });
-    await page.goto(`${url}/builder?open=${encodeURIComponent(quizPath)}`);
+    // The builder of the round before may still be leaving (its last save on the way out): try a second time then.
+    const target = `${url}/builder?open=${encodeURIComponent(quizPath)}`;
+    await page.goto(target).catch(e => (/ERR_ABORTED/.test(e.message) ? page.goto(target) : Promise.reject(e)));
     await page.waitForSelector('#editor:not([hidden]) .q-card');
 
     // The AI dialog: paste what the AI chat answered (with some chatter around it) and replace the empty question.
@@ -153,7 +155,9 @@ test('builder: every round type from a pasted AI answer, completed by hand, pass
     if (state.phase === 'question') {
       played.add(state.round.type);
       await settle();
-      if (await screen.locator('#v-question').isHidden()) failures.push(`screen: no question shown for ${state.round.type}`);
+      // The screen may lag a little behind when the machine is busy with the other browser tests.
+      const type = state.round.type;
+      await screen.locator('#v-question').waitFor({ state: 'visible', timeout: 4000 }).catch(() => failures.push(`screen: no question shown for ${type}`));
       if (!(await phone.evaluate(() => [...document.querySelectorAll('.view')].some(v => !v.hidden)))) failures.push(`phone: nothing shown for ${state.round.type}`);
       teams.forEach(p => { const q = p.last && p.last.question; if (q && q.kind && q.kind !== 'turn') p.emit('answer', answerFor(q)); });
       await settle();

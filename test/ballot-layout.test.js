@@ -19,14 +19,18 @@ const SCREENS = [
   { name: 'laptop', width: 1366, height: 768 },
 ];
 const COUNTS = [4, 12, 24, 40];
+const PAGE_MS = 600000; // the test turns the pages with the arrow key
 const COLORS = require('../src/teams').TEAM_COLORS;
 const NO_MOTION = '*, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition: none !important; }';
 
 // Runs in the page: the pictures are big enough to see, and stay inside their card with the name and the dots.
+// More than 12 drawings turn over in pages of at most 12: every page is checked.
 function pictureProblems(min) {
   const out = [];
+  const shown = [...document.querySelectorAll('#ballot-grid .ballot-card')].filter(c => !c.classList.contains('off'));
+  if (shown.length > 12) out.push(`${shown.length} drawings on one page`);
   const q = document.querySelector('#vote-q').getBoundingClientRect();
-  for (const card of document.querySelectorAll('#ballot-grid .ballot-card')) {
+  for (const card of shown) {
     const c = card.getBoundingClientRect();
     const letter = card.querySelector('.letter').textContent;
     if (c.top < q.bottom - 2) out.push(`card ${letter} runs under the question`);
@@ -93,13 +97,27 @@ test('drawing round vote screen: 4 to 40 drawings fit under the question', { ski
     for (const end = Date.now() + ms; Date.now() < end; await settle(100)) if (state.phase !== phase) return true;
     return false;
   };
-  const check = async step => {
+  // Every page of the carousel (turned with the arrow key), and every drawing was on one of them.
+  const check = async (step, count) => {
     await settle();
+    const perPage = count > 12 ? Math.ceil(count / Math.ceil(count / 12)) : count;
+    const pageCount = Math.ceil(count / perPage) + (step.endsWith('reveal') && count > 12 ? 1 : 0);
+    for (let p = 0; p < pageCount; p++) {
+      if (p) { for (const { page } of pages) await page.keyboard.press('ArrowRight'); await settle(200); }
+      await checkPage(`${step}-p${p + 1}`);
+    }
+    for (const { page, size } of pages) {
+      const seen = await page.evaluate(() => window.__seen.size);
+      if (seen !== count) failures.push(`${step} @ ${size.name}: only ${seen} of ${count} drawings were on screen`);
+    }
+  };
+  const checkPage = async step => {
     for (const { page, size } of pages) {
       await page.evaluate(() => Promise.all([...document.images].map(i => i.complete || new Promise(r => { i.onload = i.onerror = r; }))));
       await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
       (await page.evaluate(problems)).forEach(p => failures.push(`${step} @ ${size.name}: ${p}`));
       (await page.evaluate(pictureProblems, 60)).forEach(p => failures.push(`${step} @ ${size.name}: ${p}`));
+      await page.evaluate(() => { window.__seen = window.__seen || new Set(); document.querySelectorAll('#ballot-grid .ballot-card:not(.off) .letter').forEach(l => window.__seen.add(l.textContent)); });
       if (shots) await page.screenshot({ path: path.join(shots, `${step}-${size.name}.png`) });
     }
   };
@@ -114,19 +132,20 @@ test('drawing round vote screen: 4 to 40 drawings fit under the question', { ski
       assert.equal((await new Promise(r => s.emit('join', { teamId: id, name: `${i + 1} De Quizzende Kwissers`, color: COLORS[i % COLORS.length] }, r))).ok, true);
       teams.push(s);
     }
-    for (const { page } of pages) { await page.goto(`${url}/screen?fx=off`); await page.addStyleTag({ content: NO_MOTION }); }
+    for (const { page } of pages) { await page.goto(`${url}/screen?fx=off&pagems=${PAGE_MS}`); await page.addStyleTag({ content: NO_MOTION }); }
     for (let guard = 0; guard < 6 && state.phase !== 'question'; guard++) { host.emit('next'); await settle(250); }
     assert.equal(state.phase, 'question');
     teams.forEach((s, i) => s.emit('answer', drawings[i % drawings.length]));
     // When every team has sent its drawing the vote starts by itself; only push it on when it did not.
     if (!(await phaseLeaves('question'))) { host.emit('next'); await phaseLeaves('question'); }
     assert.equal(state.phase, 'vote', `${count} drawings go to the vote`);
-    await check(`draw-${count}-vote`);
+    await check(`draw-${count}-vote`, count);
+    for (const { page } of pages) await page.evaluate(() => { window.__seen = new Set(); });
     // Most teams vote for the first drawing, so one card gets a long row of dots.
     teams.forEach((s, i) => s.emit('vote', i === 0 ? 1 : 0));
     if (!(await phaseLeaves('vote'))) { host.emit('next'); await phaseLeaves('vote'); }
     assert.equal(state.phase, 'reveal');
-    await check(`draw-${count}-reveal`);
+    await check(`draw-${count}-reveal`, count);
     host.emit('stop');
     teams.forEach(s => s.close());
     await settle();
