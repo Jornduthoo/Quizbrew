@@ -199,7 +199,10 @@
     if (!el || el.offsetParent === null) return;
     el.style.fontSize = '';
     el.classList.remove('two', 'break', 'cut');
-    const wide = () => el.scrollWidth > el.clientWidth + 1;
+    // The text itself, to the fraction of a pixel: an ellipsis shows at even half a pixel too wide.
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const wide = () => el.scrollWidth > el.clientWidth + 1 || range.getBoundingClientRect().width > el.getBoundingClientRect().width + 0.001;
     // Measured without a line clamp: more than two lines is too high.
     const high = () => el.scrollHeight > parseFloat(getComputedStyle(el).lineHeight) * 2.5;
     let scale = 1;

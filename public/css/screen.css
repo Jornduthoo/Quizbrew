@@ -163,7 +163,9 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .lobby-left .logo { animation: flicker 7s infinite; }
 .lobby-right { height: 78vh; padding: 3vh 2vw; display: flex; flex-direction: column; background-color: rgb(var(--k-wood-8) / .82); backdrop-filter: blur(4px); }
 .teams-head { margin: 0 0 2vh; font-size: 1.2em; color: var(--brass-light); text-transform: uppercase; letter-spacing: .14em; font-weight: 700; }
-.team-grid { --rows: 6; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1.4vh 1vw; align-content: start; overflow: hidden; font-size: min(1em, calc(9vh / var(--rows) * 1.6)); }
+/* The lobby list starts at full size; fitLobby() in screen.js makes it smaller until every team fits. */
+.team-grid { --cols: 2; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 1.4vh 1vw; align-content: start; overflow: hidden; flex: 1; min-height: 0; }
+.team-grid.many { gap: .9vh .8vw; }
 .team-chip {
   display: inline-flex; align-items: center; gap: .55em;
   padding: .45em .95em .45em .7em;
