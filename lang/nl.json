@@ -493,6 +493,8 @@
   "play.typeCaption": "Je grappigste onderschrift",
   "play.typeAboutUs": "Jullie antwoord (de anderen raden wie het schreef)",
   "play.photoFailed": "Die foto lukte niet. Probeer opnieuw.",
+  "play.sending": "Versturen…",
+  "play.notSent": "Niet verstuurd: de gsm heeft geen verbinding. Kijk de wifi na en tik opnieuw op Verstuur.",
   "play.findTruth": "Welke is echt?",
   "play.matchTeams": "Wie schreef wat?",
   "play.voteBest": "Stem op de beste",

@@ -574,14 +574,20 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       }
       cb(result);
     });
-    on('answer', choice => {
-      if (!teamId) return;
+    // A drawing or a photo comes with a callback: the phone keeps sending until the laptop says it has it,
+    // so a picture sent while the wifi hiccups (or right after the camera app closed) still arrives.
+    on('answer', (choice, cb) => {
+      const reply = typeof cb === 'function' ? cb : () => {};
+      if (!teamId) return reply({ error: 'error.generic' });
       // A drawing or a photo: store the picture first, the game only keeps its url.
       const m = typeof choice === 'string' && /^data:(image\/(?:webp|png|jpeg));base64,(.+)$/.exec(choice);
       if (m) {
-        try { choice = library.addMedia(Buffer.from(m[2], 'base64'), m[1]); } catch { return; }
+        try { choice = library.addMedia(Buffer.from(m[2], 'base64'), m[1]); } catch { return reply({ error: 'play.photoFailed' }); }
       }
-      game.answer(teamId, choice);
+      const team = game.teams.get(teamId);
+      // The same picture again (a retry after a lost answer): it is there already.
+      if (m && team && team.answer === choice) return reply({ ok: true });
+      reply(game.answer(teamId, choice) ? { ok: true } : { error: 'error.generic' });
     });
     on('vote', choice => teamId && game.castVote(teamId, choice));
     // The audience: no team, a nickname, their own score.

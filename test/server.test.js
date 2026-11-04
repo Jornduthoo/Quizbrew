@@ -245,3 +245,39 @@ test('venue and sponsors reach every screen; autopilot is a host setting', async
   await on;
   assert.equal(settings.get('autopilot'), true);
 });
+
+test('a photo answer is confirmed, and sending it again (a retry) is not refused', async t => {
+  const qb = createServer({ port: 0, settings: memorySettings(), library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
+  const port = await qb.listen();
+  const url = `http://127.0.0.1:${port}`;
+  const sockets = [];
+  const open = query => { const s = connect(url, { query, transports: ['websocket'], forceNew: true }); sockets.push(s); return s; };
+  t.after(async () => { sockets.forEach(s => s.close()); await qb.close(); });
+
+  const quiz = { title: 'Photos', rounds: [{ type: 'photoHunt', title: 'Snap', questions: [{ question: 'A selfie with a glass', time: 60 }] }] };
+  const saved = await (await fetch(`${url}/api/host/library/quiz`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quiz }) })).json();
+  const host = open({ role: 'host' });
+  assert.equal((await new Promise(r => host.emit('load', { library: saved.path }, r))).ok, true);
+  const a = open({ role: 'player' });
+  const b = open({ role: 'player' });
+  await new Promise(r => a.emit('join', { teamId: 'aaaaaaaa111', name: 'A', color: 'amber' }, r));
+  await new Promise(r => b.emit('join', { teamId: 'bbbbbbbb222', name: 'B', color: 'pink' }, r));
+  const question = once(a, 'state', s => s.phase === 'question');
+  host.emit('next');
+  host.emit('next');
+  await question;
+
+  // A real-sized phone photo (a few hundred kB) fits through the connection.
+  const photo = 'data:image/jpeg;base64,' + Buffer.alloc(400 * 1024, 7).toString('base64');
+  assert.deepEqual(await new Promise(r => a.emit('answer', photo, r)), { ok: true });
+  assert.deepEqual(await new Promise(r => a.emit('answer', photo, r)), { ok: true });
+  assert.match(qb.game.teams.get('aaaaaaaa111').answer, /^\/media\/[a-f0-9]{20}\.jpg$/);
+  assert.equal(a.connected, true);
+  // A different picture after the first one is a second answer: refused, and the phone hears so.
+  const other = 'data:image/jpeg;base64,' + Buffer.alloc(1000, 9).toString('base64');
+  assert.equal((await new Promise(r => a.emit('answer', other, r))).error, 'error.generic');
+  // Plain answers without a callback still work as before.
+  b.emit('answer', 'nonsense');
+  await new Promise(r => setTimeout(r, 100));
+  assert.equal(qb.game.teams.get('bbbbbbbb222').answer, null);
+});

@@ -493,6 +493,8 @@
   "play.typeCaption": "Tu pie de foto más gracioso",
   "play.typeAboutUs": "Tu respuesta (los demás adivinarán que es tuya)",
   "play.photoFailed": "Esa foto no ha funcionado. Inténtalo de nuevo.",
+  "play.sending": "Enviando…",
+  "play.notSent": "No enviado: el móvil no tiene conexión. Revisa el wifi y toca Enviar otra vez.",
   "play.findTruth": "¿Cuál es la verdadera?",
   "play.matchTeams": "¿Quién escribió qué?",
   "play.voteBest": "Vota la mejor",

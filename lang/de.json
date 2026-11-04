@@ -493,6 +493,8 @@
   "play.typeCaption": "Deine lustigste Unterschrift",
   "play.typeAboutUs": "Deine Antwort (die anderen raten, dass sie von dir ist)",
   "play.photoFailed": "Das Foto hat nicht geklappt. Versuch es noch einmal.",
+  "play.sending": "Wird gesendet…",
+  "play.notSent": "Nicht gesendet: Das Handy hat keine Verbindung. Prüf das WLAN und tipp noch einmal auf Senden.",
   "play.findTruth": "Was ist wahr?",
   "play.matchTeams": "Wer hat was geschrieben?",
   "play.voteBest": "Stimme für das Beste",
