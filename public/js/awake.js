@@ -1,6 +1,8 @@
-// Keep this phone's screen on (the quizmaster's remote). Two ways:
+// Keep this phone's screen on (player phones and the quizmaster's remote). Two ways:
 // 1. The Screen Wake Lock API: only in a secure context (https or localhost), so often not on http://10.x.x.x.
-// 2. Fallback: a tiny silent video playing in a loop keeps phones awake too. It may only start after a tap.
+// 2. Fallback: a silent black video playing behind the page keeps phones awake too. It may only start after a tap.
+//    Chrome only keeps the screen on for a muted video that is on screen and covers at least 20% of it
+//    (third_party/blink/renderer/core/html/media/video_wake_lock.cc), so it fills the screen, almost invisible.
 (function () {
   let lock = null;
   let video = null;
@@ -18,7 +20,7 @@
     if (!video) {
       video = document.createElement('video');
       video.className = 'awake-video';
-      video.style.cssText = 'position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:.01;pointer-events:none;z-index:-1';
+      video.style.cssText = 'position:fixed;left:0;top:0;width:100vw;height:100vh;object-fit:cover;opacity:.01;pointer-events:none;z-index:-1';
       video.muted = true;
       video.loop = true;
       video.setAttribute('muted', '');
