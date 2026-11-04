@@ -24,14 +24,9 @@
       video.setAttribute('muted', '');
       video.setAttribute('playsinline', '');
       video.setAttribute('aria-hidden', 'true');
-      for (const [src, type] of [['/img/awake.webm', 'video/webm'], ['/img/awake.mp4', 'video/mp4']]) {
-        const s = document.createElement('source');
-        s.src = src;
-        s.type = type;
-        video.append(s);
-      }
-      // Some phones only stay awake while the time moves: jump back before the loop point.
-      video.addEventListener('timeupdate', () => { if (video.currentTime > 1.5) video.currentTime = 0.1; });
+      // Ten minutes of black at 1 frame a second (60 kB). No jumping back in time: every seek or loop restart
+      // makes Android redraw the video layer, and that flickered the whole screen every two seconds.
+      video.src = '/img/awake.mp4';
       document.body.append(video);
     }
     const p = video.play();

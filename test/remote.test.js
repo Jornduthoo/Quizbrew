@@ -29,7 +29,8 @@ test('the remote keeps the phone awake and shows when the link is lost', () => {
   const awake = fs.readFileSync(path.join(pub, 'js', 'awake.js'), 'utf8');
   assert.match(awake, /navigator\.wakeLock\.request\('screen'\)/);
   assert.match(awake, /playsinline/); // the fallback for plain http on the wifi
-  for (const f of ['awake.mp4', 'awake.webm']) assert.ok(fs.statSync(path.join(pub, 'img', f)).size < 10000, f);
+  assert.ok(fs.statSync(path.join(pub, 'img', 'awake.mp4')).size < 80000);
+  assert.doesNotMatch(awake, /currentTime\s*=/, 'seeking the video flickers the screen on Android');
   for (const l of ['en', 'nl', 'fr', 'de', 'es']) {
     assert.ok(JSON.parse(fs.readFileSync(path.join(pub, '..', 'lang', `${l}.json`), 'utf8'))['host.remoteExpired'], l);
   }
