@@ -335,7 +335,17 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   api.get('/live-quiz', handle(() => { if (!game.quiz) throw new Error('no quiz'); return game.quiz; }));
   api.get('/catalog', handle(() => rounds.catalog()));
   api.get('/stats', handle(req => readStats()[statsKey({ library: String(req.query.path || '') })] || { plays: 0, q: {} }));
-  api.get('/library', handle(() => ({ tree: library.tree(), samples: quizzes.list(language()) })));
+  // Examples the quizmaster removed stay away after a restart or update; Settings can bring them back.
+  const hiddenSamples = () => (Array.isArray(settings.get('hiddenSamples')) ? settings.get('hiddenSamples') : []);
+  const samples = () => quizzes.list(language(), hiddenSamples());
+  api.get('/library', handle(() => ({ tree: library.tree(), samples: samples() })));
+  api.post('/library/hide-sample', handle(req => {
+    const file = String(req.body.sample || '');
+    quizzes.load(file);
+    settings.set('hiddenSamples', [...new Set([...hiddenSamples(), quizzes.base(file)])]);
+    return { ok: true, hidden: hiddenSamples().length };
+  }));
+  api.post('/library/restore-samples', handle(() => { settings.set('hiddenSamples', []); return { ok: true }; }));
   api.get('/library/quiz', handle(req => (req.query.sample ? quizzes.load(String(req.query.sample)) : library.read(String(req.query.path || '')))));
   api.put('/library/quiz', handle(req => library.save(req.body.path || null, req.body.quiz, { folder: req.body.folder || '' })));
   api.delete('/library/item', handle(req => { library.remove(String(req.query.path || '')); return { ok: true }; }));
@@ -446,7 +456,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       if (ratedQuiz === game.quiz) socket.emit('rating', ratingView());
       on('quizzes', cb => {
         const flat = (node, out = []) => { node.quizzes.forEach(q => out.push(q)); node.folders.forEach(f => flat(f, out)); return out; };
-        cb({ samples: quizzes.list(language()), library: flat(library.tree()).sort((a, b) => b.modified - a.modified), ratings: readRatings() });
+        cb({ samples: samples(), hiddenSamples: hiddenSamples().length, library: flat(library.tree()).sort((a, b) => b.modified - a.modified), ratings: readRatings() });
       });
       on('load', (ref, cb) => {
         try {

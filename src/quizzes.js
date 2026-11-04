@@ -9,9 +9,13 @@ const DIR = path.join(__dirname, '..', 'quizzes');
 // (English when there is none). Quizzes without a language in the name are always shown.
 const PACK = /\.([a-z]{2})\.json$/;
 
-function list(language) {
-  const files = fs.readdirSync(DIR).filter(f => f.endsWith('.json')).sort();
-  const base = f => f.replace(PACK, '');
+// The name of a sample without language and extension: removing one hides all its language versions.
+const base = f => String(f).replace(PACK, '').replace(/\.json$/, '');
+
+// hidden: sample names the quizmaster removed (kept in data/settings.json, so a git pull does not bring them back).
+function list(language, hidden = []) {
+  const gone = new Set(hidden);
+  const files = fs.readdirSync(DIR).filter(f => f.endsWith('.json') && !gone.has(base(f))).sort();
   const langs = new Map();
   for (const f of files) {
     const m = PACK.exec(f);
@@ -35,4 +39,4 @@ function load(file) {
   return quiz;
 }
 
-module.exports = { list, load };
+module.exports = { list, load, base };
