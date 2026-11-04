@@ -238,6 +238,7 @@ body.staged .view.center { min-height: calc(100dvh - 56.25vw - 80px); }
 .made-with[hidden] { display: none; }
 .made-with img { height: 32px; width: auto; }
 .made-own { flex-basis: 100%; color: var(--brass-light); }
+.made-url { flex-basis: 100%; color: var(--cream); font-weight: 700; text-decoration: none; }
 
 /* Team photo on the join form: a round face that fills with the selfie. */
 .team-photo { display: flex; align-items: center; gap: 14px; padding: 10px 12px; border-radius: 14px; border: 2px dashed rgb(var(--k-brass) / .55); cursor: pointer; }

@@ -367,8 +367,8 @@
     g.font = '500 34px Bricolage, sans-serif';
     g.fillText(new Date().toLocaleDateString(I18n.lang, { day: 'numeric', month: 'long', year: 'numeric' }), W / 2, 1125);
     g.fillStyle = '#e8c27a';
-    fit(`${t('brand.madeWith')} Quizbrew · ${t('host.tagline')}`, 36, '600 {n}px Bricolage, sans-serif', W - 120);
-    g.fillText(`${t('brand.madeWith')} Quizbrew · ${t('host.tagline')}`, W / 2, 1265);
+    fit(`${t('brand.madeWith')} Quizbrew · quizbrew.app`, 36, '600 {n}px Bricolage, sans-serif', W - 120);
+    g.fillText(`${t('brand.madeWith')} Quizbrew · quizbrew.app`, W / 2, 1265);
     return new Promise(res => c.toBlob(res, 'image/png'));
   }
 

@@ -2,6 +2,7 @@
   "app.name": "Quizbrew",
   "brand.madeWith": "Made with",
   "brand.yourOwn": "Your own quiz night? Brewed in seconds.",
+  "brand.site": "quizbrew.app",
   "error.noQuiz": "No quiz yet. Wait for the quizmaster.",
   "error.alreadyStarted": "The quiz has already started.",
   "error.nameEmpty": "Fill in a team name.",

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quizbrew promo stage</title>
+<style>
+/* The film set: the real big screen and a real phone in frames, with a caption that changes per scene.
+   ?lang=xx picks the captions, ?v=1 the standing (9:16) layout. */
+@font-face { font-family: 'Alfa Slab One'; src: url('/fonts/alfa-slab-one.woff2') format('woff2'); }
+@font-face { font-family: 'Bricolage'; src: url('/fonts/bricolage.woff2') format('woff2'); font-weight: 200 800; }
+:root { --pink: #ff4fa3; --brass: #d9a54a; --brass-l: #f6d48c; --cream: #f8ecd4; --cyan: #3ee6ff; --wood: #0f0805; }
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--wood); color: var(--cream); font-family: 'Bricolage', sans-serif; }
+#set { position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 40%, rgb(255 180 60 / .18), transparent 60%), linear-gradient(90deg, rgb(15 8 5 / .9), rgb(15 8 5 / .7)), url('/img/look/pub-lobby.webp') center / cover; }
+.frame { position: absolute; overflow: hidden; transition: transform .8s cubic-bezier(.2,.8,.2,1), opacity .6s; }
+.tv { left: 70px; top: 200px; width: 1300px; height: 731px; padding: 12px; border-radius: 18px; background: linear-gradient(160deg, #2b2b2e, #0c0c0d); box-shadow: 0 40px 90px rgb(0 0 0 / .7), 0 0 120px rgb(255 180 60 / .15); }
+.tv iframe { width: 1600px; height: 900px; border: 0; transform: scale(.8); transform-origin: 0 0; border-radius: 8px; background: #000; }
+.phone { left: 1440px; top: 170px; width: 410px; height: 820px; padding: 10px; border-radius: 46px; background: #0c0c0d; box-shadow: 0 0 0 3px #3a3a3e, 0 40px 80px rgb(0 0 0 / .7); }
+.phone iframe { width: 390px; height: 800px; border: 0; border-radius: 36px; background: #000; }
+.caption { position: absolute; left: 70px; right: 70px; top: 46px; height: 130px; display: flex; flex-direction: column; justify-content: center; }
+.caption h1 { margin: 0; font: 400 64px/1.05 'Alfa Slab One', serif; color: #fff2f8; text-shadow: 0 0 8px rgb(255 79 163 / .9), 0 0 30px rgb(255 79 163 / .6); }
+.caption p { margin: 6px 0 0; font-size: 30px; font-weight: 650; color: var(--brass-l); }
+.caption.swap h1, .caption.swap p { animation: inText .55s cubic-bezier(.2,.8,.2,1) both; }
+.caption.swap p { animation-delay: .08s; }
+@keyframes inText { from { opacity: 0; transform: translateY(24px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+.badge { position: absolute; display: flex; align-items: center; gap: 14px; padding: 14px 24px; border-radius: 99px; font: 750 26px 'Bricolage'; background: rgb(15 8 5 / .85); box-shadow: inset 0 0 0 2px var(--cyan), 0 0 30px rgb(62 230 255 / .35); color: #e6fbff; opacity: 0; transform: scale(.8); transition: .5s cubic-bezier(.2,.8,.2,1); }
+.badge.on { opacity: 1; transform: none; }
+.badge svg { width: 34px; height: 34px; fill: none; stroke: var(--cyan); stroke-width: 2; stroke-linecap: round; }
+#offline { left: 900px; top: 860px; }
+/* Title cards */
+.card { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 30px; text-align: center; background: radial-gradient(ellipse at 50% 45%, rgb(255 79 163 / .16), transparent 55%), rgb(15 8 5 / .94); opacity: 0; transition: opacity .6s; pointer-events: none; z-index: 5; }
+.card.on { opacity: 1; }
+.card img { width: 620px; filter: drop-shadow(0 0 30px rgb(255 180 60 / .35)); }
+.card h1 { margin: 0; font: 400 84px/1.05 'Alfa Slab One', serif; color: #fff2f8; text-shadow: 0 0 10px rgb(255 79 163 / .9), 0 0 40px rgb(255 79 163 / .6); max-width: 1500px; }
+.card p { margin: 0; font-size: 40px; font-weight: 700; color: var(--brass-l); }
+.card .btn { margin-top: 10px; padding: 22px 46px; font: 400 40px 'Alfa Slab One'; color: #1a0e08; background: linear-gradient(180deg, var(--brass-l), var(--brass) 55%, #8a5f22); clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px); }
+.card .url { font: 600 30px 'Bricolage'; color: var(--cream); opacity: .85; }
+.card.on img { animation: flick 1.4s ease-out both; }
+@keyframes flick { 0% { opacity: .2; } 10% { opacity: 1; } 16% { opacity: .35; } 24% { opacity: 1; } 30% { opacity: .6; } 40%, 100% { opacity: 1; } }
+/* Standing layout for stories and reels */
+.v .tv { left: 20px; top: 330px; width: 1040px; height: 585px; padding: 10px; }
+.v .tv iframe { transform: scale(.6375); }
+.v .phone { left: 290px; top: 960px; width: 500px; height: 920px; padding: 12px; border-radius: 54px; }
+.v .phone iframe { width: 390px; height: 700px; transform: scale(1.2); transform-origin: 0 0; border-radius: 34px; }
+.v .caption { left: 50px; right: 50px; top: 80px; height: 220px; text-align: center; align-items: center; }
+.v .caption h1 { font-size: 70px; }
+.v .caption p { font-size: 36px; }
+.v #offline { left: 50%; top: 860px; transform: translateX(-50%) scale(.8); }
+.v #offline.on { transform: translateX(-50%); }
+.v .card img { width: 820px; }
+.v .card h1 { font-size: 88px; max-width: 960px; }
+.focus-tv .phone { transform: translateX(120%); }
+.v.focus-tv .phone { transform: translateY(140%); }
+.v.focus-tv .tv { transform: translateY(260px) scale(1.0); }
+</style>
+</head>
+<body>
+<div id="set">
+  <div class="caption" id="caption"><h1 id="cap-t"></h1><p id="cap-s"></p></div>
+  <div class="frame tv"><iframe id="tv" title="Big screen"></iframe></div>
+  <div class="frame phone"><iframe id="phone" title="Phone"></iframe></div>
+  <div class="badge" id="offline"><svg viewBox="0 0 24 24"><path d="M2 8.8a15 15 0 0 1 20 0M5.5 12.3a10 10 0 0 1 13 0M9 15.8a5 5 0 0 1 6 0"/><path d="M3 3l18 18" stroke="#ff4fa3"/></svg><span id="offline-t"></span></div>
+</div>
+<div class="card" id="intro"><img src="/img/logo.webp" alt="Quizbrew"><h1 id="tagline"></h1></div>
+<div class="card" id="outro"><img src="/img/logo.webp" alt="Quizbrew"><h1 id="end-t"></h1><span class="btn" id="end-s"></span><span class="url" id="end-url"></span></div>
+<script src="/promo/text.js"></script>
+<script>
+  const q = new URLSearchParams(location.search);
+  const L = window.PROMO_TEXT[q.get('lang')] || window.PROMO_TEXT.en;
+  const R = q.get('rounds') || '46';
+  const t = k => (L[k] || '').replace('{rounds}', R);
+  if (q.get('v')) document.body.classList.add('v');
+  document.getElementById('tagline').textContent = t('tagline');
+  document.getElementById('end-t').textContent = t('endTitle');
+  document.getElementById('end-s').textContent = t('endSub');
+  document.getElementById('end-url').textContent = q.get('url') || '';
+  document.getElementById('offline-t').textContent = t('offline');
+  // Called by the recorder.
+  window.scene = key => {
+    const c = document.getElementById('caption');
+    c.classList.remove('swap'); void c.offsetWidth; c.classList.add('swap');
+    document.getElementById('cap-t').textContent = t(key);
+    document.getElementById('cap-s').textContent = t(key + 'Sub');
+  };
+  window.card = (id, on) => document.getElementById(id).classList.toggle('on', on);
+  window.badge = on => document.getElementById('offline').classList.toggle('on', on);
+  window.focusTv = on => document.body.classList.toggle('focus-tv', on);
+  window.setFrames = (tv, phone) => { document.getElementById('tv').src = tv; document.getElementById('phone').src = phone; };
+</script>
+</body>
+</html>
