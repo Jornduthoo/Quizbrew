@@ -587,7 +587,7 @@
   "play.yourTurn": "À vous ! Répondez à voix haute",
   "play.theirTurn": "{name} répond",
   "play.clockOut": "Votre temps est écoulé",
-  "play.lifeline": "50/50",
+  "play.lifeline": "🛟 Joker : 2 fausses en moins",
   "play.lifelineConfirm": "Utiliser votre joker de la manche ? Deux mauvaises réponses disparaissent.",
   "play.clockLeft": "encore {n} s",
   "host.realTitle": "Titre caché : {title}",
@@ -898,5 +898,9 @@
   "manage.editCopy": "Modifier une copie",
   "manage.sample": "Exemple",
   "manage.copyWord": "copie",
-  "manage.none": "Aucun quiz avec ce nom."
+  "manage.none": "Aucun quiz avec ce nom.",
+  "screen.alertLifeline": "{name} utilise son joker !",
+  "host.alertLifeline": "{name} a utilisé son joker : deux mauvaises réponses ont disparu sur son téléphone.",
+  "builder.twistChoiceNone": "Le joker et les choix qui rétrécissent ne marchent qu'avec des réponses à toucher. Cette manche n'en a pas, ils n'ont donc aucun effet ici.",
+  "builder.twistChoiceSome": "Le joker et les choix qui rétrécissent ne marchent qu'avec des questions à choix, pas avec des réponses tapées."
 }

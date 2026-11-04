@@ -294,3 +294,7 @@ body.builder { font-size: 15px; }
 .pic-mini:hover { transform: translateY(-2px) scale(1.06); border-color: var(--brass); box-shadow: 0 0 14px rgb(var(--k-brass) / .35); }
 .pic-mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .media-field.busy .drop-zone { animation: pulse-glow 1.2s infinite; }
+
+/* A twist that does nothing in this round type */
+.chip.misfit { opacity: .55; text-decoration: line-through; }
+.twist-warn { margin: 6px 0 0; color: color-mix(in srgb, var(--bad) 45%, var(--cream)); max-width: 46ch; }

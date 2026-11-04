@@ -587,7 +587,7 @@
   "play.yourTurn": "Jullie beurt! Antwoord hardop",
   "play.theirTurn": "{name} is aan de beurt",
   "play.clockOut": "Jullie tijd is op",
-  "play.lifeline": "50/50",
+  "play.lifeline": "🛟 Reddingslijn: 2 fout weg",
   "play.lifelineConfirm": "Je reddingslijn voor deze ronde gebruiken? Twee foute antwoorden verdwijnen.",
   "play.clockLeft": "nog {n} s",
   "host.realTitle": "Verborgen titel: {title}",
@@ -898,5 +898,9 @@
   "manage.editCopy": "Kopie bewerken",
   "manage.sample": "Voorbeeld",
   "manage.copyWord": "kopie",
-  "manage.none": "Geen quiz met die naam."
+  "manage.none": "Geen quiz met die naam.",
+  "screen.alertLifeline": "{name} gebruikt de reddingslijn!",
+  "host.alertLifeline": "{name} gebruikte de reddingslijn: twee foute antwoorden zijn weg op hun gsm.",
+  "builder.twistChoiceNone": "Reddingslijn en krimpende keuzes werken alleen bij vragen met antwoorden om aan te tikken. Deze ronde heeft die niet, dus hier doen ze niets.",
+  "builder.twistChoiceSome": "Reddingslijn en krimpende keuzes werken alleen bij vragen met antwoordopties (meerkeuze), niet bij getypte antwoorden."
 }

@@ -15,6 +15,7 @@
   };
 
   let catalog = null;
+  const CHOICE_ONLY = ['shrinkingOptions', 'lifeline'];
   let library = { tree: { folders: [], quizzes: [] }, samples: [] };
   let current = null; // { path, quiz }
   let stats = { plays: 0, q: {} }; // how the questions went on earlier nights
@@ -393,13 +394,16 @@
           h('input', { value: r.title || '', placeholder: typeName(r.type), maxlength: 60, oninput: e => { r.title = e.target.value; changed(); renderTimeline(); } })),
         h('div', { class: 'field' }, scoring, scoringHint),
         h('div', { class: 'field' }, h('span', {}, t('builder.twists')),
-          h('div', { class: 'chips' }, catalog.twists.map(tw => h('label', { class: 'chip' + ((r.twists || []).includes(tw) ? ' on' : ''), title: t(`twist.${tw}.desc`) },
+          h('div', { class: 'chips' }, catalog.twists.filter(tw => (type.twists || catalog.twists).includes(tw) || (r.twists || []).includes(tw)).map(tw => h('label', { class: 'chip' + ((r.twists || []).includes(tw) ? ' on' : '') + ((type.twists || catalog.twists).includes(tw) ? '' : ' misfit'), title: t(`twist.${tw}.desc`) },
             h('input', { type: 'checkbox', checked: (r.twists || []).includes(tw) ? 'checked' : null, onchange: e => {
               r.twists = (r.twists || []).filter(x => x !== tw);
               if (e.target.checked) r.twists.push(tw);
               changed();
               renderRound();
-            } }), t(`twist.${tw}`))))),
+            } }), t(`twist.${tw}`)))),
+          // Lifeline and shrinking options need answers to tap: say so when this round may not have them.
+          (r.twists || []).some(tw => CHOICE_ONLY.includes(tw)) && (type.kind !== 'choice' || !(type.twists || []).includes('lifeline'))
+            ? h('p', { class: 'hint small twist-warn' }, t((type.twists || []).includes('lifeline') ? 'builder.twistChoiceSome' : 'builder.twistChoiceNone')) : null),
         h('label', { class: 'field small-field' }, h('span', {}, t('builder.timeAll')),
           h('input', { type: 'number', min: 3, max: 600, placeholder: type.defaults.time, onchange: e => {
             const v = Number(e.target.value);

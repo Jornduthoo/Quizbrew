@@ -587,7 +587,7 @@
   "play.yourTurn": "Your turn! Answer out loud",
   "play.theirTurn": "{name} is answering",
   "play.clockOut": "Your time is up",
-  "play.lifeline": "50/50",
+  "play.lifeline": "🛟 Lifeline: remove 2 wrong",
   "play.lifelineConfirm": "Use your lifeline for this round? Two wrong answers disappear.",
   "play.clockLeft": "{n} s left",
   "host.realTitle": "Hidden title: {title}",
@@ -898,5 +898,9 @@
   "manage.editCopy": "Edit a copy",
   "manage.sample": "Example",
   "manage.copyWord": "copy",
-  "manage.none": "No quiz with that name."
+  "manage.none": "No quiz with that name.",
+  "screen.alertLifeline": "{name} uses the lifeline!",
+  "host.alertLifeline": "{name} used the lifeline: two wrong answers are gone on their phone.",
+  "builder.twistChoiceNone": "Lifeline and shrinking options only work on questions with answers to tap. This round has none, so they do nothing here.",
+  "builder.twistChoiceSome": "Lifeline and shrinking options only work on questions with answer options (multiple choice), not on typed answers."
 }

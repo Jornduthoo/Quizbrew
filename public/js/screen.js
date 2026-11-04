@@ -75,10 +75,10 @@
 
   // Anti-cheat: the whole room sees which team left the quiz page during a question.
   socket.on('alert', n => {
-    if (!n || n.kind !== 'left' || !I18n.dict['app.name']) return;
+    if (!n || !['left', 'lifeline'].includes(n.kind) || !I18n.dict['app.name']) return;
     let stack = $('#alerts');
     if (!stack) { stack = h('div', { id: 'alerts', class: 'screen-alerts' }); document.body.append(stack); }
-    const toast = h('div', { class: 'screen-alert', style: teamVar(n.color) }, h('span', { class: 'icon' }, '👀'), h('span', {}, t('screen.alertLeft', { name: n.name })));
+    const toast = h('div', { class: 'screen-alert ' + n.kind, style: teamVar(n.color) }, h('span', { class: 'icon' }, n.kind === 'lifeline' ? '🛟' : '👀'), h('span', {}, t(n.kind === 'lifeline' ? 'screen.alertLifeline' : 'screen.alertLeft', { name: n.name })));
     stack.append(toast);
     setTimeout(() => toast.classList.add('out'), 6000);
     setTimeout(() => toast.remove(), 6700);

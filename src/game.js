@@ -494,6 +494,10 @@ class Game {
     const gone = this.hiddenFor(t);
     t.fifty = rounds.permutation(n, q.question + '|fifty').filter(i => i !== q.correct && !gone.includes(i)).slice(0, Math.max(1, n - 2 - gone.length));
     t.lifelineRound = this.roundIndex;
+    // The room sees it happen: a lifebuoy on the big screen, a line for the quizmaster.
+    const notice = { kind: 'lifeline', name: t.name, color: t.color };
+    this.emit('host', 'alert', notice);
+    this.emit('screen', 'alert', notice);
     this.broadcast();
     return true;
   }
