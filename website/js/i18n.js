@@ -2,6 +2,7 @@
 // Keys with a "|" in the text become list items.
 window.QB_TEXT = {
   en: {
+    'video.title': 'See a quiz night in 35 seconds',
     'meta.title': 'Quizbrew · Brew a quiz in seconds',
     'meta.desc': 'Quiz night software that runs on your own network. One laptop hosts, teams play on their phones. No internet, no subscription, no app.',
     'nav.how': 'How it works', 'nav.rounds': 'Round types', 'nav.looks': 'Looks', 'nav.price': 'Price', 'nav.faq': 'FAQ',
@@ -76,6 +77,7 @@ window.QB_TEXT = {
   },
 
   nl: {
+    'video.title': 'Een quizavond in 35 seconden',
     'meta.title': 'Quizbrew · Brouw een quiz in seconden',
     'meta.desc': 'Quizsoftware die op je eigen netwerk draait. Eén laptop is de baas, teams spelen op hun gsm. Geen internet, geen abonnement, geen app.',
     'nav.how': 'Zo werkt het', 'nav.rounds': 'Rondes', 'nav.looks': 'Looks', 'nav.price': 'Prijs', 'nav.faq': 'Vragen',
@@ -150,6 +152,7 @@ window.QB_TEXT = {
   },
 
   fr: {
+    'video.title': 'Une soirée quiz en 35 secondes',
     'meta.title': 'Quizbrew · Brasse un quiz en quelques secondes',
     'meta.desc': 'Le logiciel de soirée quiz qui tourne sur ton propre réseau. Un portable anime, les équipes jouent sur leur téléphone. Sans internet, sans abonnement, sans appli.',
     'nav.how': 'Comment ça marche', 'nav.rounds': 'Manches', 'nav.looks': 'Ambiances', 'nav.price': 'Prix', 'nav.faq': 'Questions',
@@ -224,6 +227,7 @@ window.QB_TEXT = {
   },
 
   de: {
+    'video.title': 'Ein Quizabend in 35 Sekunden',
     'meta.title': 'Quizbrew · Brau ein Quiz in Sekunden',
     'meta.desc': 'Quizabend-Software für dein eigenes Netzwerk. Ein Laptop leitet, Teams spielen am Handy. Kein Internet, kein Abo, keine App.',
     'nav.how': 'So funktioniert’s', 'nav.rounds': 'Runden', 'nav.looks': 'Looks', 'nav.price': 'Preis', 'nav.faq': 'Fragen',
@@ -298,6 +302,7 @@ window.QB_TEXT = {
   },
 
   es: {
+    'video.title': 'Una noche de quiz en 35 segundos',
     'meta.title': 'Quizbrew · Prepara un quiz en segundos',
     'meta.desc': 'Software para noches de quiz en tu propia red. Un portátil dirige, los equipos juegan con el móvil. Sin internet, sin suscripción, sin app.',
     'nav.how': 'Cómo funciona', 'nav.rounds': 'Rondas', 'nav.looks': 'Estilos', 'nav.price': 'Precio', 'nav.faq': 'Preguntas',

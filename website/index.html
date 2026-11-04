@@ -8,7 +8,10 @@
 <meta name="description" content="Quiz night software that runs on your own network. One laptop hosts, teams play on their phones. No internet, no subscription, no app.">
 <meta property="og:title" content="Quizbrew · Brew a quiz in seconds">
 <meta property="og:description" content="Quiz nights on your own network. One laptop hosts, teams play on their phones. No internet, no subscription, no app.">
-<meta property="og:image" content="img/shots/pub-reveal.webp">
+<meta property="og:image" content="https://quizbrew.app/video/share.jpg">
+<meta property="og:url" content="https://quizbrew.app/">
+<meta property="og:video" content="https://quizbrew.app/video/promo-en-wide.mp4">
+<link rel="canonical" href="https://quizbrew.app/">
 <meta name="theme-color" content="#1a0e08">
 <link rel="icon" href="img/favicon.png">
 <link rel="preload" href="fonts/alfa-slab-one.woff2" as="font" type="font/woff2" crossorigin>
@@ -71,6 +74,13 @@
         <h2 data-t="usp.noapp.t">Nothing to install for players</h2>
         <p data-t="usp.noapp.d"></p>
       </article>
+    </div>
+  </section>
+
+  <section class="film" id="film">
+    <div class="wrap">
+      <h2 class="title" data-t="video.title">See a quiz night in 35 seconds</h2>
+      <div class="tv tv-film"><video id="promo" muted loop playsinline preload="none" poster="video/poster.webp" width="1280" height="720" aria-label="Quizbrew"></video></div>
     </div>
   </section>
 
@@ -207,6 +217,11 @@
     </div>
   </section>
 </main>
+
+<div class="buybar" id="buybar" aria-hidden="true">
+  <p><strong data-price>€49</strong> <span data-t="price.full.note">one-time payment</span></p>
+  <a class="btn brass" data-cta="demo" href="#price" data-t="cta.demo" tabindex="-1">Try the free demo</a>
+</div>
 
 <footer class="foot">
   <div class="wrap foot-in">

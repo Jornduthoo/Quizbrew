@@ -34,6 +34,7 @@ test('website: every file the page and stylesheet use exists', () => {
   const refs = [...html.matchAll(/(?:src|href)="((?:img|css|js|fonts)\/[^"]+)"/g)].map(m => m[1])
     .concat([...css.matchAll(/url\('\.\.\/([^']+)'\)/g)].map(m => m[1]));
   for (const look of ['pub', 'space', 'jungle', 'spooky', 'arcade']) refs.push(`img/shots/${look}-intro.webp`);
+  for (const lang of ['en', 'nl', 'fr', 'de', 'es']) refs.push(`video/promo-${lang}-wide.mp4`);
   for (const f of load('js/rounds.js').QB_ROUNDS) refs.push(`img/icons/${f.id}.webp`);
   for (const r of refs) assert.ok(fs.existsSync(path.join(dir, r)), `missing ${r}`);
   for (const r of refs.filter(r => r.endsWith('.webp'))) assert.ok(fs.statSync(path.join(dir, r)).size < 150 * 1024, `${r} is too big`);
