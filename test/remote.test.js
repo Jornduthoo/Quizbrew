@@ -35,6 +35,17 @@ test('the remote keeps the phone awake and shows when the link is lost', () => {
   }
 });
 
+test('player phones stay awake and come straight back after a dark screen', () => {
+  const play = fs.readFileSync(path.join(pub, 'play.html'), 'utf8');
+  assert.ok(play.indexOf('/js/awake.js') > 0 && play.indexOf('/js/awake.js') < play.indexOf('/js/play.js'));
+  const js = fs.readFileSync(path.join(pub, 'js', 'play.js'), 'utf8');
+  assert.match(js, /socket\.connect\(\)/);
+  assert.match(js, /emit\('leftPage', \{ sleep: leftAsleep \}\)/);
+  for (const l of ['en', 'nl', 'fr', 'de', 'es']) {
+    assert.ok(JSON.parse(fs.readFileSync(path.join(pub, '..', 'lang', `${l}.json`), 'utf8'))['host.alertSleep'], l);
+  }
+});
+
 test('a remote that comes back from sleep gets the running quiz and its teams again', async t => {
   const { io: connect } = require('socket.io-client');
   const { createServer } = require('../src/app');

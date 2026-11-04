@@ -892,6 +892,7 @@
   "host.alertBlocked": "{name} hat die Quizseite verlassen: Antwort gesperrt",
   "host.alertTimes": "({n}-mal)|({n}-mal)",
   "host.alertBack": "{name} ist nach {n} s zurück",
+  "host.alertSleep": "Der Bildschirm von {name} ging von selbst aus (zählt nicht)",
   "screen.alertLeft": "{name} hat die Quizseite verlassen!",
   "play.leftTitle": "Du hast die Quizseite verlassen",
   "play.leftText": "Der Quizmaster und der große Bildschirm haben es gesehen. Bleib beim Antworten auf dieser Seite.",

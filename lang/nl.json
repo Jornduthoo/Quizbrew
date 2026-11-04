@@ -892,6 +892,7 @@
   "host.alertBlocked": "{name} verliet de quizpagina: antwoord geblokkeerd",
   "host.alertTimes": "({n} keer)|({n} keer)",
   "host.alertBack": "{name} is terug na {n} s",
+  "host.alertSleep": "Het scherm van {name} viel vanzelf uit (telt niet mee)",
   "screen.alertLeft": "{name} verliet de quizpagina!",
   "play.leftTitle": "Je verliet de quizpagina",
   "play.leftText": "De quizmaster en het grote scherm hebben het gezien. Blijf op deze pagina terwijl je antwoordt.",

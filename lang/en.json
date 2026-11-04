@@ -892,6 +892,7 @@
   "host.alertBlocked": "{name} left the quiz page: answer blocked",
   "host.alertTimes": "({n} time)|({n} times)",
   "host.alertBack": "{name} is back after {n} s",
+  "host.alertSleep": "{name}'s phone screen went dark by itself (not counted)",
   "screen.alertLeft": "{name} left the quiz page!",
   "play.leftTitle": "You left the quiz page",
   "play.leftText": "The quizmaster and the big screen saw it. Stay on this page while you answer.",

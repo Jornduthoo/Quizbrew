@@ -529,6 +529,24 @@ test('leaving the quiz page warns the quizmaster and the big screen, once per qu
   assert.equal(game.hostState().teams[0].awayCount, 1);
 });
 
+test('a phone screen that went dark by itself is a quiet note, not a flag or a blocked answer', () => {
+  const { game, sent } = setup();
+  game.join('team1aaaa', 'Owls', 'amber', 's1');
+  game.next();
+  game.next();
+  game.round.twists = ['lockdown'];
+  sent.length = 0;
+  assert.equal(game.leftPage('team1aaaa', { sleep: true }), true);
+  assert.deepEqual(sent.filter(m => m.ev === 'alert').map(m => [m.to, m.p.kind]), [['host', 'sleep']], 'not on the big screen');
+  const t = game.teams.get('team1aaaa');
+  assert.equal(t.away, false);
+  assert.equal(t.blocked, false);
+  assert.equal(t.awayCount || 0, 0);
+  // A real leave on the same question still counts.
+  assert.equal(game.leftPage('team1aaaa'), true);
+  assert.equal(t.awayCount, 1);
+});
+
 test('the quizmaster\'s call: hand-given points and an overruled answer show on the big screen and stay through the reveal', () => {
   const { game, sent } = setup();
   game.join('team1aaaa', 'A', 'amber', 's1');

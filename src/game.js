@@ -608,9 +608,15 @@ class Game {
 
   // The phone left the page (switched app, opened a browser tab, pulled down the notifications) while it could answer.
   // The quizmaster and the big screen get a notice right away; with the lockdown twist the answer is blocked.
-  leftPage(teamId) {
+  // A phone that could not stay awake and went dark after a long while untouched says so: the quizmaster gets a
+  // quiet note, but no flag, no count and no blocked answer. That was the screen saver, not a peek at the internet.
+  leftPage(teamId, { sleep = false } = {}) {
     const t = this.teams.get(teamId);
     if (!t || !ANSWER_PHASES.has(this.phase) || t.away) return false;
+    if (sleep === true) {
+      this.emit('host', 'alert', { kind: 'sleep', name: t.name, color: t.color });
+      return true;
+    }
     t.away = true;
     t.awayCount = (t.awayCount || 0) + 1;
     if (this.phase === 'question' && this.hasTwist('lockdown')) {

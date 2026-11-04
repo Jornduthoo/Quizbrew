@@ -37,10 +37,10 @@
   socket.on('alert', n => {
     if (!n || !I18n.dict['app.name']) return;
     const stack = $('#alerts');
-    const text = n.kind === 'lifeline' ? t('host.alertLifeline', { name: n.name }) : n.kind === 'back'
+    const text = n.kind === 'lifeline' ? t('host.alertLifeline', { name: n.name }) : n.kind === 'sleep' ? t('host.alertSleep', { name: n.name }) : n.kind === 'back'
       ? t('host.alertBack', { name: n.name, n: n.seconds })
       : t(n.blocked ? 'host.alertBlocked' : 'host.alertLeft', { name: n.name }) + (n.count > 1 ? ' ' + t('host.alertTimes', { n: n.count }) : '');
-    const toast = h('div', { class: 'alert ' + n.kind, style: teamVar(n.color), role: 'alert' }, h('span', { class: 'icon' }, n.kind === 'lifeline' ? '🛟' : n.kind === 'back' ? '↩' : '👀'), h('span', {}, text));
+    const toast = h('div', { class: 'alert ' + n.kind, style: teamVar(n.color), role: 'alert' }, h('span', { class: 'icon' }, n.kind === 'lifeline' ? '🛟' : n.kind === 'sleep' ? '💤' : n.kind === 'back' ? '↩' : '👀'), h('span', {}, text));
     stack.prepend(toast);
     if (n.kind === 'left' && navigator.vibrate) navigator.vibrate(200);
     setTimeout(() => toast.classList.add('out'), n.kind === 'left' ? 9000 : 5000);
