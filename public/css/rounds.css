@@ -78,7 +78,7 @@ body.screen[data-phase="wager"] .bg-stage { opacity: 1; animation-play-state: ru
   animation: rise .45s ease both; animation-delay: calc(.4s + var(--k) * .08s);
 }
 .screen .ta-name { color: var(--muted); }
-.screen .ta-answer { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.screen .ta-answer { overflow-wrap: normal; }
 .screen .team-answer.right .ta-answer { color: var(--good); }
 .screen .team-answer.wrong .ta-answer { color: #ff9a9a; text-decoration: line-through rgba(255, 90, 90, .6); }
 .screen .team-answer.part .ta-answer { color: var(--brass-light); }
@@ -215,7 +215,7 @@ body.screen[data-kind="level"] .q-board h1 { font-size: 2.6em; }
 /* ---------- big screen: party rounds (wave 4) ---------- */
 body.screen[data-phase="vote"] .bg-stage { opacity: 1; animation-play-state: running; }
 body.screen[data-phase="vote"] .vignette { background: radial-gradient(ellipse at 50% 50%, rgb(var(--k-wood-9) / .45), rgb(var(--k-wood-9) / .92) 90%); }
-body.screen .vote { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 2.4vh; }
+body.screen .vote { display: grid; grid-template-rows: auto auto minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); gap: 2.4vh; }
 .screen .small-timer { width: auto; height: auto; min-width: 11vh; }
 .screen .small-timer span { font-size: 3em; font-weight: 800; color: var(--theme, var(--neon-amber)); text-shadow: 0 0 18px var(--theme, var(--neon-amber)); }
 .screen .vote-q { margin: 0; text-align: center; font-size: 2.6em; line-height: 1.15; }
@@ -473,7 +473,9 @@ body[data-phase="reveal"] .q-fact:not([hidden]) ~ .answered-dots, body[data-phas
 /* A long label (a hint, a category, two finalists) becomes a card instead of a pill. */
 .screen .q-category { max-width: 100%; text-align: center; }
 .screen .q-category.long { border-radius: .7em; text-transform: none; letter-spacing: .01em; line-height: 1.2; }
-.screen .team-answer { padding: .7vh .9vw; }
+.screen .team-answer { padding: .3em .6em; }
+/* In em, so the whole list shrinks with its font size when 40 teams have answered. */
+.screen .team-answers { gap: .35em .9em; }
 .screen .wager-category { max-width: 100%; text-wrap: balance; }
 
 /* Inside the board zone everything is sized in em, so the fit in screen.js can shrink lists and board together. */
@@ -486,7 +488,9 @@ body[data-phase="reveal"] .q-fact:not([hidden]) ~ .answered-dots, body[data-phas
 .screen .pair-col.solved.split { display: grid; grid-template-columns: 1fr 1fr; grid-auto-flow: column; grid-template-rows: repeat(var(--rows), auto); column-gap: 1.2em; }
 .screen .q-fact { font-size: .95em; }
 /* Clocks in em, so the fit can make them smaller when eight teams play. */
-.screen .clock-board { gap: .6em .6em; }
+.screen .clock-board { gap: .6em .6em; padding: .5em 1em; }
+/* The clock that runs grows a little: in a duel with two long names it keeps clear of the other clock. */
+.screen .clock-board:has(> .clock:nth-child(2):last-child) { gap: 1.8em; }
 .screen .clock { min-width: 7.5em; padding: .5em .9em .45em; gap: .2em; }
 /* Ballot cards: the text stays clear of the letter in the corner. */
 .screen .ballot-card:not(.pic) { padding-top: 2.6em; }

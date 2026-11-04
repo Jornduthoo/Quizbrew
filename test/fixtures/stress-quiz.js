@@ -89,3 +89,25 @@ module.exports.more = {
     { type: 'clockBank', title: 'Tijdbank', questions: [open('Noem de hoofdstad van Australië, die vaak verward wordt met Sydney of Melbourne'), open('Welk gebouw in Parijs werd gebouwd voor de wereldtentoonstelling van 1889?')] },
   ],
 };
+
+// Part three: the round types with sound, video, effects on a picture, drawings and photos from the phones,
+// acting and the clock duel. The layout test fills in MEDIA (a sound file, a clip and a drawing it uploads first).
+module.exports.media = media => ({
+  title: 'Stress test, part three: sound, video, drawings, photos and the clock duel',
+  language: 'nl',
+  rounds: [
+    { type: 'zoomOut', title: 'Inzoomen: wat zie je als we heel langzaam uitzoomen op de foto?', questions: [open('Wat zie je op deze foto die heel langzaam uitzoomt van een klein detail naar het geheel?', { image: img })] },
+    { type: 'pixelFog', title: 'Pixelmist', questions: [mc('Wat wordt er langzaam scherp op deze korrelige foto van de kroeg?', { image: img })] },
+    { type: 'silhouette', title: 'Schaduwbeeld', questions: [open('Wiens schaduw zie je hier op de muur van het café?', { image: img })] },
+    { type: 'music', title: 'Muziekronde: wie zingt dit wereldberoemde nummer uit de jaren tachtig?', questions: [mc('Wie zingt dit nummer dat in 1984 wekenlang op nummer een stond?', { audio: media.audio })] },
+    { type: 'introSprint', title: 'Introsprint', questions: [open('Welk nummer hoor je hier, het intro wordt steeds een beetje langer?', { audio: media.audio })] },
+    { type: 'rewind', title: 'Achterstevoren', questions: [open('Dit nummer speelt achterstevoren. Welk nummer is het?', { audio: media.audio })] },
+    { type: 'soundCheck', title: 'Welk geluid is dit?', questions: [mc('Wat maakt dit geluid dat je elke ochtend in de keuken van het café hoort?', { audio: media.audio })] },
+    { type: 'lyricGap', title: 'Vul de songtekst aan', questions: [open('Vul het ontbrekende woord in: "Ik heb een ___ voor jou, en het is helemaal van mij alleen"')] },
+    { type: 'clipRecall', title: 'Wat heb je gezien in het filmpje?', questions: [{ question: 'Noem zoveel mogelijk dingen die je in het filmpje hebt gezien, hoe meer hoe beter', video: media.video, items: ['Een rode fiets met een mand', 'Hond', 'Paraplu', 'Bakkerij', 'Verkeerslicht', 'Duif'], fact }] },
+    { type: 'drawGuess', title: 'Tekenronde: teken het zo snel en zo mooi als je kan', questions: [{ question: 'Teken een kat die op een fiets door de regen naar de kroeg rijdt', fact }] },
+    { type: 'photoHunt', title: 'Fotojacht', questions: [{ question: 'Maak een foto van je hele team dat een menselijke piramide bouwt naast de tap', fact }] },
+    { type: 'actItOut', title: 'Uitbeelden zonder woorden', questions: [{ answer: 'Tanden poetsen terwijl je op een eenwieler rijdt', accept: ['tanden poetsen'], fact }] },
+    { type: 'clockDuel', title: 'Klokduel', questions: [open('Wat is het kleinste priemgetal?'), open('Hoeveel poten heeft een spin?'), open('Welke kleur krijg je als je blauw en geel mengt?')] },
+  ],
+});

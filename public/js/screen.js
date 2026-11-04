@@ -254,9 +254,12 @@
   // what is left, and last the question itself shrinks to fit the board.
   // Next to the answers a name rather gets smaller than taller; with many teams it stays on one line even longer,
   // so all rows keep the same height.
+  // A typed answer gets the same treatment: smaller or over two lines, but shown in full.
   function fitTeamAnswerNames() {
     const box = $('#team-answers');
-    QB.fitNames(box, '.tn', { one: box.children.length > 12 ? 0.5 : 0.7, min: 0.45 });
+    QB.fitNames(box, '.ta-name', { one: box.children.length > 12 ? 0.5 : 0.7, min: 0.45 });
+    // An answer rather goes over two lines than gets tiny.
+    QB.fitNames(box, '.ta-answer', { one: 0.85, min: 0.45 });
   }
   function fitQuestion() {
     const h1 = $('#q-text');
@@ -275,9 +278,17 @@
       QB.fitNames($('#round-board'));
       // A big night (more than 24 teams) gets a little more room for its long list.
       if (!teamsBox.hidden) {
-        QB.fit(teamsBox, { height: innerHeight * (teamsBox.children.length > 24 ? 0.3 : 0.22), min: 0.45 });
-        // Smaller now, so the names get another go (fewer lines, never more).
+        const cap = innerHeight * (teamsBox.children.length > 24 ? 0.3 : 0.22);
+        const k = QB.fit(teamsBox, { height: cap, min: 0.45 });
+        // Smaller now, so the names and answers get another go; if that made them taller, a little smaller again.
         fitTeamAnswerNames();
+        let size = parseFloat(getComputedStyle(teamsBox).fontSize);
+        const min = size / k * 0.45;
+        while (teamsBox.scrollHeight > cap + 1 && size * 0.93 > min) {
+          size *= 0.93;
+          teamsBox.style.fontSize = size + 'px';
+          fitTeamAnswerNames();
+        }
       }
       // Pots, streaks and who is out: one pill per team, so many teams make the pills smaller.
       const roundBoard = $('#round-board');
@@ -295,6 +306,16 @@
       while (size > minMain && needed() > body.clientHeight + 1) {
         size *= 0.93;
         main.style.fontSize = size + 'px';
+      }
+      // Five long clues and 40 answers: the board is as small as it gets, so the team answers give way a little more.
+      if (!teamsBox.hidden) {
+        let ts = parseFloat(getComputedStyle(teamsBox).fontSize);
+        const minTs = ts * 0.7;
+        while (needed() > body.clientHeight + 1 && ts * 0.93 > minTs) {
+          ts *= 0.93;
+          teamsBox.style.fontSize = ts + 'px';
+          fitTeamAnswerNames();
+        }
       }
       board.style.flexGrow = '';
       const room = () => {
@@ -337,6 +358,8 @@
     const cards = [...grid.children].filter(c => !c.classList.contains('off'));
     const n = cards.length;
     if (!n) return;
+    // Measure the space itself, not the width the cards of the last fit gave the grid.
+    grid.style.removeProperty('--colw');
     const W = grid.clientWidth, H = grid.clientHeight;
     const base = parseFloat(getComputedStyle(grid).fontSize);
     const reveal = document.body.classList.contains('revealed');
@@ -507,7 +530,9 @@
         $('#q-web').className = 'web-board';
         $('#q-web').replaceChildren(...q.words.map((w, i) => h('span', { class: 'web-tile', style: `--k: ${i}` }, w)));
       }
+      // Pins of an earlier map are gone, and so is the size they had on that picture.
       $('#q-pins').replaceChildren();
+      $('#q-pins').style.cssText = '';
       $('#answered-dots').replaceChildren();
       renderMedia(q);
       $('#q-category').hidden = !q.category;
@@ -635,7 +660,7 @@
       $('#team-answers').replaceChildren(...list.map((a, i) => h('li', { class: 'team-answer' + (a.correct ? ' right' : a.answer === null ? ' none' : a.points > 0 ? ' part' : ' wrong'), style: `${teamVar(a.color)}; --k: ${i}` },
         h('span', { class: 'team-dot' }),
         h('span', { class: 'ta-name tn' }, a.name),
-        h('span', { class: 'ta-answer' }, shown(a)),
+        h('span', { class: 'ta-answer tn' }, shown(a)),
         h('span', { class: 'ta-pts' + (a.points < 0 ? ' minus' : '') }, a.points ? (a.points > 0 ? '+' : '') + a.points : ''))));
     }
     if (reveal) {
@@ -644,7 +669,7 @@
       img.style.transform = '';
       img.style.filter = '';
       $('#q-canvas').hidden = true;
-      img.hidden = false;
+      img.hidden = !img.getAttribute('src');
       if (!wasRevealed) Media.reveal();
       if (q.items && s.reveal.order) $('#q-items').replaceChildren(...s.reveal.order.map((it, i) => h('li', { class: 'order-item solved', style: `--k: ${i}` }, h('span', { class: 'letter' }, i + 1), h('span', {}, it))));
       if (q.left && s.reveal.pairs) $('#q-pairs').replaceChildren(h('ol', { class: 'pair-col solved' + (s.reveal.pairs.length > 4 ? ' split' : ''), style: `--rows: ${Math.ceil(s.reveal.pairs.length / 2)}` }, s.reveal.pairs.map((p, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'num' }, i + 1), p[0], h('span', { class: 'eq' }, '='), h('strong', {}, p[1])))));
@@ -724,7 +749,7 @@
     }
     const canvas = $('#q-canvas');
     canvas.hidden = q.effect !== 'pixel';
-    img.hidden = q.effect === 'pixel';
+    img.hidden = q.effect === 'pixel' || !q.image;
     if (s.paused) {
       ring.style.strokeDashoffset = C * (1 - s.remaining / total);
       $('#timer-num').textContent = Math.ceil(s.remaining / 1000);

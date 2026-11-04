@@ -863,6 +863,7 @@
     if (tooBig()) span.classList.add('break');
   }
   addEventListener('resize', fitBadge);
+  addEventListener('resize', () => fitChoices());
   if (document.fonts) document.fonts.ready.then(fitBadge);
 
   function wait(text, badge) {
@@ -969,6 +970,7 @@
     store.set('qb.bigText', on ? '1' : '0');
     setBigText(on);
     fitBadge();
+    fitChoices();
   });
 
   // Reactions: tap an emoji and it floats up on the big screen. Not during a question, so nobody is distracted.
@@ -1032,6 +1034,18 @@
     });
   });
 
+  // Four long answers (with big text, or the question on the phone too) fit the screen without scrolling:
+  // the answer text gets a little smaller, never below 75%.
+  function fitChoices() {
+    const box = $('#choices');
+    box.style.fontSize = '';
+    const view = $('#v-question');
+    if (view.hidden) return;
+    const over = () => view.scrollHeight > innerHeight + 1;
+    let k = 1;
+    while (over() && k > 0.75) { k *= 0.93; box.style.fontSize = k + 'em'; }
+  }
+
   function renderChoices(s, fresh) {
     showView('question');
     $('#q-num').textContent = t('play.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
@@ -1067,6 +1081,7 @@
     const own = s.question.kind === 'level';
     $('#phone-q').hidden = !own;
     if (own) $('#phone-q').textContent = s.question.text;
+    if (fresh) fitChoices();
     $('#q-extra').textContent = s.round.type === 'pushYourLuck' ? t('play.pot', { n: s.pot }) : s.round.type === 'hotStreak' && s.streak ? t('play.streak', { n: s.streak + 1 }) : own ? t(`play.level${s.question.level}`) : '';
     $('#bank-btn').hidden = !s.canBank;
     if (s.canBank) $('#bank-btn').textContent = t('play.bank', { n: s.pot });
