@@ -60,6 +60,13 @@
     modes = info.modes;
     renderModes(info.mode);
   });
+  // The quizmaster picked another address (or the first phone came in on another one): new QR code everywhere.
+  socket.on('joinInfo', j => {
+    if (!joinInfo) return;
+    joinInfo = { ...joinInfo, ...j };
+    $('#join-url').textContent = j.url.replace(/^https?:\/\//, '');
+    if (state) render(state);
+  });
   let looks = [];
   function renderLooks() {
     const cur = document.documentElement.dataset.look;
@@ -91,7 +98,11 @@
   socket.on('mode', m => renderModes(m));
   // Sound effects on the big screen: on or off for the whole evening.
   let sfxOn = true;
-  const renderSfx = () => { $('#sfx').textContent = sfxOn ? '🔊' : '🔇'; $('#sfx').classList.toggle('off', !sfxOn); };
+  const renderSfx = () => {
+    $('#sfx').innerHTML = Menu.icon(sfxOn ? 'sound' : 'mute');
+    $('#sfx').classList.toggle('off', !sfxOn);
+    $('#sfx').setAttribute('aria-pressed', String(sfxOn));
+  };
   socket.on('sfx', v => { sfxOn = !!v; renderSfx(); });
   $('#sfx').addEventListener('click', () => socket.emit('sfx', !sfxOn));
   socket.on('look', l => { $('#look').value = l; });
