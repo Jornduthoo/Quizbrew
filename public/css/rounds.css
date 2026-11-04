@@ -525,7 +525,7 @@ body[data-phase="reveal"] .q-fact:not([hidden]) ~ .answered-dots, body[data-phas
 /* Drawings and photos on the vote screen: a fixed grid of equal cells that always fills the space under the question.
    screen.js picks the columns (--cols/--rows) that give the biggest pictures and the card size (font) for that cell;
    the picture takes what is left in its card, so 1 or 40 drawings never run off the screen or under the title. */
-.screen .ballot-grid.pics { grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows, 2), minmax(0, 1fr)); grid-auto-rows: 0; gap: var(--gap, 2vh); align-content: stretch; height: 100%; }
+.screen .ballot-grid.pics { grid-template-columns: repeat(var(--cols, 2), var(--colw, minmax(0, 1fr))); justify-content: center; grid-template-rows: repeat(var(--rows, 2), minmax(0, 1fr)); grid-auto-rows: 0; gap: var(--gap, 2vh); align-content: stretch; height: 100%; }
 .screen .ballot-grid.pics .ballot-card { min-height: 0; padding: .45em; gap: .3em; justify-content: flex-start; border-radius: .7em; border-width: max(2px, .12em); }
 .screen .ballot-grid.pics .ballot-card img { flex: 1 1 0; min-height: 0; max-height: none; width: 100%; border-radius: .45em; }
 .screen .ballot-grid.pics .ballot-card .letter { left: .3em; top: .3em; z-index: 1; border-radius: .4em; box-shadow: 0 0 .5em rgba(0, 0, 0, .6); }
@@ -538,3 +538,11 @@ body[data-phase="reveal"] .q-fact:not([hidden]) ~ .answered-dots, body[data-phas
 .screen .ballot-grid.pics .bc-votes { flex-wrap: wrap; align-items: center; }
 .screen .ballot-grid.pics .bc-votes .team-dot[hidden] { display: none; }
 .screen .ballot-grid.pics .bc-votes .more { font-size: .8em; line-height: 1; color: var(--brass-light); }
+/* Pages of drawings: the cards of other pages are out, the dots under the grid show where the carousel is. */
+.screen .ballot-grid .ballot-card.off { display: none; }
+body.screen .vote:has(.ballot-pages:not([hidden])) { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+.screen .ballot-pages { display: flex; justify-content: center; align-items: center; gap: .7em; }
+.screen .ballot-pages[hidden] { display: none; }
+.screen .ballot-pages i { width: .7em; height: .7em; border-radius: 50%; background: rgb(255 255 255 / .25); transition: background .4s, transform .4s, box-shadow .4s; }
+.screen .ballot-pages i.on { background: var(--theme, var(--neon-amber)); box-shadow: 0 0 .8em var(--theme, var(--neon-amber)); transform: scale(1.3); }
+.screen .ballot-pages i.star { clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); border-radius: 0; width: 1em; height: 1em; }
