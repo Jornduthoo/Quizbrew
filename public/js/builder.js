@@ -482,7 +482,8 @@
     clues: (q, set) => {
       const wrap = h('div', { class: 'field wide' });
       const draw = () => {
-        const clues = q.clues || (q.clues = ['', '']);
+        const clues = Array.isArray(q.clues) ? q.clues : (q.clues = []);
+        while (clues.length < 2) clues.push('');
         fill(wrap, h('span', {}, t('builder.f.clues')),
           h('ol', { class: 'clue-list' }, clues.map((c, i) => h('li', {},
             h('input', { value: c, maxlength: 120, oninput: e => { clues[i] = e.target.value; changed(); } }),
@@ -500,7 +501,9 @@
     options: q => {
       const wrap = h('div', { class: 'field wide level-edit' });
       const draw = () => {
-        const opts = q.options || (q.options = []);
+        const opts = Array.isArray(q.options) ? q.options : (q.options = []);
+        // At least two categories to fill in, also when the AI or a file brought fewer.
+        while (opts.length < 2) opts.push({ category: '', question: '', answers: ['', '', '', ''], correct: 0 });
         fill(wrap, h('span', {}, t('builder.f.options')),
           opts.map((o, i) => h('div', { class: 'level-block', style: `--k: ${i}` },
             h('div', { class: 'opt-head' },
@@ -526,7 +529,10 @@
     },
     // Easy, medium and hard: three small questions with buttons.
     levels: q => {
-      const levels = q.levels || (q.levels = [0, 1, 2].map(() => ({ question: '', answers: ['', '', '', ''], correct: 0 })));
+      // Always easy, medium and hard, also when the AI or a file brought fewer levels.
+      const levels = Array.isArray(q.levels) ? q.levels : (q.levels = []);
+      while (levels.length < 3) levels.push({ question: '', answers: ['', '', '', ''], correct: 0 });
+      levels.forEach((lv, i) => { if (!lv || typeof lv !== 'object') levels[i] = { question: '', answers: ['', '', '', ''], correct: 0 }; });
       return h('div', { class: 'field wide level-edit' }, levels.map((lv, i) => h('div', { class: 'level-block', style: `--k: ${i}` },
         h('span', { class: 'level-tag' }, `${t(`play.level${i}`)} · ${t('builder.f.levelPoints', { n: i + 1 })}`),
         input(t('builder.f.question'), lv.question, v => { lv.question = v; changed(); }, { el: { maxlength: 200 } }),
@@ -541,7 +547,9 @@
     const wrap = h('div', { class: 'field wide' });
     const name = 'c' + Math.random().toString(36).slice(2);
     const draw = () => {
-      const list = q.answers || (q.answers = ['', '']);
+      const list = Array.isArray(q.answers) ? q.answers : (q.answers = []);
+      while (list.length < 2) list.push('');
+      if (!Number.isInteger(q.correct) || q.correct >= list.length) q.correct = 0;
       fill(wrap, h('span', {}, t('builder.f.answers')),
         h('div', { class: 'answer-grid' }, list.map((a, i) => h('label', { class: 'answer-edit' + (q.correct === i ? ' right' : ''), style: `--a: var(--ans-${i})` },
           h('input', { type: 'radio', name, checked: q.correct === i ? 'checked' : null, title: t('builder.f.markRight'), onchange: () => { set('correct', i); draw(); } }),
@@ -870,7 +878,10 @@
               src ? h('button', { class: 'mini kick', type: 'button', onclick: () => { imgs[i] = ''; credits[i] = ''; changed(); draw(); } }, '×') : null));
           return slot;
         })),
-        h('p', { class: 'hint small' }, t('builder.f.oddHint')));
+        h('p', { class: 'hint small' }, t('builder.f.oddHint')),
+        // The AI's picture prompts (one per slot), to make the pictures with an image AI.
+        q.imagePrompt ? h('div', { class: 'img-prompt' }, h('p', { class: 'hint small' }, t('builder.f.imagePrompt')), h('code', {}, q.imagePrompt),
+          h('button', { class: 'ghost-btn small', type: 'button', onclick: () => copy(q.imagePrompt) }, t('ai.copy'))) : null);
     };
     if (!Number.isInteger(q.correct)) q.correct = 0;
     draw();
@@ -881,7 +892,8 @@
   function listField(q, key, min, max, label, hint) {
     const wrap = h('div', { class: 'field wide' });
     const draw = () => {
-      const items = q[key] || (q[key] = Array.from({ length: min + 1 }, () => ''));
+      const items = Array.isArray(q[key]) ? q[key] : (q[key] = Array.from({ length: min + 1 }, () => ''));
+      while (items.length < min) items.push('');
       fill(wrap, h('span', {}, label),
         h('ol', { class: 'clue-list' }, items.map((c, i) => h('li', {},
           h('input', { value: c, maxlength: 80, oninput: e => { items[i] = e.target.value; changed(); } }),
@@ -897,10 +909,13 @@
   function groupsField(q) {
     const wrap = h('div', { class: 'field wide' });
     const draw = () => {
-      const groups = q.groups || (q.groups = [0, 1, 2].map(() => ({ link: '', words: ['', '', '', ''] })));
+      const groups = Array.isArray(q.groups) ? q.groups : (q.groups = []);
+      while (groups.length < 3) groups.push({ link: '', words: ['', '', '', ''] });
+      groups.forEach((g, i) => { if (!g || typeof g !== 'object' || Array.isArray(g)) groups[i] = { link: '', words: Array.isArray(g) ? g : [] }; });
       fill(wrap, h('span', {}, t('builder.f.groups')),
         h('div', { class: 'web-edit' }, groups.map((g, gi) => {
-          g.words = g.words || ['', '', '', ''];
+          g.words = Array.isArray(g.words) ? g.words : [];
+          while (g.words.length < 4) g.words.push('');
           return h('div', { class: 'web-edit-group', style: `--g: var(--web-${gi})` },
             h('div', { class: 'web-edit-head' },
               h('input', { class: 'web-edit-link', value: g.link || '', maxlength: 60, placeholder: t('builder.f.groupLink', { n: gi + 1 }), oninput: e => { g.link = e.target.value; changed(); } }),
@@ -917,7 +932,9 @@
   function pairsField(q) {
     const wrap = h('div', { class: 'field wide' });
     const draw = () => {
-      const pairs = q.pairs || (q.pairs = [['', ''], ['', ''], ['', ''], ['', '']]);
+      const pairs = Array.isArray(q.pairs) ? q.pairs : (q.pairs = []);
+      while (pairs.length < 3) pairs.push(['', '']);
+      pairs.forEach((p, i) => { if (!Array.isArray(p)) pairs[i] = ['', '']; });
       fill(wrap, h('span', {}, t('builder.f.pairs')),
         h('div', { class: 'pair-list' }, pairs.map((p, i) => h('div', { class: 'pair-row' },
           h('input', { value: p[0], maxlength: 60, oninput: e => { p[0] = e.target.value; changed(); } }),

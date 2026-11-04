@@ -2,9 +2,12 @@
 // Columns: round, type, question, A, B, C, D, correct, answer, accept, clues, category, unit, time, points, image, fact
 // correct = the letter of the right choice (A-D), or true/false for a true-or-false round.
 // accept and clues are separated by |.
+// more = the rest of the question as JSON (items, pairs, groups, levels, pictures ...), so every round type survives a round trip.
 const rounds = require('./rounds');
 
-const COLUMNS = ['round', 'type', 'question', 'A', 'B', 'C', 'D', 'correct', 'answer', 'accept', 'clues', 'category', 'unit', 'time', 'points', 'image', 'fact'];
+const COLUMNS = ['round', 'type', 'question', 'A', 'B', 'C', 'D', 'correct', 'answer', 'accept', 'clues', 'category', 'unit', 'time', 'points', 'image', 'fact', 'more'];
+// Question fields that have a column of their own; everything else goes into "more".
+const OWN = new Set(['question', 'answers', 'correct', 'answer', 'accept', 'clues', 'category', 'unit', 'time', 'points', 'image', 'fact']);
 const LETTERS = ['A', 'B', 'C', 'D'];
 
 function parseRows(text) {
@@ -41,8 +44,8 @@ function toQuiz(text, title = 'Imported quiz') {
   const quiz = { title, rounds: [] };
   for (const r of rows.slice(1)) {
     const roundName = get(r, 'round') || 'Round 1';
-    const typeId = rounds.get(get(r, 'type')) ? get(r, 'type') : null;
-    let round = quiz.rounds.find(x => x.title === roundName);
+    const typeId = rounds.typeFrom(get(r, 'type'));
+    let round = quiz.rounds.find(x => x.title === roundName && (!typeId || x.type === typeId));
     if (!round) {
       round = { type: typeId || 'classic', title: roundName, questions: [] };
       quiz.rounds.push(round);
@@ -51,17 +54,24 @@ function toQuiz(text, title = 'Imported quiz') {
     const q = { question: get(r, 'question') };
     const choices = LETTERS.map(l => get(r, l)).filter(Boolean);
     const correct = get(r, 'correct');
-    if (type.id === 'trueFalse') q.correct = /^(true|waar|vrai|yes|ja|oui|1|w|t)$/i.test(correct);
+    if (type.id === 'trueFalse') q.correct = rounds.yesNo(correct) === true || /^w$/i.test(correct);
     else if (choices.length >= 2) {
       q.answers = choices;
-      q.correct = Math.max(0, LETTERS.indexOf(correct.toUpperCase()));
+      q.correct = rounds.correctOf({ correct }, choices);
     }
-    if (get(r, 'answer')) q.answer = type.kind === 'number' ? Number(get(r, 'answer').replace(',', '.')) : get(r, 'answer');
+    if (get(r, 'answer')) q.answer = type.kind === 'number' ? rounds.num(get(r, 'answer')) : get(r, 'answer');
     if (get(r, 'accept')) q.accept = rounds.list(get(r, 'accept'));
     if (get(r, 'clues')) q.clues = rounds.list(get(r, 'clues'));
     for (const f of ['category', 'unit', 'image', 'fact']) if (get(r, f)) q[f] = get(r, f);
     if (Number(get(r, 'time')) > 0) q.time = Number(get(r, 'time'));
     if (Number(get(r, 'points')) > 0) q.points = Number(get(r, 'points'));
+    if (get(r, 'more')) {
+      let more = null;
+      try { more = JSON.parse(get(r, 'more')); } catch { /* a broken cell: leave it out */ }
+      if (more && typeof more === 'object' && !Array.isArray(more)) for (const [k, v] of Object.entries(more)) if (!OWN.has(k) && !(k in q)) q[k] = v;
+      // The odd one out keeps its right picture in "correct" too.
+      if (more && Number.isInteger(more.correct) && !q.answers) q.correct = more.correct;
+    }
     round.questions.push(q);
   }
   return quiz;
@@ -74,16 +84,26 @@ const esc = v => {
 
 function fromQuiz(quiz) {
   const lines = [COLUMNS.join(',')];
-  for (const r of quiz.rounds || []) {
+  const names = [];
+  for (const [ri, r] of (quiz.rounds || []).entries()) {
+    // Every round gets its own name in the sheet, so two rounds never melt into one on the way back.
+    let name = String(r.title || '').trim() || `Round ${ri + 1}`;
+    if (names.includes(name)) name = `${name} (${ri + 1})`;
+    names.push(name);
     for (const q of r.questions || []) {
       const row = {
-        round: r.title || r.type, type: r.type, question: q.question,
+        round: name, type: r.type, question: q.question,
         correct: typeof q.correct === 'boolean' ? String(q.correct) : Array.isArray(q.answers) ? LETTERS[q.correct] : '',
         answer: q.answer, accept: (q.accept || []).join('|'), clues: (q.clues || []).join('|'),
         category: q.category, unit: q.unit, time: q.time, points: q.points,
         image: typeof q.image === 'string' && !q.image.startsWith('data:') ? q.image : '',
         fact: q.fact,
       };
+      const more = {};
+      for (const [k, v] of Object.entries(q)) if (!OWN.has(k) && v !== undefined && v !== '' && !(Array.isArray(v) && !v.length)) more[k] = v;
+      if (Number.isInteger(q.correct) && !Array.isArray(q.answers)) more.correct = q.correct;
+      if (typeof q.image === 'string' && q.image.startsWith('data:')) delete more.image;
+      if (Object.keys(more).length) row.more = JSON.stringify(more);
       (q.answers || []).forEach((a, i) => { row[LETTERS[i]] = a; });
       lines.push(COLUMNS.map(c => esc(row[c])).join(','));
     }

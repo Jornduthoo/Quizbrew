@@ -115,8 +115,111 @@ function permutation(n, seedText) {
 // Distance between two points on a picture, both 0..1, as a share of the picture's diagonal.
 const pointDistance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) / Math.SQRT2;
 
-const str = v => (typeof v === 'string' ? v.trim() : '');
-const list = v => (Array.isArray(v) ? v.map(str).filter(Boolean) : typeof v === 'string' ? v.split('|').map(str).filter(Boolean) : []);
+// A text: strings, and plain numbers too (an AI writes "answer": 1969).
+const str = v => (typeof v === 'string' ? v.trim() : typeof v === 'number' && Number.isFinite(v) ? String(v) : '');
+// The text inside a small object an AI made instead of a plain text ({"text": "Paris"}, {"name": "Moon landing", "year": 1969}).
+const TEXT_KEYS = ['text', 'name', 'item', 'label', 'value', 'answer', 'option', 'title', 'word', 'question', 'caption'];
+const textOf = v => {
+  if (v && typeof v === 'object' && !Array.isArray(v)) {
+    for (const k of TEXT_KEYS) if (str(v[k])) return str(v[k]);
+    return str(Object.values(v).find(x => str(x)));
+  }
+  return str(v);
+};
+// A list of texts: an array, or one text with | or line breaks between the items.
+const list = v => (Array.isArray(v) ? v.map(textOf).filter(Boolean) : typeof v === 'string' ? v.split(/\s*[|\n]\s*/).map(str).filter(Boolean) : []);
+// The same, and a single text may also use commas or semicolons ("cod, eel, ray, pike").
+const listLoose = v => (typeof v === 'string' && !/[|\n]/.test(v) ? v.split(/\s*[;,]\s*/).map(str).filter(Boolean) : list(v));
+
+// A number the way people and AIs write it: 8849, "8,849", "8.849", "11.700.000", "1,5", "11.7 million", "ca. 330 m".
+function num(v) {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : NaN;
+  const s = String(v == null ? '' : v).toLowerCase().replace(/[\s '’_]/g, '');
+  const m = /-?\d[\d.,]*/.exec(s);
+  if (!m) return NaN;
+  let t = m[0].replace(/[.,]$/, '');
+  const dots = (t.match(/\./g) || []).length;
+  const commas = (t.match(/,/g) || []).length;
+  if (dots && commas) t = t.lastIndexOf(',') > t.lastIndexOf('.') ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+  else if (dots + commas > 1) t = t.replace(/[.,]/g, '');
+  else if (dots + commas === 1) {
+    const [a, b] = t.split(/[.,]/);
+    // One separator with three digits behind it is a thousands point (8,849 or 8.849), except after a zero (0.125).
+    t = b.length === 3 && !/^-?0$/.test(a) ? a + b : `${a}.${b}`;
+  }
+  let n = Number(t);
+  const rest = s.slice(m.index + m[0].length);
+  if (/^(billion|miljard|milliard|bn)/.test(rest)) n *= 1e9;
+  else if (/^(million|miljoen|millones|mio|mln)/.test(rest)) n *= 1e6;
+  else if (/^(thousand|duizend|tausend|mille)/.test(rest)) n *= 1e3;
+  return Number.isFinite(n) ? n : NaN;
+}
+
+// Yes or no in the words an AI may use, in five languages.
+const YES = ['true', 'yes', 'waar', 'juist', 'correct', 'ja', 'vrai', 'oui', 'wahr', 'richtig', 'verdadero', 'cierto', 'si', 't', 'y', '1'];
+const NO = ['false', 'no', 'nee', 'niet waar', 'onwaar', 'fout', 'faux', 'non', 'falsch', 'nein', 'falso', 'f', 'n', '0'];
+function yesNo(v) {
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'number') return v === 1 ? true : v === 0 ? false : undefined;
+  const s = normalize(v);
+  return YES.includes(s) ? true : NO.includes(s) ? false : undefined;
+}
+
+// Answer options the way an AI may write them: a list of texts, a list of {text, correct} objects, {"A": "...", "B": "..."},
+// under "answers", "choices" or "options", with or without "A) " in front. Returns the texts and the right one, if marked.
+function choicesOf(it) {
+  let raw = it.answers !== undefined ? it.answers : it.choices !== undefined ? it.choices
+    : Array.isArray(it.options) && !it.options.some(o => o && typeof o === 'object' && ('category' in o || 'question' in o)) ? it.options : undefined;
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) raw = Object.values(raw);
+  if (typeof raw === 'string') raw = list(raw);
+  if (!Array.isArray(raw)) return { answers: [], marked: -1 };
+  const rows = raw.map(a => ({ text: textOf(a), right: !!(a && typeof a === 'object' && (yesNo(a.correct) || yesNo(a.isCorrect) || yesNo(a.right))) })).filter(r => r.text);
+  if (rows.length > 1 && rows.every(r => /^[A-Da-d1-4][).:]\s+\S/.test(r.text))) rows.forEach(r => { r.text = r.text.replace(/^\S[).:]\s+/, ''); });
+  const kept = rows.slice(0, 4);
+  return { answers: kept.map(r => r.text), marked: kept.findIndex(r => r.right) };
+}
+
+// Which option is right: an index (one past the end, as a 1-based AI writes it, means the last), a letter, or the text itself.
+function correctOf(it, answers, marked = -1) {
+  const n = answers.length;
+  if (marked >= 0) return marked;
+  if (!n) return 0;
+  const byText = v => answers.findIndex(a => normalize(a) && normalize(a) === normalize(String(v).replace(/^[A-Da-d][).:]\s+/, '')));
+  const byLetter = v => { const m = /^([A-Da-d])(?:$|[).:\s])/.exec(String(v).trim()); return m && 'abcd'.indexOf(m[1].toLowerCase()) < n ? 'abcd'.indexOf(m[1].toLowerCase()) : -1; };
+  const byIndex = v => { const k = Number(v); return Number.isInteger(k) && k >= 0 ? Math.min(k, n - 1) : -1; };
+  const c = it.correct;
+  if (typeof c === 'number') { const k = byIndex(c); if (k >= 0) return k; }
+  if (typeof c === 'string' && c.trim()) {
+    for (const f of [byText, byLetter, v => (/^\d+$/.test(v.trim()) ? byIndex(v) : -1)]) { const k = f(c); if (k >= 0) return k; }
+  }
+  for (const v of [it.correctAnswer, it.answer]) {
+    if (typeof v !== 'string' && typeof v !== 'number') continue;
+    for (const f of [byText, byLetter]) { const k = f(v); if (k >= 0) return k; }
+  }
+  return 0;
+}
+
+// The right answer of a typed question: "answer", or what the AI called it.
+const answerOf = it => str(it.answer) || str(it.correctAnswer) || (typeof it.correct === 'string' ? str(it.correct) : '') || textOf(it.answer);
+
+// Pairs the way an AI may write them: [["a", "b"]], [{"left": "a", "right": "b"}], {"a": "b"} or ["a = b"].
+function pairsOf(v) {
+  let raw = v;
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) raw = Object.entries(raw);
+  if (!Array.isArray(raw)) return [];
+  return raw.map(p => {
+    if (Array.isArray(p)) return [textOf(p[0]), textOf(p[1])];
+    if (p && typeof p === 'object') {
+      for (const [a, b] of [['left', 'right'], ['a', 'b'], ['item', 'match'], ['from', 'to'], ['key', 'value'], ['question', 'answer'], ['term', 'definition']]) {
+        if (str(p[a]) && str(p[b])) return [str(p[a]), str(p[b])];
+      }
+      const vals = Object.values(p).map(str).filter(Boolean);
+      return [vals[0] || '', vals[1] || ''];
+    }
+    const parts = str(p).split(/\s*(?:=|→|->|=>|:| – | — | - )\s*/);
+    return [parts[0] || '', parts.slice(1).join(' ') || ''];
+  }).filter(p => p[0] && p[1]);
+}
 
 // Checks shared by the types.
 const need = {
@@ -140,7 +243,7 @@ const choiceType = {
   publicQ: q => ({ answers: q.answers }),
   revealQ: q => ({ correct: q.correct, answerText: q.answers[q.correct] }),
   aiShape: '{"question": "...", "answers": ["...", "...", "...", "..."], "correct": 0}  (exactly 4 answers, correct = index 0-3 of the right one; shuffle where the right answer sits)',
-  fromAI: it => ({ question: str(it.question), answers: list(it.answers).slice(0, 4), correct: Number(it.correct) || 0 }),
+  fromAI: it => { const { answers, marked } = choicesOf(it); return { question: str(it.question), answers, correct: correctOf(it, answers, marked) }; },
 };
 
 const textType = {
@@ -151,8 +254,17 @@ const textType = {
   publicQ: () => ({}),
   revealQ: q => ({ answerText: q.answer }),
   aiShape: '{"question": "...", "answer": "short answer", "accept": ["other accepted spelling"]}',
-  fromAI: it => ({ question: str(it.question), answer: str(it.answer), accept: list(it.accept) }),
+  fromAI: it => ({ question: str(it.question), answer: answerOf(it), accept: list(it.accept) }),
 };
+
+// Which song the quizmaster should look for: "song", or artist and title apart.
+const songOf = it => str(it.song) || [str(it.artist), str(it.title)].filter(Boolean).join(' - ');
+
+// Answer options when the AI gave them (2 or more), otherwise a typed answer.
+function choiceOrTextAI(it) {
+  const { answers, marked } = choicesOf(it);
+  return answers.length >= 2 ? { answers, correct: correctOf(it, answers, marked) } : { answer: answerOf(it), accept: list(it.accept) };
+}
 
 // A picture question is a choice when it has answers, otherwise typed.
 const choiceOrText = {
@@ -167,7 +279,7 @@ const choiceOrText = {
   publicQ: q => (choiceOrText.kindOf(q) === 'choice' ? { answers: q.answers } : {}),
   revealQ: q => (choiceOrText.kindOf(q) === 'choice' ? choiceType.revealQ(q) : { answerText: q.answer }),
   aiShape: '{"question": "What is shown?", "answer": "short answer", "accept": ["..."], "imagePrompt": "a prompt for an image AI that shows the subject without any text in the image", "imageSearch": "1 to 3 plain English words for a photo search: only the main subject, for example Eiffel Tower or lion, no details"}',
-  fromAI: it => ({ question: str(it.question) || '', answer: str(it.answer), accept: list(it.accept), imagePrompt: str(it.imagePrompt), imageSearch: str(it.imageSearch) }),
+  fromAI: it => ({ question: str(it.question), ...choiceOrTextAI(it), imagePrompt: str(it.imagePrompt), imageSearch: str(it.imageSearch) }),
 };
 
 // Drawings and photos arrive as a media url (the server stores the picture first).
@@ -249,7 +361,10 @@ const TYPES = [
     publicQ: () => ({}),
     revealQ: q => ({ correct: q.correct ? 0 : 1 }),
     aiShape: '{"question": "a statement", "correct": true}  (correct = whether the statement is true; mix true and false, surprising facts work best)',
-    fromAI: it => ({ question: str(it.question || it.statement), correct: it.correct === true || it.correct === 'true' }),
+    fromAI: it => {
+      const truth = [it.correct, it.answer, it.truth, it.isTrue, it.true].map(yesNo).find(v => v !== undefined);
+      return { question: str(it.question) || str(it.statement), correct: truth === true };
+    },
   },
   {
     id: 'open', family: 'classic', ...textType,
@@ -278,7 +393,7 @@ const TYPES = [
       });
     },
     aiShape: '{"question": "How many / how high / in which year ...?", "answer": 1234, "unit": "metres"}  (answer is a plain number)',
-    fromAI: it => ({ question: str(it.question), answer: Number(String(it.answer).replace(/[^\d.,-]/g, '').replace(',', '.')), unit: str(it.unit) }),
+    fromAI: it => { const n = num(it.answer); return { question: str(it.question), answer: Number.isFinite(n) ? n : null, unit: str(it.unit) }; },
   },
   {
     id: 'picture', family: 'visual', ...choiceOrText,
@@ -305,7 +420,7 @@ const TYPES = [
     },
     publicQ: q => ({ scrambled: scramble(q.answer), hint: str(q.question) }),
     aiShape: '{"answer": "WORD", "question": "a short hint or category"}  (one word or a short name of 4-12 letters)',
-    fromAI: it => ({ answer: str(it.answer).toUpperCase(), question: str(it.question || it.hint) }),
+    fromAI: it => ({ answer: (answerOf(it) || str(it.word) || str(it.solution)).toUpperCase(), question: str(it.question) || str(it.hint) }),
   },
   {
     id: 'commonThread', family: 'puzzle', ...textType,
@@ -318,7 +433,7 @@ const TYPES = [
     steps: q => list(q.clues).length,
     publicQ: q => ({ clues: list(q.clues) }),
     aiShape: '{"clues": ["hardest clue", "...", "...", "easiest clue"], "answer": "the link", "accept": ["..."]}  (4 clues from hard to easy that all point to one answer)',
-    fromAI: it => ({ clues: list(it.clues).slice(0, 6), answer: str(it.answer), accept: list(it.accept), question: '' }),
+    fromAI: it => ({ clues: list(it.clues).slice(0, 6), answer: answerOf(it), accept: list(it.accept), question: '' }),
   },
   {
     id: 'jackpot', family: 'special', ...textType, wager: true,
@@ -335,7 +450,7 @@ const TYPES = [
       });
     },
     aiShape: '{"category": "category shown before betting", "question": "...", "answer": "short answer", "accept": ["..."]}',
-    fromAI: it => ({ category: str(it.category), question: str(it.question), answer: str(it.answer), accept: list(it.accept) }),
+    fromAI: it => ({ category: str(it.category), question: str(it.question), answer: answerOf(it), accept: list(it.accept) }),
   },
   // ---------- wave 2: sound and pictures ----------
   {
@@ -344,7 +459,7 @@ const TYPES = [
     fields: ['audio', 'question', 'answerOrChoices', 'time', 'points'],
     validate(q, fail) { need.audio(q, fail); if (Array.isArray(q.answers) && q.answers.length) need.answers(q, fail); else need.answer(q, fail); },
     aiShape: '{"question": "Who sings this? / What is the title?", "answer": "artist or title", "accept": ["..."], "song": "Artist - Title", "clipStart": 35}  (the quizmaster adds the sound file; clipStart = second where the recognisable part starts)',
-    fromAI: it => ({ question: str(it.question), answer: str(it.answer), accept: list(it.accept), audioHint: str(it.song), start: Number(it.clipStart) || 0 }),
+    fromAI: it => ({ question: str(it.question), ...choiceOrTextAI(it), audioHint: songOf(it), start: Math.max(0, num(it.clipStart) || 0) }),
   },
   {
     id: 'introSprint', family: 'audio', ...textType, media: 'audio', effect: 'grow',
@@ -353,7 +468,7 @@ const TYPES = [
     validate(q, fail) { need.audio(q, fail); need.answer(q, fail); },
     steps: () => 4,
     aiShape: '{"question": "Name the song", "answer": "title", "accept": ["..."], "song": "Artist - Title"}  (well known songs with a recognisable intro; the quizmaster adds the sound file)',
-    fromAI: it => ({ question: str(it.question), answer: str(it.answer), accept: list(it.accept), audioHint: str(it.song) }),
+    fromAI: it => ({ question: str(it.question), answer: answerOf(it), accept: list(it.accept), audioHint: songOf(it) }),
   },
   {
     id: 'rewind', family: 'audio', ...textType, media: 'audio', effect: 'reverse',
@@ -361,7 +476,7 @@ const TYPES = [
     fields: ['audio', 'question', 'answer', 'time', 'points'],
     validate(q, fail) { need.audio(q, fail); need.answer(q, fail); },
     aiShape: '{"question": "This song plays backwards. Which one is it?", "answer": "title", "accept": ["..."], "song": "Artist - Title"}',
-    fromAI: it => ({ question: str(it.question), answer: str(it.answer), accept: list(it.accept), audioHint: str(it.song) }),
+    fromAI: it => ({ question: str(it.question), answer: answerOf(it), accept: list(it.accept), audioHint: songOf(it) }),
   },
   {
     id: 'soundCheck', family: 'audio', ...choiceOrText, media: 'audio',
@@ -369,7 +484,7 @@ const TYPES = [
     fields: ['audio', 'question', 'answerOrChoices', 'time', 'points'],
     validate(q, fail) { need.audio(q, fail); if (Array.isArray(q.answers) && q.answers.length) need.answers(q, fail); else need.answer(q, fail); },
     aiShape: '{"question": "What makes this sound?", "answers": ["...", "...", "...", "..."], "correct": 0, "sound": "description of the sound to record or find"}',
-    fromAI: it => ({ question: str(it.question), answers: list(it.answers).slice(0, 4), correct: Number(it.correct) || 0, audioHint: str(it.sound) }),
+    fromAI: it => ({ question: str(it.question), ...choiceOrTextAI(it), audioHint: str(it.sound) || songOf(it) }),
   },
   {
     id: 'lyricGap', family: 'audio', ...textType,
@@ -377,7 +492,7 @@ const TYPES = [
     fields: ['question', 'answer', 'audio', 'time', 'points'],
     validate(q, fail) { need.text(q, fail); need.answer(q, fail); },
     aiShape: '{"question": "a line of a famous song with the missing word as ___", "answer": "missing word", "song": "Artist - Title"}  (quote at most one short line)',
-    fromAI: it => ({ question: str(it.question), answer: str(it.answer), audioHint: str(it.song) }),
+    fromAI: it => ({ question: str(it.question), answer: answerOf(it), accept: list(it.accept), audioHint: songOf(it) }),
   },
   {
     id: 'pixelFog', family: 'visual', ...choiceOrText, effect: 'pixel',
@@ -404,9 +519,14 @@ const TYPES = [
     revealQ: q => ({ correct: q.correct, answerText: (q.captions && q.captions[q.correct]) || '' }),
     aiShape: '{"question": "Which one does not belong?", "captions": ["...", "...", "...", "..."], "correct": 2, "imagePrompts": ["...", "...", "...", "..."]}',
     fromAI: it => {
-      const captions = list(it.captions).slice(0, 4);
-      while (captions.length < 3) captions.push('');
-      return { question: str(it.question), captions, correct: Math.min(captions.length - 1, Math.max(0, Number(it.correct) || 0)), images: captions.map(() => ''), imagePrompt: list(it.imagePrompts).join(' | ') };
+      const given = list(it.captions).length ? { answers: list(it.captions).slice(0, 4), marked: -1 } : list(it.items).length ? { answers: list(it.items).slice(0, 4), marked: -1 } : choicesOf(it);
+      const captions = given.answers;
+      const correct = correctOf(it, captions, given.marked);
+      while (captions.length < Math.max(3, Math.min(4, Array.isArray(it.images) ? it.images.length : 0))) captions.push('');
+      const prompts = list(it.imagePrompts).length ? list(it.imagePrompts) : list(it.imagePrompt);
+      // Pictures that are already there stay in their slot (a quiz file read again); new questions get empty slots.
+      const images = captions.map((_, i) => (Array.isArray(it.images) ? str(it.images[i]) : ''));
+      return { question: str(it.question), captions, correct: Math.min(captions.length - 1, correct), images, imagePrompt: prompts.join(' | ') || str(it.imagePrompt) };
     },
   },
   {
@@ -416,7 +536,7 @@ const TYPES = [
     validate(q, fail) { if (!str(q.emoji)) fail('needs emoji'); need.answer(q, fail); },
     publicQ: q => ({ emoji: str(q.emoji) }),
     aiShape: '{"emoji": "🦁👑", "question": "Which film?", "answer": "short answer", "accept": ["..."]}  (3 to 6 emoji that spell out a film, song, saying or place)',
-    fromAI: it => ({ emoji: str(it.emoji), question: str(it.question), answer: str(it.answer), accept: list(it.accept) }),
+    fromAI: it => ({ emoji: str(it.emoji), question: str(it.question), answer: answerOf(it), accept: list(it.accept) }),
   },
   {
     id: 'orderUp', family: 'classic', kind: 'order',
@@ -458,7 +578,7 @@ const TYPES = [
     publicQ: q => ({ left: q.pairs.map(p => p[0]), right: permutation(q.pairs.length, q.pairs.map(p => p[1]).join('|')).map(i => q.pairs[i][1]) }),
     revealQ: q => ({ pairs: q.pairs, answerText: q.pairs.map(p => `${p[0]} = ${p[1]}`).join(' · ') }),
     aiShape: '{"question": "Match the country to its capital", "pairs": [["left", "right"], ["left", "right"], ["left", "right"], ["left", "right"]]}',
-    fromAI: it => ({ question: str(it.question), pairs: (Array.isArray(it.pairs) ? it.pairs : []).filter(p => Array.isArray(p) && p.length >= 2).map(p => [str(p[0]), str(p[1])]).slice(0, 5) }),
+    fromAI: it => ({ question: str(it.question), pairs: pairsOf(it.pairs).slice(0, 5) }),
   },
   {
     id: 'mapDrop', family: 'visual', kind: 'point',
@@ -480,7 +600,7 @@ const TYPES = [
       return entries.map(e => (e.answer && d(e) === best ? { points: d(e) <= 0.02 ? base * 2 : base, correct: true } : { points: 0, correct: false }));
     },
     aiShape: '{"question": "Where is Paris?", "answer": "Paris", "mapHint": "which map to use, e.g. a map of Europe"}  (the quizmaster adds the map and clicks the right spot)',
-    fromAI: it => ({ question: str(it.question), answer: str(it.answer), imagePrompt: str(it.mapHint) }),
+    fromAI: it => ({ question: str(it.question), answer: answerOf(it), imagePrompt: str(it.mapHint) || str(it.imagePrompt), imageSearch: str(it.imageSearch) || str(it.mapHint) }),
   },
 // ---------- wave 3: speed and strategy ----------
   {
@@ -495,7 +615,7 @@ const TYPES = [
     // The quizmaster judged the team that buzzed: 'right' or 'wrong' (with risk, wrong costs the points).
     score: (entries, q, base, ctx) => entries.map(e => (e.answer === 'right' ? { points: base, correct: true } : { points: e.answer === 'wrong' && ctx.scoring === 'risk' ? -base : 0, correct: false })),
     aiShape: '{"question": "...", "answer": "short answer the quizmaster reads"}  (quick questions with one clear answer)',
-    fromAI: it => ({ question: str(it.question), answer: str(it.answer) }),
+    fromAI: it => ({ question: str(it.question), answer: answerOf(it) }),
   },
   {
     id: 'lastStanding', family: 'strategy', ...choiceType,
@@ -567,7 +687,16 @@ const TYPES = [
     revealQ: q => ({ levels: q.levels.map(l => ({ question: l.question, answer: l.answers[l.correct] })), answerText: q.levels.map(l => l.answers[l.correct]).join(' · ') }),
     score: (entries, q, base) => entries.map(e => (e.answer && e.answer.i === q.levels[e.answer.l].correct ? { points: base * (e.answer.l + 1), correct: true } : { points: 0, correct: false })),
     aiShape: '{"category": "topic", "levels": [{"question": "easy", "answers": ["...", "...", "...", "..."], "correct": 0}, {"question": "medium", ...}, {"question": "hard", ...}]}',
-    fromAI: it => ({ category: str(it.category), levels: (Array.isArray(it.levels) ? it.levels : []).slice(0, 3).map(l => ({ question: str(l && l.question), answers: list(l && l.answers).slice(0, 4), correct: Number(l && l.correct) || 0 })) }),
+    fromAI: it => {
+      const named = o => (o && ['easy', 'medium', 'hard'].some(k => o[k]) ? ['easy', 'medium', 'hard'].map(k => o[k]) : null);
+      let raw = it.levels;
+      if (raw && typeof raw === 'object' && !Array.isArray(raw)) raw = named(raw) || Object.values(raw);
+      if (!Array.isArray(raw)) raw = named(it) || [];
+      const levels = raw.slice(0, 3).map(l => choiceType.fromAI(l && typeof l === 'object' ? l : {}));
+      // Always an easy, a medium and a hard slot, so the builder can fill in what the AI left out.
+      while (levels.length < 3) levels.push({ question: '', answers: ['', '', '', ''], correct: 0 });
+      return { category: str(it.category), levels };
+    },
   },
   {
     id: 'hotStreak', family: 'speed', kind: 'choice', judge: true,
@@ -590,7 +719,7 @@ const TYPES = [
       return { points: base * streak, correct: true, mem: { ...e.mem, streak } };
     }),
     aiShape: textType.aiShape,
-    fromAI: textType.fromAI,
+    fromAI: it => ({ question: str(it.question), ...choiceOrTextAI(it) }),
   },
   {
     id: 'listRush', family: 'speed', ...listType(3, 200),
@@ -598,7 +727,7 @@ const TYPES = [
     fields: ['question', 'listItems', 'time', 'points'],
     scorings: [],
     aiShape: '{"question": "Name as many ... as you can", "items": ["item", "item / other spelling", "..."]}  (10 to 30 items)',
-    fromAI: it => ({ question: str(it.question), items: list(it.items).slice(0, 60) }),
+    fromAI: it => ({ question: str(it.question), items: listLoose(it.items).slice(0, 60) }),
   },
   {
     id: 'crowdMind', family: 'party', kind: 'text',
@@ -647,8 +776,8 @@ const TYPES = [
     publicQ: () => ({}),
     revealQ: () => ({ answerText: '' }),
     score: voteScore,
-    aiShape: '{"question": "Write the funniest caption", "imagePrompt": "a prompt for an image AI: a funny, odd scene without text"}',
-    fromAI: it => ({ question: str(it.question), imagePrompt: str(it.imagePrompt) }),
+    aiShape: '{"question": "Write the funniest caption", "imagePrompt": "a prompt for an image AI: a funny, odd scene without text", "imageSearch": "1 to 3 plain English words for a photo search of a funny scene, for example cat in a box"}',
+    fromAI: it => ({ question: str(it.question), imagePrompt: str(it.imagePrompt), imageSearch: str(it.imageSearch) }),
   },
   {
     id: 'bluffBank', family: 'party', kind: 'text', vote: 'truth',
@@ -662,7 +791,7 @@ const TYPES = [
     revealQ: q => ({ answerText: q.answer }),
     score: voteScore,
     aiShape: '{"question": "an obscure but real fact as a question", "answer": "the surprising real answer"}  (the real answer should sound unlikely, so bluffs can compete)',
-    fromAI: it => ({ question: str(it.question), answer: str(it.answer) }),
+    fromAI: it => ({ question: str(it.question), answer: answerOf(it) }),
   },
   {
     id: 'actItOut', family: 'party', kind: 'text', judge: true, actor: true,
@@ -681,7 +810,7 @@ const TYPES = [
       return entries.map((e, i) => (e.id === ctx.actor ? { points: any ? base : 0, correct: any } : { points: right[i] ? base : 0, correct: right[i] }));
     },
     aiShape: '{"answer": "a film, job, animal or action to act out without words", "accept": ["..."]}',
-    fromAI: it => ({ answer: str(it.answer), accept: list(it.accept), question: '' }),
+    fromAI: it => ({ answer: answerOf(it), accept: list(it.accept), question: '' }),
   },
   {
     id: 'photoHunt', family: 'party', kind: 'photo', vote: 'best',
@@ -735,7 +864,7 @@ const TYPES = [
     publicQ: q => (Array.isArray(q.answers) && q.answers.length ? { answers: q.answers } : {}),
     revealQ: q => (Array.isArray(q.answers) && q.answers.length ? choiceType.revealQ(q) : { answerText: q.answer }),
     aiShape: '{"question": "a question about the town, club or pub (the quizmaster checks the facts)", "answer": "short answer", "accept": ["..."]}',
-    fromAI: textType.fromAI,
+    fromAI: it => ({ question: str(it.question), ...choiceOrTextAI(it) }),
   },
   {
     // Word web: 12 or 16 words on the board hide 3 or 4 groups of 4. Teams sort them on the phone and name each link.
@@ -779,7 +908,17 @@ const TYPES = [
     publicQ: q => ({ words: webOrder(q).map(i => webGroups(q)[Math.floor(i / 4)].words[i % 4]), groupCount: webGroups(q).length }),
     revealQ: q => ({ groups: webGroups(q).map(g => ({ link: g.link, words: g.words })), answerText: webGroups(q).map(g => g.link).join(' · ') }),
     aiShape: '{"question": "Find the 3 groups of 4 and what links them", "groups": [{"link": "what the 4 words share", "words": ["word", "word", "word", "word"]}, {"link": "...", "words": ["...", "...", "...", "..."]}, {"link": "...", "words": ["...", "...", "...", "..."]}]}  (exactly 3 groups of 4 single words; put in words that seem to fit another group too, that makes it fun)',
-    fromAI: it => ({ question: str(it.question), groups: (Array.isArray(it.groups) ? it.groups : []).slice(0, 4).map(g => ({ link: str(g && g.link), words: list(g && g.words).slice(0, 4) })) }),
+    fromAI: it => {
+      let raw = it.groups;
+      // {"Fish": ["cod", ...], ...} is a group per link too.
+      if (raw && typeof raw === 'object' && !Array.isArray(raw)) raw = Object.entries(raw).map(([link, words]) => ({ link, words }));
+      const groups = (Array.isArray(raw) ? raw : []).slice(0, 4).map(g => (Array.isArray(g) ? { words: g } : g || {})).map(g => ({
+        link: str(g.link) || str(g.connection) || str(g.theme) || str(g.category) || str(g.name) || str(g.title),
+        words: listLoose(g.words || g.items).slice(0, 4),
+        ...(list(g.accept).length ? { accept: list(g.accept) } : {}),
+      }));
+      return { question: str(it.question), groups };
+    },
   },
   {
     id: 'clueLadder', family: 'puzzle', ...textType,
@@ -792,7 +931,7 @@ const TYPES = [
     steps: q => list(q.clues).length,
     publicQ: q => ({ clues: list(q.clues), ladder: true }),
     aiShape: '{"clues": ["very hard clue", "hard clue", "medium clue", "easy clue", "giveaway clue"], "answer": "who or what it is", "accept": ["..."]}  (5 clues about one person, place or thing, from hard to easy)',
-    fromAI: it => ({ clues: list(it.clues).slice(0, 6), answer: str(it.answer), accept: list(it.accept), question: '' }),
+    fromAI: it => ({ clues: list(it.clues).slice(0, 6), answer: answerOf(it), accept: list(it.accept), question: '' }),
   },
   {
     id: 'fiveFacts', family: 'classic', ...listType(3, 6),
@@ -808,7 +947,7 @@ const TYPES = [
       });
     },
     aiShape: '{"question": "Name the five ...", "items": ["keyword", "keyword / other spelling", "...", "...", "..."]}  (exactly 5 keywords)',
-    fromAI: it => ({ question: str(it.question), items: list(it.items).slice(0, 6) }),
+    fromAI: it => ({ question: str(it.question), items: listLoose(it.items).slice(0, 6) }),
   },
   {
     id: 'clipRecall', family: 'visual', ...listType(3, 30), media: 'video',
@@ -821,7 +960,7 @@ const TYPES = [
       if (list(q.items).length < 3) fail('needs at least 3 details');
     },
     aiShape: '{"question": "What did you see? Name as many details as you can", "items": ["detail", "detail / other word", "..."], "clip": "description of the clip to film or find"}  (8 to 15 details that can be seen in the clip)',
-    fromAI: it => ({ question: str(it.question), items: list(it.items).slice(0, 30), videoHint: str(it.clip) }),
+    fromAI: it => ({ question: str(it.question), items: listLoose(it.items).slice(0, 30), videoHint: str(it.clip) }),
   },
   {
     id: 'opponentsPick', family: 'strategy', kind: 'choice', wager: 'pick',
@@ -839,7 +978,11 @@ const TYPES = [
     publicQ: q => ({ answers: q.answers, category: str(q.category) }),
     revealQ: q => (q.answers ? choiceType.revealQ(q) : { answerText: q.options.map(o => `${o.category}: ${o.answers[o.correct]}`).join(' · ') }),
     aiShape: '{"options": [{"category": "...", "question": "...", "answers": ["...", "...", "...", "..."], "correct": 0}, {"category": "...", ...}, {"category": "...", ...}]}  (3 different categories, one question each, about as hard)',
-    fromAI: it => ({ options: (Array.isArray(it.options) ? it.options : []).slice(0, 3).map(o => ({ category: str(o && o.category), ...choiceType.fromAI(o || {}) })) }),
+    fromAI: it => {
+      let raw = Array.isArray(it.options) ? it.options : Array.isArray(it.categories) ? it.categories : [];
+      raw = raw.filter(o => o && typeof o === 'object');
+      return { options: raw.slice(0, 3).map(o => ({ category: str(o.category) || str(o.name) || str(o.title), ...choiceType.fromAI(o) })) };
+    },
   },
   {
     id: 'headToHead', family: 'special', ...choiceType, wager: 'predict', finale: true,
@@ -870,7 +1013,7 @@ const TYPES = [
     // One team at a time answers out loud while its own clock runs. Right = the points and extra seconds; at zero the team is out.
     score: (entries, q, base, ctx) => entries.map(e => (e.id === ctx.turn && e.answer === 'right' ? { points: base, correct: true } : { points: 0, correct: false })),
     aiShape: '{"question": "...", "answer": "short answer the quizmaster reads"}  (quick questions with one clear answer)',
-    fromAI: it => ({ question: str(it.question), answer: str(it.answer) }),
+    fromAI: it => ({ question: str(it.question), answer: answerOf(it) }),
   },
   {
     id: 'clockDuel', family: 'clock', kind: 'turn', turns: 'duel', clock: 45, finale: true,
@@ -887,7 +1030,7 @@ const TYPES = [
       return entries.map(e => (winner && e.id === winner ? { points: base, correct: true } : { points: 0, correct: e.id === ctx.turn && e.answer === 'right' }));
     },
     aiShape: '{"question": "...", "answer": "short answer the quizmaster reads"}  (many quick questions with one clear answer; a duel uses a lot of them)',
-    fromAI: it => ({ question: str(it.question), answer: str(it.answer) }),
+    fromAI: it => ({ question: str(it.question), answer: answerOf(it) }),
   },
 ];
 
@@ -914,6 +1057,26 @@ function webOrder(q) {
   return permutation(g.length * 4, g.map(x => x.words.join('|')).join('/'));
 }
 
+// A round type from what an AI or a spreadsheet wrote: our id in any case ("TrueFalse", "true_false"), or its name in one of our languages.
+let typeNames = null;
+function typeFrom(name) {
+  if (BY_ID[name]) return name;
+  const n = normalize(name).replace(/\s+/g, '');
+  if (!n) return null;
+  if (!typeNames) {
+    typeNames = new Map();
+    const add = (k, id) => { const key = normalize(k).replace(/\s+/g, ''); if (key && !typeNames.has(key)) typeNames.set(key, id); };
+    for (const t of TYPES) add(t.id, t.id);
+    const i18n = require('./i18n');
+    for (const { code } of i18n.LANGUAGES) {
+      const words = i18n.read(code);
+      for (const t of TYPES) if (words[`round.${t.id}`]) add(words[`round.${t.id}`], t.id);
+    }
+    for (const [k, id] of Object.entries({ multiplechoice: 'classic', mc: 'classic', mcq: 'classic', quiz: 'classic', choice: 'classic', trueorfalse: 'trueFalse', truefalse: 'trueFalse', waarofniet: 'trueFalse', open: 'open', openquestion: 'open', openanswer: 'open', estimate: 'closest', estimation: 'closest', image: 'picture', photo: 'picture', pictures: 'picture', song: 'music', audio: 'music' })) add(k, id);
+  }
+  return typeNames.get(n) || typeNames.get(n.replace(/(round|ronde|manche|runde|ronda)$/, '')) || null;
+}
+
 // Fill the defaults of the round type into a round, without changing what the quizmaster set.
 function withDefaults(round) {
   const type = get(round.type);
@@ -936,4 +1099,4 @@ function catalog() {
   };
 }
 
-module.exports = { twistFits, CHOICE_TWISTS, isTurn, listFound, permutation, pointDistance, TYPES, SCORINGS, TWISTS, FAMILIES, get, kindOf, stepsOf, withDefaults, catalog, normalize, textMatches, scramble, list, str };
+module.exports = { typeFrom, num, yesNo, choicesOf, correctOf, pairsOf, listLoose, textOf, twistFits, CHOICE_TWISTS, isTurn, listFound, permutation, pointDistance, TYPES, SCORINGS, TWISTS, FAMILIES, get, kindOf, stepsOf, withDefaults, catalog, normalize, textMatches, scramble, list, str };

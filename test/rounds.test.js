@@ -607,7 +607,7 @@ test('AI answers are read even with code fences, smart quotes or a bare list', (
   const smart = '{“questions”: [{“question”: “Bats are blind”, “correct”: false}]}';
   assert.equal(ai.parseRound(smart, 'trueFalse')[0].correct, false);
   assert.equal(ai.parseRound('[{"answer": "waffle", "hint": "food"}]', 'scramble')[0].answer, 'WAFFLE');
-  assert.equal(ai.parseRound('{"questions":[{"question":"How tall?","answer":"1,234 m","unit":"m"}]}', 'closest')[0].answer, 1.234);
+  assert.equal(ai.parseRound('{"questions":[{"question":"How tall?","answer":"1,234 m","unit":"m"}]}', 'closest')[0].answer, 1234);
   assert.throws(() => ai.parseRound('no json here', 'classic'), /ai.noJson/);
   const quiz = ai.parseQuiz('{"title": "Night", "rounds": [{"type": "open", "title": "R", "questions": [{"question": "Q", "answer": "A"}]}, {"type": "nope", "questions": []}]}');
   assert.equal(quiz.rounds.length, 1);

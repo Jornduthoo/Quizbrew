@@ -28,6 +28,40 @@ const TEAM_ID = /^[a-z0-9]{8,40}$/;
 const LOOKS = ['pub', 'space', 'jungle', 'spooky', 'arcade'];
 const MODES = ['screen', 'phones'];
 
+// A quiz file: our own export, or a quiz an AI wrote and someone saved as a file (other type names, AI question shapes,
+// not quite valid JSON). Our own rounds stay exactly as they are; rounds an AI wrote are read like a pasted AI answer.
+function isComplete(type, q) {
+  let ok = true;
+  try { type.validate(q, () => { ok = false; }); } catch { ok = false; }
+  return ok;
+}
+// Read again like an AI answer; empty fields that were not there before are not added.
+function repaired(q, typeId) {
+  const fixed = Ai.readQuestion(q, typeId);
+  for (const [k, v] of Object.entries(fixed)) if (!(k in q) && (v === '' || (Array.isArray(v) && !v.length))) delete fixed[k];
+  return { ...q, ...fixed };
+}
+function readQuizFile(text) {
+  let quiz = null;
+  try { quiz = JSON.parse(String(text).replace(/^\ufeff/, '')); } catch { /* not clean JSON: read it like an AI answer */ }
+  if (!quiz || !Array.isArray(quiz.rounds)) return Ai.parseQuiz(text);
+  const out = [];
+  quiz.rounds.forEach((r, i) => {
+    const type = r && rounds.get(r.type);
+    if (type && Array.isArray(r.questions)) {
+      // A question that is not complete may still be in the AI's shape ("correct": "Paris", captions without pictures):
+      // read it like an AI answer, keeping everything else it has (pictures, sound, time, points).
+      out.push({ ...r, questions: r.questions.map(q => (q && typeof q === 'object' && !Array.isArray(q) && !isComplete(type, q) ? repaired(q, type.id) : q)) });
+      return;
+    }
+    const id = r && rounds.typeFrom(r.type);
+    if (!id) throw new Error(`Round ${i + 1} has a round type Quizbrew does not know: "${r && r.type}"`);
+    const one = Ai.parseQuiz(JSON.stringify({ rounds: [{ ...r, type: id }] })).rounds[0];
+    out.push({ ...r, ...one, title: String(r.title || '') });
+  });
+  return { ...quiz, rounds: out };
+}
+
 function createServer({ port = 3000, settings = Settings.create(), library = Library.create(), lanAddresses = null, interfaces = null, hostFromAnywhere = false, cloudEvery = 60000, webFetch = globalThis.fetch } = {}) {
   const app = express();
   const server = http.createServer(app);
@@ -319,7 +353,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   api.post('/import', handle(req => {
     const { name = '', text = '' } = req.body;
     const title = String(name).replace(/\.(json|csv|txt)$/i, '') || 'Imported quiz';
-    const quiz = /\.json$/i.test(name) || String(text).trim().startsWith('{') ? JSON.parse(text) : csv.toQuiz(text, title);
+    const quiz = /\.json$/i.test(name) || /^\s*[{[]/.test(String(text)) ? readQuizFile(text) : csv.toQuiz(text, title);
     if (!quiz || !Array.isArray(quiz.rounds)) throw new Error('Not a quiz');
     return library.save(null, { ...quiz, title: quiz.title || title }, { folder: req.body.folder || '' });
   }));
