@@ -493,6 +493,8 @@
   "play.typeCaption": "Votre légende la plus drôle",
   "play.typeAboutUs": "Votre réponse (les autres devineront que c'est vous)",
   "play.photoFailed": "Cette photo n'a pas marché. Réessayez.",
+  "play.sending": "Envoi…",
+  "play.notSent": "Pas envoyé : le téléphone n'a pas de connexion. Vérifiez le wifi et touchez à nouveau Envoyer.",
   "play.findTruth": "Laquelle est vraie ?",
   "play.matchTeams": "Qui a écrit quoi ?",
   "play.voteBest": "Votez pour le meilleur",

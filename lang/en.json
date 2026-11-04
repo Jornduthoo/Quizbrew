@@ -493,6 +493,8 @@
   "play.typeCaption": "Your funniest caption",
   "play.typeAboutUs": "Your answer (the others will guess it was you)",
   "play.photoFailed": "That photo did not work. Try again.",
+  "play.sending": "Sending…",
+  "play.notSent": "Not sent: the phone has no connection. Check the wifi and tap Send again.",
   "play.findTruth": "Which one is true?",
   "play.matchTeams": "Who wrote what?",
   "play.voteBest": "Vote for the best",

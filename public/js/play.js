@@ -605,6 +605,9 @@
     $('#d-num').textContent = s.question.text;
     if (fresh) {
       strokes = [];
+      sending = null;
+      $('#draw-send').disabled = false;
+      $('#draw-send').textContent = t('play.send');
       $('#draw-tools').replaceChildren(...PENS.map(c => h('button', {
         type: 'button', class: 'pen' + (c === pen ? ' on' : ''), style: `--pen: ${c}`, 'aria-label': c,
         onclick: e => { pen = c; [...$('#draw-tools').children].forEach(b => b.classList.toggle('on', b === e.currentTarget)); },
@@ -654,9 +657,59 @@
     out.getContext('2d').drawImage(src, 0, 0, out.width, out.height);
     let url = out.toDataURL('image/webp', 0.8);
     if (!url.startsWith('data:image/webp')) url = out.toDataURL('image/png');
-    socket.emit('answer', url);
-    if (navigator.vibrate) navigator.vibrate(25);
+    sendPicture(url, $('#draw-send'));
   });
+
+  // A drawing or photo goes to the laptop until the laptop says it has it: on a phone that just came back
+  // from the camera app the connection is often still waking up, and a picture sent into that gap was lost.
+  let sending = null;
+  function sendPicture(url, btn) {
+    if (sending && sending.url === url) return;
+    const job = { url, tries: 0 };
+    sending = job;
+    btn.disabled = true;
+    btn.textContent = t('play.sending');
+    const done = msg => {
+      if (sending !== job) return;
+      sending = null;
+      btn.disabled = false;
+      btn.textContent = t('play.send');
+      if (msg) alert(t(msg));
+    };
+    const attempt = () => {
+      if (sending !== job) return;
+      job.tries++;
+      socket.timeout(10000).emit('answer', url, (err, res) => {
+        if (sending !== job) return;
+        if (!err && res && res.ok) { done(); if (navigator.vibrate) navigator.vibrate(25); return; }
+        if (!err) return done(res && res.error === 'play.photoFailed' ? 'play.photoFailed' : null);
+        // No answer in time: try again (the laptop knows a picture it already has), up to about a minute.
+        if (job.tries < 6) setTimeout(attempt, 500);
+        else done('play.notSent');
+      });
+    };
+    attempt();
+  }
+
+  // A picture from the camera or the gallery, read without loading a huge photo whole when that fails.
+  async function readPicture(file) {
+    try { return await createImageBitmap(file); } catch { /* older phones: an <img> below */ }
+    const src = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.src = src;
+      await img.decode();
+      return img;
+    } finally { setTimeout(() => URL.revokeObjectURL(src), 1000); }
+  }
+  const sizeOf = p => ({ w: p.naturalWidth || p.width, h: p.naturalHeight || p.height });
+
+  // The camera app (or the file picker) is not cheating: while it is open, leaving the page is not reported.
+  let picking = false;
+  for (const id of ['#photo-input', '#tp-input']) {
+    $(id).addEventListener('click', () => { picking = true; });
+    $(id).addEventListener('cancel', () => { picking = false; });
+  }
 
   // Photo: the phone camera; the picture is made small (900 px, webp) before it is sent.
   let photoUrl = null;
@@ -665,34 +718,42 @@
     $('#p-num').textContent = s.question.text;
     if (fresh) {
       photoUrl = null;
+      sending = null;
       $('#photo-preview').hidden = true;
       $('#photo-label').hidden = false;
       $('#photo-send').disabled = true;
+      $('#photo-send').textContent = t('play.send');
     }
-    stopTimer = countdown(s.remaining, s.question.time * 1000, left => { $('#p-time').textContent = Math.ceil(left / 1000); });
+    stopTimer = countdown(s.remaining, s.question.time * 1000, left => {
+      $('#p-time').textContent = Math.ceil(left / 1000);
+      // A photo taken but not sent yet goes by itself just before the time is up.
+      if (left <= 3000 && photoUrl && !sending && state && state.phase === 'question') sendPicture(photoUrl, $('#photo-send'));
+    });
   }
   $('#photo-input').addEventListener('change', async e => {
+    picking = false;
     const f = e.target.files && e.target.files[0];
+    e.target.value = '';
     if (!f) return;
     try {
-      const bmp = await createImageBitmap(f);
-      const k = Math.min(1, 900 / Math.max(bmp.width, bmp.height));
+      const pic = await readPicture(f);
+      const { w, h: ht } = sizeOf(pic);
+      const k = Math.min(1, 900 / Math.max(w, ht));
       const c = document.createElement('canvas');
-      c.width = Math.round(bmp.width * k);
-      c.height = Math.round(bmp.height * k);
-      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+      c.width = Math.round(w * k);
+      c.height = Math.round(ht * k);
+      c.getContext('2d').drawImage(pic, 0, 0, c.width, c.height);
+      if (pic.close) pic.close();
       photoUrl = c.toDataURL('image/webp', 0.78);
       if (!photoUrl.startsWith('data:image/webp')) photoUrl = c.toDataURL('image/jpeg', 0.8);
       $('#photo-preview').src = photoUrl;
       $('#photo-preview').hidden = false;
       $('#photo-label').hidden = true;
-      $('#photo-send').disabled = false;
+      $('#photo-send').disabled = !!sending;
     } catch { alert(t('play.photoFailed')); }
   });
   $('#photo-send').addEventListener('click', () => {
-    if (!photoUrl) return;
-    socket.emit('answer', photoUrl);
-    if (navigator.vibrate) navigator.vibrate(25);
+    if (photoUrl) sendPicture(photoUrl, $('#photo-send'));
   });
 
   // Vote: tap the best entry (or the truth). Who's who: give every answer a team colour.
@@ -740,6 +801,7 @@
   let touchedAt = Date.now();
   for (const ev of ['pointerdown', 'keydown', 'touchstart']) document.addEventListener(ev, () => { touchedAt = Date.now(); }, { passive: true, capture: true });
   function leave(fromBlur) {
+    if (picking) return;
     if (leftAt || !state || !state.team || !ANSWER_PHASES.includes(state.phase)) return;
     leftAt = Date.now();
     leftAsleep = fromBlur !== true && document.hidden && Date.now() - touchedAt >= SLEEP_AFTER
@@ -748,6 +810,8 @@
   }
   function comeBack() {
     clearTimeout(blurTimer);
+    // Back from the camera: one trip there is free, the next time away counts again.
+    if (picking && !document.hidden) { picking = false; return; }
     if (!leftAt) return;
     if (!leftAsleep) socket.emit('backOnPage', Date.now() - leftAt);
     leftAt = 0;
@@ -810,15 +874,18 @@
   // Team photo: a selfie, cut to a square of 360 px. Picked before joining it goes along right after the join.
   let pendingPhoto = null;
   async function squarePhoto(file) {
-    const bmp = await createImageBitmap(file);
-    const side = Math.min(bmp.width, bmp.height);
+    const pic = await readPicture(file);
+    const { w, h: ht } = sizeOf(pic);
+    const side = Math.min(w, ht);
     const c = document.createElement('canvas');
     c.width = c.height = 360;
-    c.getContext('2d').drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, 360, 360);
+    c.getContext('2d').drawImage(pic, (w - side) / 2, (ht - side) / 2, side, side, 0, 0, 360, 360);
+    if (pic.close) pic.close();
     const url = c.toDataURL('image/webp', 0.8);
     return url.startsWith('data:image/webp') ? url : c.toDataURL('image/jpeg', 0.82);
   }
   $('#tp-input').addEventListener('change', async e => {
+    picking = false;
     const f = e.target.files && e.target.files[0];
     e.target.value = '';
     if (!f) return;
