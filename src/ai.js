@@ -306,8 +306,30 @@ function canon(v, depth = 0) {
   return out;
 }
 
+// Some AI chats copy their answer as markdown: a "\\" at every line end, "&#x20;" for leading spaces,
+// "&quot;" and other HTML entities, and "\\[" "\\_" style escapes. Undo that so the JSON can be read.
+const ENTITIES = { nbsp: ' ', amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', laquo: '«', raquo: '»', ldquo: '"', rdquo: '"', lsquo: "'", rsquo: "'", hellip: '…', ndash: '–', mdash: '—' };
+function unmarkdown(str) {
+  return str
+    .replace(/&#x([0-9a-f]{1,6});|&#(\d{1,7});|&([a-z]+);/gi, (m, hex, dec, name) => {
+      if (hex || dec) { const c = parseInt(hex || dec, hex ? 16 : 10); return c > 0 && c < 0x110000 ? String.fromCodePoint(c === 0xa0 ? 32 : c) : m; }
+      const v = ENTITIES[name.toLowerCase()];
+      return v === undefined ? m : v;
+    })
+    .replace(/\\[ \t]*(?=\r?\n|$)/g, '')
+    .replace(/\\(\\|[`*_{}[\]()#+\-.!|<>~=])/g, (m, c) => (c === '\\' ? m : c));
+}
+
 function extract(raw, check, key) {
   const str = String(raw || '').replace(/^\ufeff/, '');
+  try { return extractFrom(str, check, key); } catch (err) {
+    const clean = unmarkdown(str);
+    if (clean === str) throw err;
+    return extractFrom(clean, check, key);
+  }
+}
+
+function extractFrom(str, check, key) {
   const fences = [...str.matchAll(/```(?:json|JSON)?\s*([\s\S]*?)```/g)].map(m => m[1]);
   for (const part of [...fences, str]) {
     // A bare array of questions is fine too.

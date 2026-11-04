@@ -1,0 +1,19 @@
+{\
+&#x20; "questions": [\
+&#x20;   {\
+&#x20;     "answer": "VANAKEN",\
+&#x20;     "question": "Ontwar de letters: NAKVEAN (de aanvoerder van Club Brugge).",\
+&#x20;     "fact": "Hans Vanaken won al meerdere keren de Gouden Schoen."\
+&#x20;   },\
+&#x20;   {\
+&#x20;     "answer": "MIGNOLET",\
+&#x20;     "question": "Ontwar de letters: GONLIMET (de doelman van Club Brugge).",\
+&#x20;     "fact": "Simon Mignolet speelde eerder voor Liverpool in de Premier League."\
+&#x20;   },\
+&#x20;   {\
+&#x20;     "answer": "TZOLIS",\
+&#x20;     "question": "Ontwar de letters: ZLOTSI (de Griekse aanvaller van Club Brugge).",\
+&#x20;     "fact": "Christos Tzolis werd geboren in Thessaloniki, Griekenland."\
+&#x20;   }\
+&#x20; ]\
+}

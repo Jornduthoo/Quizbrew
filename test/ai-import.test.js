@@ -43,6 +43,10 @@ const STYLES = {
   snakeKeys: list => JSON.stringify({ questions: list }).replace(/"([a-z]+)([A-Z])([a-z]+)":/g, (m, a, b, c) => `"${a}_${b.toLowerCase()}${c}":`),
   dutchKey: list => JSON.stringify({ vragen: list }),
   trailingCommas: list => `{"questions": [${list.map(q => JSON.stringify(q).replace(/\}$/, ',}')).join(',\n')},]}`,
+  // Copied from a chat as markdown: "\\" at each line end, "&#x20;" for leading spaces, escaped [ ] _ and &quot;.
+  markdownCopy: list => JSON.stringify({ questions: list }, null, 2).split('\n')
+    .map(l => l.replace(/^ /, '&#x20;').replace(/[[\]_*]/g, c => `\\${c}`).replace(/&(?!#x20;)/g, '&amp;')).join('\\\n'),
+  markdownEntities: list => JSON.stringify({ questions: list }, null, 2).replace(/"/g, '&quot;').replace(/\n {2}/g, '\n&nbsp; '),
   cutOff: list => { const s = JSON.stringify({ questions: [...list, list[0]] }); return s.slice(0, s.length - 8); },
 };
 const upperKeys = v => (Array.isArray(v) ? v.map(upperKeys) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k[0].toUpperCase() + k.slice(1), upperKeys(x)])) : v);
@@ -139,6 +143,34 @@ test('AI answers written a bit differently are still read right', () => {
   assert.equal(read('emoji', { emojis: '🦁👑', answer: 'x' }).emoji, '🦁👑');
   assert.equal(read('open', { question: 'Q', answer: 'x', fun_fact: 'F' }).fact, 'F');
   assert.deepEqual(read('open', { Question: 'Q', Answer: 'A', Alternatives: ['B'] }), { question: 'Q', answer: 'A', accept: ['B'] });
+});
+
+test('the exact zoom-out answer Jorn pasted (markdown copy with \\ line ends and &#x20;) is read', () => {
+  const text = fs.readFileSync(path.join(__dirname, 'fixtures', 'ai-markdown-copy.txt'), 'utf8');
+  assert.match(text, /&#x20;/);
+  const got = ai.parseRound(text, 'zoomOut');
+  assert.deepEqual(got.map(q => q.answer), ['Hans Vanaken', 'Brandon Mechele', 'Yann Sommer']);
+  assert.deepEqual(got[0].accept, ['Vanaken', 'Hans']);
+  assert.equal(got[1].imageSearch, 'Brandon Mechele');
+  assert.match(got[2].fact, /Mönchengladbach\.$/);
+  for (const q of got) assert.ok(!/&#|\\/.test(JSON.stringify(q)), JSON.stringify(q));
+  assert.equal(ai.parseQuiz(`{"rounds": [{"type": "zoomOut", ${text.trim().slice(1)}]}`).rounds[0].questions.length, 3);
+});
+
+test('the exact map round answer Jorn pasted (same markdown copy) is read', () => {
+  const text = fs.readFileSync(path.join(__dirname, 'fixtures', 'ai-markdown-copy-map.txt'), 'utf8');
+  const got = ai.parseRound(text, 'mapDrop');
+  assert.deepEqual(got.map(q => q.question), ['Waar ligt de Eiffeltoren?', "Waar leven wilde reuzenpanda's in het wild?", 'In welke stad staat het beroemde Colosseum?']);
+  assert.equal(got[2].fact, 'Het Colosseum kon vroeger tienduizenden toeschouwers tegelijk ontvangen.');
+  for (const q of got) assert.ok(!/&#|\\/.test(JSON.stringify(q)), JSON.stringify(q));
+});
+
+test('the exact word scramble answer Jorn pasted (same markdown copy) is read', () => {
+  const text = fs.readFileSync(path.join(__dirname, 'fixtures', 'ai-markdown-copy-scramble.txt'), 'utf8');
+  const got = ai.parseRound(text, 'scramble');
+  assert.equal(got.length, 3);
+  assert.deepEqual(got.map(q => q.answer.toUpperCase()), ['VANAKEN', 'MIGNOLET', 'TZOLIS']);
+  for (const q of got) assert.ok(!/&#|\\/.test(JSON.stringify(q)), JSON.stringify(q));
 });
 
 test('loose questions without a list around them are read for every round type, never the lists inside them', () => {
