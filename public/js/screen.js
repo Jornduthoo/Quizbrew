@@ -300,6 +300,7 @@
     QB.fit($('#vote-q'), { lines: 2, min: 0.5 });
     grid.style.fontSize = '';
     if (grid.offsetParent === null) return;
+    if (grid.classList.contains('pics')) return fitPictures(grid);
     // A long entry gets smaller, so every card keeps the same size and nothing runs over the letter.
     const texts = () => grid.querySelectorAll('.bc-text').forEach(el => QB.fit(el, { lines: 3, min: 0.5 }));
     texts();
@@ -312,6 +313,52 @@
     }
     // Long team names stay on one line in their card.
     grid.querySelectorAll('.bc-by').forEach(el => QB.fit(el, { min: 0.4 }));
+  }
+  // Drawings and photos: try every number of columns and keep the one with the biggest pictures. The rows share
+  // the height under the question equally, so the grid can never run off the screen or under the title.
+  function fitPictures(grid) {
+    const cards = [...grid.children];
+    const n = cards.length;
+    if (!n) return;
+    const W = grid.clientWidth, H = grid.clientHeight;
+    const base = parseFloat(getComputedStyle(grid).fontSize);
+    const reveal = document.body.classList.contains('revealed');
+    // The shape of the pictures (drawings on a phone are mostly upright, on a laptop wide); square until they load.
+    const shapes = cards.map(c => c.querySelector('img')).filter(i => i && i.naturalWidth).map(i => i.naturalWidth / i.naturalHeight);
+    const aspect = shapes.length ? shapes.reduce((a, b) => a + b, 0) / shapes.length : 1;
+    // Card text scales with the cell: big for a few drawings, small but readable for 40.
+    const fontFor = (cellW, cellH) => Math.max(Math.min(base, cellH / (reveal ? 10 : 8), cellW / 9), Math.min(base, 11));
+    let best = null;
+    for (let cols = 1; cols <= n; cols++) {
+      const rows = Math.ceil(n / cols);
+      if (cols > 1 && (cols - 1) * rows >= n) continue; // the same rows with an empty column
+      const gap = Math.max(6, Math.min(H, W) * (n > 12 ? 0.012 : 0.022));
+      const cellW = (W - gap * (cols - 1)) / cols, cellH = (H - gap * (rows - 1)) / rows;
+      const f = fontFor(cellW, cellH);
+      // Padding and border around the picture, plus the team name and the vote dots at the reveal.
+      const picW = cellW - f * 1.2, picH = cellH - f * (reveal ? 4 : 1.2);
+      if (picW <= 0 || picH <= 0) continue;
+      const area = picW / picH > aspect ? picH * picH * aspect : picW * picW / aspect;
+      if (!best || area > best.area) best = { cols, rows, gap, f, area };
+    }
+    if (!best) best = { cols: Math.ceil(Math.sqrt(n * 1.6)), rows: 0, gap: 6, f: 11 };
+    best.rows = best.rows || Math.ceil(n / best.cols);
+    grid.style.setProperty('--cols', best.cols);
+    grid.style.setProperty('--rows', best.rows);
+    grid.style.setProperty('--gap', best.gap + 'px');
+    grid.style.fontSize = best.f + 'px';
+    grid.querySelectorAll('.bc-text').forEach(el => QB.fit(el, { lines: 3, min: 0.5 }));
+    grid.querySelectorAll('.bc-by').forEach(el => QB.fit(el, { min: 0.4 }));
+    // Many votes on one drawing: one row of dots and a count for the rest, so the drawing keeps its size.
+    for (const dots of grid.querySelectorAll('.bc-votes')) {
+      const all = [...dots.querySelectorAll('.team-dot')];
+      dots.querySelector('.more')?.remove();
+      all.forEach(d => { d.hidden = false; });
+      if (all.length < 2 || dots.scrollHeight <= all[0].offsetHeight * 1.5) continue;
+      const room = Math.max(1, Math.floor((dots.clientWidth + 1) / (all[0].offsetWidth + parseFloat(getComputedStyle(dots).columnGap || 0))) - 2);
+      all.slice(room).forEach(d => { d.hidden = true; });
+      dots.append(h('b', { class: 'more' }, '+' + (all.length - room)));
+    }
   }
   const refit = () => {
     if (!$('#v-vote').hidden) fitBallot();
@@ -737,6 +784,13 @@
   addEventListener('resize', () => { if ($('#q-pins').children.length) fitPins(); });
 
   // The ballot: entries with letters while voting; at the reveal the authors, the votes and (for a bluff) the truth.
+  // Pictures load one by one; their shape decides the best grid, so fit again once per frame while they come in.
+  let refitQueued = false;
+  const refitSoon = () => {
+    if (refitQueued) return;
+    refitQueued = true;
+    requestAnimationFrame(() => { refitQueued = false; if (!$('#v-vote').hidden) fitBallot(); });
+  };
   function renderVote(s, fresh) {
     const reveal = s.phase === 'reveal';
     document.body.classList.toggle('revealed', reveal);
@@ -747,14 +801,15 @@
     const most = reveal ? Math.max(0, ...s.ballot.map(b => (b.votes || []).length)) : -1;
     const grid = $('#ballot-grid');
     const n = s.ballot.length;
-    grid.className = 'ballot-grid n' + Math.min(n, 8) + (n > 8 ? ' many' : '') + (s.ballot.some(b => b.image) ? ' pics' : '');
+    const pics = s.ballot.some(b => b.image);
+    grid.className = 'ballot-grid n' + Math.min(n, 8) + (n > 8 && !pics ? ' many' : '') + (pics ? ' pics' : '');
     // Up to 8 cards keep the classic columns; more teams get more columns: 4 up to 12, then 5, 6, 8 or 10.
     grid.style.setProperty('--cols', n <= 8 ? '' : n <= 12 ? 4 : n <= 15 ? 5 : n <= 24 ? 6 : n <= 32 ? 8 : 10);
     grid.replaceChildren(...s.ballot.map((b, i) => {
       const win = reveal && mode !== 'match' && (b.truth || (mode === 'best' && most > 0 && (b.votes || []).length === most));
       return h('li', { class: 'ballot-card' + (b.image ? ' pic' : '') + (b.truth ? ' truth' : '') + (win ? ' win' : ''), style: `--k: ${i}` + (reveal && b.by ? `; ${teamVar(b.by.color)}` : '') },
         h('span', { class: 'letter' }, QB.cardLetter(i)),
-        b.image ? h('img', { src: b.content, alt: '' }) : h('span', { class: 'bc-text' }, b.content),
+        b.image ? h('img', { src: b.content, alt: '', onload: refitSoon }) : h('span', { class: 'bc-text' }, b.content),
         reveal ? h('span', { class: 'bc-by' }, b.truth ? t('screen.theTruth') : b.by ? b.by.name : '') : null,
         reveal && mode !== 'match' ? h('span', { class: 'bc-votes' }, (b.votes || []).map(v => h('i', { class: 'team-dot', style: teamVar(v.color), title: v.name }))) : null);
     }));
