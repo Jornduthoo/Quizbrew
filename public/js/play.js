@@ -167,7 +167,13 @@
     bar.hidden = !s.team;
     if (s.team) {
       bar.style.cssText = teamVar(s.team.color);
-      $('#bar-dot').replaceWith(Object.assign(QB.dot(s.team), { id: 'bar-dot' }));
+      // Only when the colour or the photo changed: a new photo element on every update made it blink.
+      const dotKey = `${s.team.color}|${s.team.photo || ''}`;
+      if ($('#bar-dot').dataset.key !== dotKey) {
+        const d = Object.assign(QB.dot(s.team), { id: 'bar-dot' });
+        d.dataset.key = dotKey;
+        $('#bar-dot').replaceWith(d);
+      }
       $('#bar-name').textContent = s.team.name;
       $('#bar-score').textContent = t('play.score', { n: s.team.score });
       document.body.style.setProperty('--me', `var(--team-${s.team.color})`);
