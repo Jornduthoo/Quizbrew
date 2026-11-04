@@ -308,7 +308,7 @@
   "ai.generate": "Fragen erstellen",
   "ai.working": "Läuft…",
   "ai.withoutKey": "Ohne Schlüssel",
-  "ai.withoutKeyHint": "Kopiere den Prompt, füge ihn in einen beliebigen KI-Chat ein und füge dann die Antwort hier ein.",
+  "ai.withoutKeyHint": "Kopiere den Prompt, füge ihn in einen beliebigen KI-Chat ein und kopiere dann die Antwort: Wenn du zurückkommst, fügt Quizbrew sie hier von selbst ein.",
   "ai.copyPrompt": "Prompt kopieren",
   "ai.copied": "Kopiert!",
   "ai.copy": "Kopieren",
@@ -982,5 +982,6 @@
   "play.tw.lockdown": "Lockdown: bleib auf dieser Seite, sonst ist deine Antwort weg",
   "play.tw.blackout": "Blackout: lies die Frage auf dem großen Bildschirm",
   "play.tw.underdogMe": "Ihr seid Letzte: eure Punkte zählen ×1,5!",
-  "play.tw.suddenDeath": "Ein Fehler und ihr seid in dieser Runde raus"
+  "play.tw.suddenDeath": "Ein Fehler und ihr seid in dieser Runde raus",
+  "ai.fromClipboard": "Antwort der KI in der Zwischenablage gefunden!"
 }

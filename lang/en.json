@@ -308,7 +308,7 @@
   "ai.generate": "Make questions",
   "ai.working": "Working…",
   "ai.withoutKey": "Without a key",
-  "ai.withoutKeyHint": "Copy the prompt, paste it in any AI chat, then paste the answer here.",
+  "ai.withoutKeyHint": "Copy the prompt, paste it into any AI chat, then copy the AI's answer: Quizbrew pastes it here by itself when you come back.",
   "ai.copyPrompt": "Copy prompt",
   "ai.copied": "Copied!",
   "ai.copy": "Copy",
@@ -982,5 +982,6 @@
   "play.tw.lockdown": "Lockdown: stay on this page or your answer is gone",
   "play.tw.blackout": "Blackout: read the question on the big screen",
   "play.tw.underdogMe": "You're last: your points count ×1.5!",
-  "play.tw.suddenDeath": "One mistake and you're out of this round"
+  "play.tw.suddenDeath": "One mistake and you're out of this round",
+  "ai.fromClipboard": "AI answer found on the clipboard!"
 }

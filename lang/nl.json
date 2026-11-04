@@ -308,7 +308,7 @@
   "ai.generate": "Maak vragen",
   "ai.working": "Bezig…",
   "ai.withoutKey": "Zonder sleutel",
-  "ai.withoutKeyHint": "Kopieer de prompt, plak hem in eender welke AI-chat en plak het antwoord hier.",
+  "ai.withoutKeyHint": "Kopieer de prompt, plak hem in eender welke AI-chat en kopieer daarna het antwoord: als je terugkomt, plakt Quizbrew het hier vanzelf.",
   "ai.copyPrompt": "Kopieer prompt",
   "ai.copied": "Gekopieerd!",
   "ai.copy": "Kopieer",
@@ -982,5 +982,6 @@
   "play.tw.lockdown": "Lockdown: blijf op deze pagina, anders vervalt je antwoord",
   "play.tw.blackout": "Blackout: lees de vraag op het grote scherm",
   "play.tw.underdogMe": "Jullie staan laatst: je punten tellen ×1,5!",
-  "play.tw.suddenDeath": "Eén fout en je ligt eruit voor deze ronde"
+  "play.tw.suddenDeath": "Eén fout en je ligt eruit voor deze ronde",
+  "ai.fromClipboard": "Antwoord van de AI gevonden op het klembord!"
 }
