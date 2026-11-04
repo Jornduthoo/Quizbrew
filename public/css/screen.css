@@ -416,6 +416,22 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .rest { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: .8vh 1.6vw; color: var(--muted); font-size: 1.1em; }
 .rest li { display: flex; align-items: center; gap: .5em; }
 .rest .score { color: var(--cream); font-weight: 700; }
+.rest.many { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); grid-auto-flow: column; grid-template-rows: repeat(var(--rows, 10), auto); gap: .25em 1.6em; font-size: .72em; }
+.rest.many { width: 100%; }
+/* A crowded end screen: a lower podium leaves room for the table of all the other teams. */
+.end.crowded { gap: 1.2vh; }
+.end.crowded .end-title { font-size: 2.8em; }
+.end.crowded .step .who { font-size: 1.15em; margin-bottom: .8vh; }
+.end.crowded .place1 .who { font-size: 1.5em; }
+.end.crowded .step .medal { font-size: 1.1em; }
+.end.crowded .step .block { padding-top: 1vh; }
+.end.crowded .place1 .block { height: 13vh; }
+.end.crowded .place2 .block { height: 10.5vh; }
+.end.crowded .place3 .block { height: 9vh; }
+.end .rest.many { max-width: calc(100vw - 2 * (2.5vw + 14.5 * clamp(12px, min(1.6vw, 2.85vh), 40px))); }
+.rest.many li { min-width: 0; }
+.rest.many .rank { min-width: 1.6em; text-align: right; }
+.rest.many .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* One-liners on the big screen. */
 .lobby-quip, .sb-quip, .end-quip { margin: 0; font-family: var(--display); letter-spacing: var(--display-track); text-transform: var(--display-case); color: var(--brass-light); text-shadow: 0 3px 10px rgb(0 0 0 / .8); }

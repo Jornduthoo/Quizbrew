@@ -870,7 +870,17 @@
       h('div', { class: 'block' }, h('span', { class: 'medal' }, r.rank)))));
     const crown = $('#podium .crown-wrap');
     if (crown) crown.innerHTML = CROWN;
-    $('#rest').replaceChildren(...rows.slice(3).map(r => h('li', { style: teamVar(r.color) }, h('span', { class: 'rank' }, r.rank), QB.dot(r), r.name, h('span', { class: 'score' }, r.score))));
+    // A big night: the rest becomes a tidy table in columns that shrinks to fit under the podium.
+    const rest = $('#rest');
+    const others = rows.slice(3);
+    rest.classList.toggle('many', others.length > 12);
+    $('#v-end').classList.toggle('crowded', others.length > 12);
+    const cols = 3;
+    rest.style.setProperty('--cols', cols);
+    rest.style.setProperty('--rows', Math.ceil(others.length / cols));
+    rest.style.fontSize = '';
+    rest.replaceChildren(...others.map(r => h('li', { style: teamVar(r.color) }, h('span', { class: 'rank' }, r.rank), QB.dot(r), h('span', { class: 'name' }, r.name), h('span', { class: 'score' }, r.score))));
+    if (others.length > 12) requestAnimationFrame(() => QB.fit(rest, { height: innerHeight * 0.3, min: 0.4 }));
     const winner = rows[0];
     if (!winner) return;
     // The winner lands at about 2.3 s: the spots swing onto the podium, brass sparks fly, gold light swarms up.
