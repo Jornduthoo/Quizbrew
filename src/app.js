@@ -28,7 +28,7 @@ const TEAM_ID = /^[a-z0-9]{8,40}$/;
 const LOOKS = ['pub', 'space', 'jungle', 'spooky', 'arcade'];
 const MODES = ['screen', 'phones'];
 
-function createServer({ port = 3000, settings = Settings.create(), library = Library.create(), lanAddresses = network.lanAddresses, hostFromAnywhere = false, cloudEvery = 60000, webFetch = globalThis.fetch } = {}) {
+function createServer({ port = 3000, settings = Settings.create(), library = Library.create(), lanAddresses = null, interfaces = null, hostFromAnywhere = false, cloudEvery = 60000, webFetch = globalThis.fetch } = {}) {
   const app = express();
   const server = http.createServer(app);
   const io = new Server(server, { serveClient: true, pingInterval: 10000, pingTimeout: 8000, maxHttpBufferSize: 3e6 });
@@ -44,10 +44,22 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   const remoteKey = crypto.randomBytes(9).toString('hex');
   const isRemote = key => typeof key === 'string' && key.length === remoteKey.length && crypto.timingSafeEqual(Buffer.from(key), Buffer.from(remoteKey));
   const baseUrl = () => joinUrl().replace(/\/play$/, '');
-  const joinUrl = () => {
-    const addr = lanAddresses()[0] || 'localhost';
-    return `http://${addr}:${server.address() ? server.address().port : port}/play`;
+  // The addresses of this laptop, best first. Tests pass their own list.
+  const given = lanAddresses;
+  if (!interfaces) interfaces = given ? () => given().map(address => ({ address, name: '', kind: '' })) : () => network.lanInterfaces();
+  lanAddresses = () => interfaces().map(i => i.address);
+  const livePort = () => (server.address() ? server.address().port : port);
+  // The quizmaster can pick another address when the first one does not work (a hotspot, a second network card).
+  // Quizbrew also remembers the address the first phone came in on: that one works for sure.
+  const chosenAddress = () => {
+    const list = lanAddresses();
+    const saved = settings.get('address');
+    return list.includes(saved) ? saved : list[0];
   };
+  const joinUrl = () => `http://${chosenAddress() || 'localhost'}:${livePort()}/play`;
+  const qrSvg = url => QRCode.toString(url, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#1b0f08', light: '#0000' } });
+  const joinInfo = async () => { const url = joinUrl(); return { url, qr: await qrSvg(url) }; };
+  const announceJoin = () => joinInfo().then(j => io.emit('joinInfo', j)).catch(() => {});
 
   // The running game is saved to data/live.json after every change (at most twice a second),
   // so a crash or a closed window costs nothing: at the next start the quizmaster can pick it up again.
@@ -216,6 +228,10 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   });
   app.get('/screen', (req, res) => res.sendFile(path.join(pub, 'screen.html')));
   // The connection test: a phone that opens this page has reached the quiz laptop.
+  app.get('/network', (req, res) => {
+    if (!canHost(req.socket.remoteAddress)) return res.redirect('/play');
+    res.sendFile(path.join(pub, 'network.html'));
+  });
   app.get('/check', (req, res) => res.sendFile(path.join(pub, 'check.html')));
   app.get('/play', (req, res) => res.sendFile(path.join(pub, 'play.html')));
   app.get('/builder', (req, res) => {
@@ -249,13 +265,30 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   };
   api.get('/remote', handle(async () => {
     const url = `${baseUrl()}/remote?key=${remoteKey}`;
-    return { url, qr: await QRCode.toString(url, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#1b0f08', light: '#0000' } }) };
+    return { url, qr: await qrSvg(url) };
   }));
   // The connection test for the quizmaster: a QR code to /check and the addresses of this laptop.
   api.get('/check', handle(async () => {
     const url = `${baseUrl()}/check`;
-    return { url, addresses: lanAddresses(), qr: await QRCode.toString(url, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#1b0f08', light: '#0000' } }) };
+    return { url, addresses: lanAddresses(), qr: await qrSvg(url) };
   }));
+  // Network help: every address of this laptop, pick the one phones can reach, open the Windows Firewall.
+  api.get('/addresses', handle(async () => {
+    const chosen = chosenAddress();
+    const list = interfaces().map(i => ({ ...i, url: `http://${i.address}:${livePort()}/play`, chosen: i.address === chosen }));
+    return { port: livePort(), list, ...(await joinInfo()) };
+  }));
+  api.post('/address', handle(async req => {
+    const address = String(req.body.address || '');
+    if (!lanAddresses().includes(address)) throw new Error('unknown address');
+    settings.set('address', address);
+    announceJoin();
+    return joinInfo();
+  }));
+  api.post('/firewall', handle(req => new Promise(resolve => {
+    if (!network.isLocal(req.socket.remoteAddress)) return resolve({ error: 'network.fwOnLaptop' });
+    network.openFirewall(livePort(), resolve);
+  })));
   // The venue and its sponsors, for every screen.
   api.get('/brand', handle(() => brand()));
   api.put('/brand', handle(req => {
@@ -348,8 +381,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   });
 
   app.get('/api/info', async (req, res) => {
-    const url = joinUrl();
-    const qr = await QRCode.toString(url, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#1b0f08', light: '#0000' } });
+    const { url, qr } = await joinInfo();
     res.json({ url, qr, language: language(), languages: i18n.LANGUAGES, look: look(), looks: LOOKS, mode: mode(), modes: MODES, colors: TEAM_COLORS });
   });
 
@@ -464,7 +496,12 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       return;
     }
 
-    // Everyone else is a phone.
+    // Everyone else is a phone. The address it came in on works: remember it if nothing was chosen yet.
+    const cameIn = network.hostIp(socket.handshake.headers.host);
+    if (cameIn && !settings.get('address') && lanAddresses().includes(cameIn)) {
+      settings.set('address', cameIn);
+      if (cameIn !== lanAddresses()[0]) announceJoin();
+    }
     socket.join('lobby');
     let teamId = null;
     const claimed = socket.handshake.query.teamId;

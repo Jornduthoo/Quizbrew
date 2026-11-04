@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quizbrew · Network</title>
+  <link rel="preload" href="/fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/host.css">
+</head>
+<body class="host net-page">
+  <header class="topbar">
+    <a href="/host"><img class="logo" src="/img/logo.webp" alt="Quizbrew"></a>
+    <span class="quiz-name" data-i18n="network.title"></span>
+    <div class="top-actions">
+      <a class="ghost-btn" href="/host" data-ico="back"><span data-i18n="network.backHome"></span></a>
+    </div>
+  </header>
+
+  <!-- When phones cannot reach this laptop: the addresses, step by step, and how to bring your own network. -->
+  <main class="view net">
+    <div class="net-hero">
+      <span class="net-badge" data-ico="wifi"></span>
+      <h1 data-i18n="network.title"></h1>
+      <p class="hint" data-i18n="network.intro"></p>
+    </div>
+
+    <section class="panel net-panel">
+      <h2 data-i18n="network.addrTitle"></h2>
+      <p class="hint" data-i18n="network.addrHint"></p>
+      <ul class="addr-list" id="net-addresses"></ul>
+    </section>
+
+    <section class="panel net-panel">
+      <h2 data-i18n="network.stepsTitle"></h2>
+      <ol class="net-steps">
+        <li><strong data-i18n="network.step1"></strong> <span data-i18n="network.step1Text"></span> <code id="net-example"></code></li>
+        <li><strong data-i18n="network.step2"></strong> <span data-i18n="network.step2Text"></span></li>
+        <li><strong data-i18n="network.step3"></strong> <span data-i18n="network.step3Text"></span></li>
+        <li><strong data-i18n="network.step4"></strong> <span data-i18n="network.step4Text"></span></li>
+        <li>
+          <strong data-i18n="network.step5"></strong> <span data-i18n="network.step5Text"></span>
+          <div class="set-actions net-fw">
+            <button class="ghost-btn small" id="net-fw" type="button" data-ico="shield"><span data-i18n="network.fwButton"></span></button>
+          </div>
+          <p class="error" id="net-fw-error" role="alert"></p>
+        </li>
+        <li><strong data-i18n="network.step6"></strong> <span data-i18n="network.step6Text"></span></li>
+      </ol>
+      <p class="net-note" data-i18n="network.noInternet"></p>
+    </section>
+
+    <section class="panel net-panel">
+      <h2 data-i18n="network.ownTitle"></h2>
+      <p class="hint" data-i18n="network.ownIntro"></p>
+      <div class="net-options">
+        <div class="net-option best">
+          <em data-i18n="network.best"></em>
+          <h3 data-i18n="network.router"></h3>
+          <p data-i18n="network.routerText"></p>
+        </div>
+        <div class="net-option">
+          <h3 data-i18n="network.hotspot"></h3>
+          <ol>
+            <li data-i18n="network.hotspot1"></li>
+            <li data-i18n="network.hotspot2"></li>
+            <li data-i18n="network.hotspot3"></li>
+          </ol>
+          <p class="net-note" data-i18n="network.hotspotLimit"></p>
+        </div>
+        <div class="net-option">
+          <h3 data-i18n="network.phone"></h3>
+          <p data-i18n="network.phoneText"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/menu.js"></script>
+  <script>
+    (async function () {
+      const $ = QB.$;
+      await QB.info();
+      const socket = io({ query: { role: 'host' } });
+      const load = async lang => {
+        await I18n.load(lang);
+        document.title = 'Quizbrew · ' + t('network.title');
+        const data = await Menu.renderAddresses($('#net-addresses'));
+        if (data) $('#net-example').textContent = data.url.replace(/\/play$/, '');
+      };
+      socket.on('language', load);
+      socket.on('joinInfo', () => Menu.renderAddresses($('#net-addresses')));
+      Menu.firewallButton($('#net-fw'), $('#net-fw-error'));
+    })();
+  </script>
+</body>
+</html>
