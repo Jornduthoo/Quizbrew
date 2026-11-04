@@ -20,6 +20,7 @@ const WEB = path.join(ROOT, 'website', 'video');
 const ROUNDS = (Array.isArray(TYPES) ? TYPES : Object.values(TYPES)).length;
 const COLORS = require('../../../src/teams').TEAM_COLORS;
 const PHONE_TEAM = { en: 'The Brainiacs', nl: 'De Slimmeriken', fr: 'Les Cerveaux', de: 'Die Schlauköpfe', es: 'Los Cerebritos' };
+const TOPIC = { en: 'A bit of everything', nl: 'Van alles wat', fr: 'Un peu de tout', de: 'Von allem etwas', es: 'Un poco de todo' };
 const BOTS = ['Quizzly Bears', 'Know-It-Owls', 'Table Six', 'Fact Hunters', 'Late Again', 'Mind the Gap', 'Grandma Knows'];
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
@@ -28,7 +29,16 @@ async function record(lang, tall) {
   const pack = JSON.parse(fs.readFileSync(path.join(ROOT, 'quizzes', `night-pack-1.${lang}.json`), 'utf8'));
   const quiz = { ...pack, tiebreak: false, jokers: false, powerUps: false,
     rounds: pack.rounds.slice(0, 2).map(r => ({ ...r, questions: r.questions.slice(0, 1).map(q => ({ ...q, time: 30 })) })) };
-  const data = { language: lang, sfx: false, look: 'pub' };
+  // A stand-in for the AI: it answers the builder's request with the sample night of this language, after a short think.
+  const fakeAi = express();
+  fakeAi.use(express.json({ limit: '5mb' }));
+  fakeAi.post(/generateContent$/, async (req, res) => {
+    await wait(1600);
+    res.json({ candidates: [{ content: { parts: [{ text: JSON.stringify({ title: TOPIC[lang], rounds: pack.rounds }) }] } }] });
+  });
+  const aiServer = await new Promise(r => { const sv = fakeAi.listen(0, () => r(sv)); });
+  process.env.GEMINI_BASE_URL = `http://127.0.0.1:${aiServer.address().port}`;
+  const data = { language: lang, sfx: false, look: 'pub', aiProvider: 'gemini', geminiKey: 'demo', geminiModel: 'gemini-demo' };
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qb-promo-'));
   const qb = createServer({ port: 0, settings: { get: k => data[k], set: (k, v) => { data[k] = v; } }, library: require('../../../src/library').create(tmp), lanAddresses: () => ['192.168.1.20'] });
   qb.app.use('/promo', express.static(__dirname, { extensions: ['html'] }));
@@ -47,7 +57,8 @@ async function record(lang, tall) {
   // Phones pick their own language from the browser, so the film's browser speaks the film's language.
   const page = await browser.newPage({ viewport: { width: W, height: H }, locale: LOCALE[lang] });
   await page.goto(`${base}/promo/stage?lang=${lang}&rounds=${ROUNDS}${tall ? '&v=1' : ''}&url=${encodeURIComponent(URL_TEXT)}`);
-  await page.evaluate(([tv, phone]) => window.setFrames(tv, phone), [`${base}/screen?fx=high`, `${base}/play?fx=high`]);
+  await page.evaluate(([tv, phone, lap]) => window.setFrames(tv, phone, lap), [`${base}/screen?fx=high`, `${base}/play?fx=high`, `${base}/builder?fx=high`]);
+  await page.evaluate(() => { window.focusTv(true); window.showLap(true); });
   await page.evaluate(() => window.card('intro', true));
   await wait(2500);
   // The full screen hint is for a real TV only.
@@ -71,7 +82,26 @@ async function record(lang, tall) {
   // 1. Logo and tagline.
   await wait(2800);
   await page.evaluate(() => window.card('intro', false));
-  // 2. Teams join: the phone types its team name while other teams pop in on the big screen.
+  // 2. Build: the AI writes a whole evening, then the menu of round types.
+  const lap = page.frameLocator('#lap');
+  await scene('build');
+  await wait(700);
+  await lap.locator('#welcome-ai').click();
+  await wait(500);
+  await lap.locator('#ai-topic').pressSequentially(TOPIC[lang], { delay: 60 });
+  await wait(300);
+  await lap.locator('#ai-generate').click();
+  await lap.locator('#ai-result .brass-btn').waitFor({ timeout: 15000 });
+  await lap.locator('#ai-result .brass-btn').scrollIntoViewIfNeeded();
+  await wait(1800);
+  await scene('pick');
+  await lap.locator('#ai-result .brass-btn').click();
+  await wait(1300);
+  await lap.locator('.round-card.add').click();
+  await wait(2600);
+  await page.evaluate(() => { window.showLap(false); window.focusTv(false); });
+  await wait(400);
+  // 3. Teams join: the phone types its team name while other teams pop in on the big screen.
   await scene('join');
   await wait(600);
   const bots = [];
@@ -95,7 +125,7 @@ async function record(lang, tall) {
   await wait(2600);
   await page.evaluate(() => window.badge(false));
   // 4. Round intro.
-  await scene('rounds');
+  await scene('start');
   host.emit('next');
   await wait(3000);
   // 5. Question: the phone taps, the other teams follow.
@@ -112,7 +142,7 @@ async function record(lang, tall) {
   await wait(3200);
   // 7. Scoreboard, on the big screen only.
   await scene('score');
-  await page.evaluate(() => window.focusTv(true));
+  await page.evaluate(() => { window.focusTv(true); window.showLap(true); });
   host.emit('next');
   await wait(5200);
   // 8. Five looks on the next round intro.
@@ -147,6 +177,7 @@ async function record(lang, tall) {
   sockets.forEach(s => s.close());
   await browser.close();
   await qb.close();
+  aiServer.close();
   fs.rmSync(tmp, { recursive: true, force: true });
 }
 

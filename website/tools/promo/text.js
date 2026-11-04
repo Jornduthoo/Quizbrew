@@ -1,6 +1,9 @@
 // Captions of the promo video, in the 5 app languages. Used by stage.html.
 window.PROMO_TEXT = {
   en: {
+    build: 'Build a quiz in a minute', buildSub: 'The AI writes a whole evening for you',
+    pick: 'Mix {rounds} round types', pickSub: 'Pictures, music, speed, bluff and more',
+    start: 'Lights on, round one', startSub: 'Round intros with a bit of drama',
     tagline: 'Brew a quiz in seconds.',
     join: 'Teams join with a QR code', joinSub: 'No app. No account.',
     offline: 'No internet needed', offlineSub: 'One laptop, your own network',
@@ -12,6 +15,9 @@ window.PROMO_TEXT = {
     endTitle: 'Pay once. No subscription.', endSub: 'Try the free demo',
   },
   nl: {
+    build: 'Een quiz in een minuut', buildSub: 'De AI schrijft een hele avond voor je',
+    pick: 'Mix {rounds} soorten rondes', pickSub: 'Foto’s, muziek, snelheid, bluffen en meer',
+    start: 'Licht aan, ronde één', startSub: 'Rondes beginnen met wat spektakel',
     tagline: 'Brouw een quiz in seconden.',
     join: 'Teams doen mee met een QR-code', joinSub: 'Geen app. Geen account.',
     offline: 'Geen internet nodig', offlineSub: 'Eén laptop, je eigen netwerk',
@@ -23,6 +29,9 @@ window.PROMO_TEXT = {
     endTitle: 'Eén keer betalen. Geen abonnement.', endSub: 'Probeer de gratis demo',
   },
   fr: {
+    build: 'Un quiz en une minute', buildSub: 'L’IA écrit toute la soirée pour toi',
+    pick: 'Mélange {rounds} types de manches', pickSub: 'Images, musique, vitesse, bluff et plus',
+    start: 'Lumière, première manche', startSub: 'Des intros de manche spectaculaires',
     tagline: 'Brasse un quiz en quelques secondes.',
     join: 'Les équipes rejoignent avec un QR code', joinSub: 'Sans appli. Sans compte.',
     offline: 'Pas besoin d’internet', offlineSub: 'Un portable, ton propre réseau',
@@ -34,6 +43,9 @@ window.PROMO_TEXT = {
     endTitle: 'Un seul paiement. Sans abonnement.', endSub: 'Essaie la démo gratuite',
   },
   de: {
+    build: 'Ein Quiz in einer Minute', buildSub: 'Die KI schreibt dir einen ganzen Abend',
+    pick: 'Mische {rounds} Rundentypen', pickSub: 'Bilder, Musik, Tempo, Bluff und mehr',
+    start: 'Licht an, Runde eins', startSub: 'Rundenstarts mit etwas Drama',
     tagline: 'Brau ein Quiz in Sekunden.',
     join: 'Teams machen per QR-Code mit', joinSub: 'Keine App. Kein Konto.',
     offline: 'Kein Internet nötig', offlineSub: 'Ein Laptop, dein eigenes Netzwerk',
@@ -45,6 +57,9 @@ window.PROMO_TEXT = {
     endTitle: 'Einmal zahlen. Kein Abo.', endSub: 'Teste die Gratis-Demo',
   },
   es: {
+    build: 'Un quiz en un minuto', buildSub: 'La IA te escribe una noche entera',
+    pick: 'Mezcla {rounds} tipos de ronda', pickSub: 'Fotos, música, velocidad, faroles y más',
+    start: 'Luces, primera ronda', startSub: 'Rondas que empiezan con espectáculo',
     tagline: 'Prepara un quiz en segundos.',
     join: 'Los equipos entran con un código QR', joinSub: 'Sin app. Sin cuenta.',
     offline: 'Sin internet', offlineSub: 'Un portátil, tu propia red',
