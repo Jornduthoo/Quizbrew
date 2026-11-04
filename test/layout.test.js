@@ -18,11 +18,13 @@ const SCREENS = [
   { name: 'tv-browserbar', width: 1920, height: 940 },
   { name: 'laptop', width: 1366, height: 768 },
 ];
-// 8 teams by default; LAYOUT_TEAMS=18 (up to 24, one per colour) for a big night.
+// 8 teams by default; LAYOUT_TEAMS=18 (up to 40; past 24 colours are shared) for a big night.
 const NAMES = ['Ik ben geslaagd vrr', 'MegaMachtigeMuizen', 'Jorn', 'Voet', 'De Quizzende Kwissers', 'Team Tafel Nummer 7', 'Pubquizpiraten', 'Wablieft Wat Zegt Ge',
   'De Slimme Sloebers', 'Quiz Khalifa', 'Tafel 11', 'Les Cerveaux Fous', 'Die Besserwisser', 'Los Sabelotodos', 'Bier en Bitterballen', 'De Laatste Rij',
-  'Kwis Kwis Kwis', 'Antwoord 42', 'De Nerds van Nu', 'Smart Alecs', 'Mama Mia', 'Opa en de Kleinkids', 'Team Onverwacht', 'Wie Is Dit'];
-const TEAM_COUNT = Math.min(24, Number(process.env.LAYOUT_TEAMS) || 8);
+  'Kwis Kwis Kwis', 'Antwoord 42', 'De Nerds van Nu', 'Smart Alecs', 'Mama Mia', 'Opa en de Kleinkids', 'Team Onverwacht', 'Wie Is Dit',
+  'Hersenkrakers', 'De Buren', 'Tafel Plezier', 'Quizzly Bears', 'Les Malins', 'Die Füchse', 'Los Listos', 'De Gouden Gans',
+  'Collega\'s van Boven', 'De Wiskunde Club', 'Bijna Gewonnen', 'Te Laat Gekomen', 'Altijd Tweede', 'De Kantine', 'Wilde Weetjes', 'Laatste Ronde'];
+const TEAM_COUNT = Math.min(40, Number(process.env.LAYOUT_TEAMS) || 8);
 const TEAMS = NAMES.slice(0, TEAM_COUNT);
 const COLORS = require('../src/teams').TEAM_COLORS;
 const NO_MOTION = '*, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition: none !important; }';
@@ -188,7 +190,7 @@ test('big screen, phone, host and remote: no overlap, nothing sticks out, every 
       const id = 'team' + String(i).padStart(6, '0');
       const s = open({ role: 'player', teamId: id });
       s.on('state', st => { s.last = st; });
-      assert.equal((await new Promise(r => s.emit('join', { teamId: id, name: TEAMS[i], color: COLORS[i] }, r))).ok, true);
+      assert.equal((await new Promise(r => s.emit('join', { teamId: id, name: TEAMS[i], color: COLORS[i % COLORS.length] }, r))).ok, true);
       teams.push(s);
     }
     await phone.goto(`${url}/play?fx=off`);

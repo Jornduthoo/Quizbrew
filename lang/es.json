@@ -953,5 +953,15 @@
   "network.hotspot3": "Que los equipos se unan a esa wifi. Arriba, pon en el código QR la dirección que empieza por 192.168.137.",
   "network.hotspotLimit": "Windows admite como mucho 8 dispositivos. Basta si cada equipo comparte un móvil y hay pocos equipos.",
   "network.phone": "Tu móvil como punto de acceso",
-  "network.phoneText": "Conecta este portátil y los equipos al punto de acceso de tu móvil. Quizbrew casi no gasta datos, pero los móviles pueden actualizarse en segundo plano. La mayoría admite de 5 a 10 dispositivos."
+  "network.phoneText": "Conecta este portátil y los equipos al punto de acceso de tu móvil. Quizbrew casi no gasta datos, pero los móviles pueden actualizarse en segundo plano. La mayoría admite de 5 a 10 dispositivos.",
+  "error.full": "El quiz está completo: no pueden unirse más equipos.",
+  "host.lobbyTip": "No hace falta internet: los móviles solo tienen que estar en el mismo wifi que este portátil. ¿Noche grande? Pide un móvil por equipo.",
+  "network.bigTitle": "Una gran noche de quiz",
+  "network.bigIntro": "Quizbrew aguanta hasta 40 equipos. Tres costumbres mantienen fluida una sala llena.",
+  "network.onePhone": "Un móvil por equipo",
+  "network.onePhoneText": "Pide a cada equipo que responda con un solo móvil. Menos aparatos en el wifi lo mantiene rápido, el equipo lo habla junto, y oyes menos «el mío no va».",
+  "network.noNet": "No hace falta internet",
+  "network.noNetText": "El juego se queda entre este portátil y los móviles. Un internet lento en el local, o ninguno, no cambia nada. Dilo al empezar: conectaos al wifi e ignorad «sin internet».",
+  "network.bigRouter": "Un router más potente desde 25 equipos",
+  "network.bigRouterText": "Un router wifi 6 que acepte 100 aparatos o más. No necesita cable de internet: enchúfalo, conecta el portátil y a jugar."
 }

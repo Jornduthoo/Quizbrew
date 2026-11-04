@@ -953,5 +953,15 @@
   "network.hotspot3": "Let the teams join that wifi. Above, put the address that starts with 192.168.137. on the QR code.",
   "network.hotspotLimit": "Windows lets at most 8 devices join. Enough when every team shares one phone and there are few teams.",
   "network.phone": "Your phone as hotspot",
-  "network.phoneText": "Put this laptop and the teams on the hotspot of your phone. Quizbrew uses almost no data, but phones may update in the background. Most phones allow 5 to 10 devices."
+  "network.phoneText": "Put this laptop and the teams on the hotspot of your phone. Quizbrew uses almost no data, but phones may update in the background. Most phones allow 5 to 10 devices.",
+  "error.full": "The quiz is full: no more teams can join.",
+  "host.lobbyTip": "No internet needed: phones only have to be on the same wifi as this laptop. Big night? Ask for one phone per team.",
+  "network.bigTitle": "A big quiz night",
+  "network.bigIntro": "Quizbrew handles up to 40 teams. Three habits keep a full room smooth.",
+  "network.onePhone": "One phone per team",
+  "network.onePhoneText": "Ask every team to answer on one phone. Fewer devices on the wifi keeps it fast, the team talks about the answer together, and there are fewer 'mine doesn't work' moments.",
+  "network.noNet": "No internet needed",
+  "network.noNetText": "The game stays between this laptop and the phones. Slow venue internet or no internet at all makes no difference. Say it at the start: join the wifi, ignore 'no internet'.",
+  "network.bigRouter": "A sturdier router from 25 teams",
+  "network.bigRouterText": "A wifi 6 router that handles 100 devices or more. It needs no internet cable: plug it in, join the laptop and play."
 }

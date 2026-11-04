@@ -23,6 +23,8 @@
   }
 
   const LETTERS = ['A', 'B', 'C', 'D'];
+  // A letter for each vote card: A to Z, then AA, AB… for a big night with more than 26 teams.
+  const cardLetter = i => (i >= 26 ? cardLetter(Math.floor(i / 26) - 1) : '') + String.fromCharCode(65 + (i % 26));
   // Reactions a phone can send to the big screen. The server only takes an index into this list.
   const REACTIONS = ['\u{1F602}', '\u{1F525}', '\u{1F631}', '\u{1F44F}', '\u{1F340}'];
   const teamVar = color => `--c: var(--team-${color})`;
@@ -196,5 +198,5 @@
     return keys.length ? t(keys[(Math.random() * keys.length) | 0], vars) : '';
   }
 
-  window.QB = { quip, applyLook, $, h, showView, LETTERS, REACTIONS, teamVar, dot, countdown, mmss, info, ROUND_THEMES, roundTheme, CROWN, split, fit, countUp, later, clearLater };
+  window.QB = { quip, applyLook, $, h, showView, LETTERS, cardLetter, REACTIONS, teamVar, dot, countdown, mmss, info, ROUND_THEMES, roundTheme, CROWN, split, fit, countUp, later, clearLater };
 })();

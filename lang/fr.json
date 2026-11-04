@@ -953,5 +953,15 @@
   "network.hotspot3": "Laissez les équipes rejoindre ce wifi. Ci-dessus, mettez l’adresse qui commence par 192.168.137. sur le QR code.",
   "network.hotspotLimit": "Windows accepte 8 appareils au maximum. Suffisant si chaque équipe partage un téléphone et qu’il y a peu d’équipes.",
   "network.phone": "Votre téléphone en point d’accès",
-  "network.phoneText": "Mettez ce portable et les équipes sur le point d’accès de votre téléphone. Quizbrew consomme très peu de données, mais les téléphones peuvent se mettre à jour en arrière-plan. La plupart acceptent 5 à 10 appareils."
+  "network.phoneText": "Mettez ce portable et les équipes sur le point d’accès de votre téléphone. Quizbrew consomme très peu de données, mais les téléphones peuvent se mettre à jour en arrière-plan. La plupart acceptent 5 à 10 appareils.",
+  "error.full": "Le quiz est complet : plus aucune équipe ne peut s'inscrire.",
+  "host.lobbyTip": "Pas besoin d'internet : les téléphones doivent juste être sur le même wifi que cet ordinateur. Grande soirée ? Demandez un téléphone par équipe.",
+  "network.bigTitle": "Une grande soirée quiz",
+  "network.bigIntro": "Quizbrew gère jusqu'à 40 équipes. Trois habitudes gardent une salle pleine fluide.",
+  "network.onePhone": "Un téléphone par équipe",
+  "network.onePhoneText": "Demandez à chaque équipe de répondre sur un seul téléphone. Moins d'appareils sur le wifi, c'est plus rapide, l'équipe discute ensemble, et on entend moins souvent « le mien ne marche pas ».",
+  "network.noNet": "Pas besoin d'internet",
+  "network.noNetText": "Le jeu reste entre cet ordinateur et les téléphones. Un internet lent dans la salle, ou pas d'internet du tout, ne change rien. Dites-le au début : rejoignez le wifi, ignorez « pas d'internet ».",
+  "network.bigRouter": "Un routeur plus costaud dès 25 équipes",
+  "network.bigRouterText": "Un routeur wifi 6 qui accepte 100 appareils ou plus. Pas besoin de câble internet : branchez-le, connectez l'ordinateur et jouez."
 }
