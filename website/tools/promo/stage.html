@@ -12,8 +12,15 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--wood); color: var(--cream); font-family: 'Bricolage', sans-serif; }
 #set { position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 40%, rgb(255 180 60 / .18), transparent 60%), linear-gradient(90deg, rgb(15 8 5 / .9), rgb(15 8 5 / .7)), url('/img/look/pub-lobby.webp') center / cover; }
-.frame { position: absolute; overflow: hidden; transition: transform .8s cubic-bezier(.2,.8,.2,1), opacity .6s; }
+.frame { position: absolute; overflow: hidden; transition: transform .8s cubic-bezier(.2,.8,.2,1), opacity .6s, left .8s cubic-bezier(.2,.8,.2,1), top .8s cubic-bezier(.2,.8,.2,1), width .8s cubic-bezier(.2,.8,.2,1), height .8s cubic-bezier(.2,.8,.2,1); }
 .tv { left: 70px; top: 200px; width: 1300px; height: 731px; padding: 12px; border-radius: 18px; background: linear-gradient(160deg, #2b2b2e, #0c0c0d); box-shadow: 0 40px 90px rgb(0 0 0 / .7), 0 0 120px rgb(255 180 60 / .15); }
+.tv .lap { position: absolute; left: 12px; top: 12px; width: 1280px; height: 720px; transform: scale(1.0); transition: opacity .5s; }
+/* While building, the laptop screen gets the whole set. */
+.build .tv { left: 169px; top: 178px; width: 1582px; height: 890px; }
+.build .tv .lap { transform: scale(1.2172); }
+.v.build .tv { left: 20px; top: 330px; width: 1040px; height: 585px; transform: translateY(260px); }
+.v.build .tv .lap { left: 10px; top: 10px; transform: scale(.7969); }
+.lap.off { opacity: 0; pointer-events: none; }
 .tv iframe { width: 1600px; height: 900px; border: 0; transform: scale(.8); transform-origin: 0 0; border-radius: 8px; background: #000; }
 .phone { left: 1440px; top: 170px; width: 410px; height: 820px; padding: 10px; border-radius: 46px; background: #0c0c0d; box-shadow: 0 0 0 3px #3a3a3e, 0 40px 80px rgb(0 0 0 / .7); }
 .phone iframe { width: 390px; height: 800px; border: 0; border-radius: 36px; background: #000; }
@@ -57,7 +64,7 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
 <body>
 <div id="set">
   <div class="caption" id="caption"><h1 id="cap-t"></h1><p id="cap-s"></p></div>
-  <div class="frame tv"><iframe id="tv" title="Big screen"></iframe></div>
+  <div class="frame tv"><iframe id="tv" title="Big screen"></iframe><iframe id="lap" class="lap" title="Laptop"></iframe></div>
   <div class="frame phone"><iframe id="phone" title="Phone"></iframe></div>
   <div class="badge" id="offline"><svg viewBox="0 0 24 24"><path d="M2 8.8a15 15 0 0 1 20 0M5.5 12.3a10 10 0 0 1 13 0M9 15.8a5 5 0 0 1 6 0"/><path d="M3 3l18 18" stroke="#ff4fa3"/></svg><span id="offline-t"></span></div>
 </div>
@@ -85,7 +92,8 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background:
   window.card = (id, on) => document.getElementById(id).classList.toggle('on', on);
   window.badge = on => document.getElementById('offline').classList.toggle('on', on);
   window.focusTv = on => document.body.classList.toggle('focus-tv', on);
-  window.setFrames = (tv, phone) => { document.getElementById('tv').src = tv; document.getElementById('phone').src = phone; };
+  window.setFrames = (tv, phone, lap) => { document.getElementById('tv').src = tv; document.getElementById('phone').src = phone; document.getElementById('lap').src = lap; };
+  window.showLap = on => { document.getElementById('lap').classList.toggle('off', !on); document.body.classList.toggle('build', on); };
 </script>
 </body>
 </html>
