@@ -222,7 +222,9 @@
   async function save() {
     clearTimeout(saveTimer);
     saveTimer = null;
-    if (!current || saving) return;
+    if (!current) return;
+    // Still busy with the previous save: try again right after, so the newest change is never lost.
+    if (saving) { saveTimer = setTimeout(save, 400); return; }
     saving = true;
     setSaveState('builder.saving');
     try {

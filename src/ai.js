@@ -154,17 +154,135 @@ function tryParse(text) {
   return null;
 }
 
-function extract(raw, check) {
-  const str = String(raw || '').replace(/^﻿/, '');
+// A forgiving JSON reader for what people paste from an AI chat: smart quotes, quotes inside texts
+// ("The Rock"), line breaks inside texts, comments, trailing commas, and an answer that was cut off.
+function lenient(str, start) {
+  let i = start;
+  let cut = false;
+  const QUOTES = '"\u201c\u201d\u201e';
+  const ws = () => {
+    for (;;) {
+      while (i < str.length && /[\s\u00a0\ufeff]/.test(str[i])) i++;
+      if (str.startsWith('//', i)) { while (i < str.length && str[i] !== '\n') i++; continue; }
+      if (str.startsWith('/*', i)) { const e = str.indexOf('*/', i + 2); i = e === -1 ? str.length : e + 2; continue; }
+      return;
+    }
+  };
+  const string = () => {
+    i++;
+    let out = '';
+    while (i < str.length) {
+      const ch = str[i];
+      if (ch === '\\') {
+        const n = str[i + 1];
+        const map = { n: '\n', t: '\t', r: '', b: '', f: '', '"': '"', '\\': '\\', '/': '/' };
+        if (n === 'u' && /^[0-9a-fA-F]{4}$/.test(str.slice(i + 2, i + 6))) { out += String.fromCharCode(parseInt(str.slice(i + 2, i + 6), 16)); i += 6; continue; }
+        out += n in map ? map[n] : n || '';
+        i += 2;
+        continue;
+      }
+      if (QUOTES.includes(ch)) {
+        // A real closing quote is followed by , } ] or : (or the end); otherwise it is a quote inside the text.
+        let j = i + 1;
+        while (j < str.length && /[ \t\u00a0]/.test(str[j])) j++;
+        if (j >= str.length || /[,}\]:\r\n]/.test(str[j])) { i++; return out; }
+      }
+      out += ch === '\r' ? '' : ch;
+      i++;
+    }
+    cut = true;
+    return out;
+  };
+  const value = () => {
+    ws();
+    if (i >= str.length) { cut = true; return undefined; }
+    const ch = str[i];
+    if (ch === '{') {
+      i++;
+      const obj = {};
+      for (;;) {
+        ws();
+        if (i >= str.length) { cut = true; return obj; }
+        if (str[i] === '}') { i++; return obj; }
+        if (str[i] === ',') { i++; continue; }
+        let key;
+        if (QUOTES.includes(str[i])) key = string();
+        else { const m = /^[\w$-]+/.exec(str.slice(i)); if (!m) throw new Error('bad'); key = m[0]; i += key.length; }
+        ws();
+        if (str[i] !== ':') { if (i >= str.length) { cut = true; return obj; } throw new Error('bad'); }
+        i++;
+        const v = value();
+        if (cut) { if (v && typeof v === 'object') obj[key] = v; return obj; }
+        obj[key] = v;
+      }
+    }
+    if (ch === '[') {
+      i++;
+      const arr = [];
+      for (;;) {
+        ws();
+        if (i >= str.length) { cut = true; return arr; }
+        if (str[i] === ']') { i++; return arr; }
+        if (str[i] === ',') { i++; continue; }
+        const v = value();
+        if (cut) return arr; // the half-written last item is left out
+        arr.push(v);
+      }
+    }
+    if (QUOTES.includes(ch)) return string();
+    const m = /^(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null)/.exec(str.slice(i));
+    if (!m) throw new Error('bad');
+    i += m[0].length;
+    return JSON.parse(m[0]);
+  };
+  try {
+    const v = value();
+    return { value: v, end: i };
+  } catch { return null; }
+}
+
+// The first array of question-like objects anywhere in the data ("questions", "vragen", nested, ...).
+function findArray(data, key, depth = 0) {
+  if (!data || typeof data !== 'object' || depth > 4) return null;
+  if (Array.isArray(data)) return data.some(x => x && typeof x === 'object' && !Array.isArray(x)) ? data : null;
+  if (Array.isArray(data[key])) return data[key];
+  for (const v of Object.values(data)) {
+    const found = Array.isArray(v) && key === 'questions' && v.some(x => x && typeof x === 'object' && !Array.isArray(x) && ('question' in x || 'answer' in x || 'statement' in x || 'items' in x || 'clues' in x))
+      ? v : (v && typeof v === 'object' && !Array.isArray(v) ? findArray(v, key, depth + 1) : null);
+    if (found) return found;
+  }
+  return null;
+}
+
+function extract(raw, check, key) {
+  const str = String(raw || '').replace(/^\ufeff/, '');
   const fences = [...str.matchAll(/```(?:json|JSON)?\s*([\s\S]*?)```/g)].map(m => m[1]);
   for (const part of [...fences, str]) {
     // A bare array of questions is fine too.
-    const arr = part.trim().startsWith('[') ? tryParse(`{"questions": ${part.trim()}}`) : null;
+    const arr = part.trim().startsWith('[') ? tryParse(`{"${key}": ${part.trim()}}`) : null;
     if (arr && check(arr)) return arr;
     for (const c of candidates(part)) {
       const data = tryParse(c);
       if (data && check(data)) return data;
     }
+  }
+  // Not clean JSON: read it forgivingly, from the first { or [ on.
+  for (const part of [...fences, str]) {
+    const loose = [];
+    for (let at = part.search(/[{[]/); at !== -1 && at < part.length; ) {
+      const got = lenient(part, at);
+      if (got && got.value && typeof got.value === 'object') {
+        const list = findArray(got.value, key);
+        if (list) return { ...(Array.isArray(got.value) ? {} : got.value), [key]: list };
+        if (!Array.isArray(got.value)) loose.push(got.value);
+      }
+      const next = part.slice(got && got.end > at ? got.end : at + 1).search(/[{[]/);
+      if (next === -1) break;
+      at = (got && got.end > at ? got.end : at + 1) + next;
+    }
+    // Loose question objects one after the other, without a list around them.
+    const items = loose.filter(x => 'question' in x || 'answer' in x || 'statement' in x);
+    if (key === 'questions' && items.length) return { questions: items };
   }
   throw new Error('ai.noJson');
 }
@@ -179,14 +297,14 @@ const withFact = (it, q) => {
 function parseRound(text, typeId) {
   const type = rounds.get(typeId);
   if (!type) throw new Error('Unknown round type');
-  const data = extract(text, d => Array.isArray(d.questions));
+  const data = extract(text, d => Array.isArray(d.questions), 'questions');
   const questions = data.questions.filter(it => it && typeof it === 'object').map(it => withFact(it, type.fromAI(it)));
   if (!questions.length) throw new Error('ai.noQuestions');
   return questions;
 }
 
 function parseQuiz(text) {
-  const data = extract(text, d => Array.isArray(d.rounds));
+  const data = extract(text, d => Array.isArray(d.rounds), 'rounds');
   const out = { title: rounds.str(data.title) || 'AI quiz', rounds: [] };
   for (const r of data.rounds) {
     const type = r && rounds.get(r.type);

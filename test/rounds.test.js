@@ -959,3 +959,35 @@ test('twists stay in sight: the underdog is named, and with one mistake and out 
   g.next();
   assert.deepEqual(g.screenState().teams.map(x => x.out), [false, true]);
 });
+
+test('pasted AI answers are read forgivingly: quotes in texts, chatter, other keys, cut-off answers', () => {
+  const q = { question: 'Wie is dit?', answer: 'Dwayne Johnson', imagePrompt: 'Dwayne The Rock Johnson in a wrestling ring, no text', imageSearch: 'Dwayne Johnson' };
+  const s = JSON.stringify(q);
+  const cases = {
+    quotesInside: '{"questions": [{"question": "Wie is "The Rock"?", "answer": "Dwayne "The Rock" Johnson", "imagePrompt": "x"}]}',
+    arrayAfterText: `Hier zijn ze:\n[${s}, ${s}]`,
+    dutchKey: `{"vragen": [${s}, ${s}]}`,
+    lineBreak: '{"questions": [{"question": "Wie is\ndit?", "answer": "X"}, {"question": "Q", "answer": "Y"}]}',
+    cutOff: `{"questions": [${s}, ${s}, {"question": "Wie`,
+    comments: `{"questions": [ // de eerste\n${s}, ${s}]}`,
+    looseObjects: `${s}\n\n${s}`,
+  };
+  for (const [name, text] of Object.entries(cases)) {
+    const got = ai.parseRound(text, 'pixelFog');
+    assert.ok(got.length >= 1, name);
+    assert.ok(got.every(x => x.answer), name);
+  }
+  assert.equal(ai.parseRound(cases.quotesInside, 'pixelFog')[0].answer, 'Dwayne "The Rock" Johnson');
+  assert.equal(ai.parseRound(cases.cutOff, 'pixelFog').length, 2);
+  assert.throws(() => ai.parseRound('Sorry, ik kan geen vragen maken.', 'pixelFog'), /ai\.noJson/);
+});
+
+test('the AI answer shape of every round type can be read back, also wrapped in chatter or cut off', () => {
+  for (const t of rounds.TYPES) {
+    const one = JSON.parse(t.aiShape.replace(/\)\s*$/, '').replace(/\s{2}\([^"]*$/, '').replace(/, \.\.\./g, '').replace(/"\.\.\."/g, '"x"').trim());
+    const s = JSON.stringify(one);
+    for (const text of [`{"questions": [${s}, ${s}]}`, 'Hier zijn ze:\n```json\n' + JSON.stringify({ questions: [one, one] }, null, 2) + '\n```\nVeel plezier!', `{"questions": [${s}, ${s}, ${s.slice(0, 15)}`]) {
+      assert.equal(ai.parseRound(text, t.id).length, 2, t.id);
+    }
+  }
+});
