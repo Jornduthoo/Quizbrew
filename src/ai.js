@@ -12,6 +12,15 @@ const PROVIDERS = {
 const LANGUAGE_NAMES = { en: 'English', nl: 'Dutch (Flemish, as spoken in Belgium)', fr: 'French', de: 'German', es: 'Spanish' };
 const AUDIENCES = { mixed: 'a mixed adult pub crowd', kids: 'children aged 8 to 12', experts: 'experienced quiz fans', company: 'colleagues at a company party', family: 'a family party with all ages' };
 const DIFFICULTY = ['', 'very easy', 'easy', 'medium', 'hard', 'very hard'];
+// What each level means for the chosen audience, so "easy" really is easy and not just a word in the prompt.
+const DIFFICULTY_HELP = [
+  '',
+  'nearly everyone in this audience knows the answer at once: everyday knowledge and the most famous names, no years, numbers or details',
+  'most of this audience (about three in four teams) knows the answer: well-known facts and famous names, no exact years, no backstage details, no trick questions; for a niche topic, ask about its best-known side only',
+  'about half of the teams know the answer: a mix of well-known facts and a few that need some thinking',
+  'only a few teams know the answer: it takes real knowledge of the topic',
+  'only the real experts know the answer: obscure details and exact facts are welcome',
+];
 
 const RULES = [
   'Facts must be correct, current and unambiguous: one clear right answer.',
@@ -22,12 +31,15 @@ const RULES = [
   'Answer with JSON only, no explanation before or after it.',
 ];
 
+const level = d => Math.max(1, Math.min(5, Math.round(Number(d)) || 3));
+
 function brief({ topic, difficulty = 3, audience = 'mixed', language = 'en', theme = '' }) {
   return [
     `Topic: ${String(topic || 'general knowledge').slice(0, 200)}.`,
     theme ? `Theme of the evening: ${String(theme).slice(0, 200)}.` : '',
     `Audience: ${AUDIENCES[audience] || AUDIENCES.mixed}.`,
-    `Difficulty: ${DIFFICULTY[Math.max(1, Math.min(5, Number(difficulty) || 3))]}.`,
+    `Difficulty: ${DIFFICULTY[level(difficulty)]} - ${DIFFICULTY_HELP[level(difficulty)]}.`,
+    'This difficulty decides how hard every question is, also where the round type description says "hard" or "easy".',
     `Language of all text: ${LANGUAGE_NAMES[language] || LANGUAGE_NAMES.en}.`,
   ].filter(Boolean).join('\n');
 }
@@ -82,7 +94,7 @@ const TYPE_HELP = {
   speed: 'quick multiple choice with 4 options; fast answers score more, keep questions very short',
   scramble: 'the letters of a word are shuffled; teams find the word',
   commonThread: 'clues appear one by one from hard to easy; teams find what links them',
-  jackpot: 'teams bet points after seeing only the category, then answer one hard open question',
+  jackpot: 'teams bet points after seeing only the category, then answer one open question',
   music: 'a music fragment plays; teams name the artist or title',
   introSprint: 'the intro of a song plays in growing bursts; the earlier a team names it, the more points',
   rewind: 'a song plays backwards; teams name it',
@@ -96,9 +108,9 @@ const TYPE_HELP = {
   pairUp: 'teams match 4 items on the left to 4 items on the right',
   mapDrop: 'teams tap a spot on a map; the closest pin wins',
   buzzer: 'the first team to buzz answers out loud; short, quick questions with one clear answer',
-  lastStanding: 'a wrong answer and the team is out for the rest of the round; start easy, get harder',
-  pushYourLuck: 'every right answer doubles the pot, teams may bank it or risk it on the next question; get harder as you go',
-  steal: 'right teams take points from the leader; medium-hard questions',
+  lastStanding: 'a wrong answer and the team is out for the rest of the round; start a bit easier than the chosen difficulty and end a bit harder',
+  pushYourLuck: 'every right answer doubles the pot, teams may bank it or risk it on the next question; get a bit harder as you go',
+  steal: 'right teams take points from the leader',
   pickYourLevel: 'per topic an easy, a medium and a hard question; each team picks a level before seeing it',
   hotStreak: 'right answers in a row count up (1x, 2x, 3x); a steady mix of questions',
   listRush: 'teams type as many items of a list as they can (countries, colours, players...)',
@@ -525,4 +537,4 @@ function create(settings) {
   };
 }
 
-module.exports = { readQuestion, canon, create, roundPrompt, quizPrompt, parseRound, parseQuiz, extract, PROVIDERS, AUDIENCES, TYPE_HELP, AiError };
+module.exports = { readQuestion, canon, create, roundPrompt, quizPrompt, DIFFICULTY_HELP, parseRound, parseQuiz, extract, PROVIDERS, AUDIENCES, TYPE_HELP, AiError };

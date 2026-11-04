@@ -1071,6 +1071,7 @@
     $('#ai-generate').disabled = !s.hasKey;
     dlg.showModal();
     $('#ai-topic').focus();
+    rebuildPrompt();
   }
   $('#ai-difficulty').addEventListener('input', e => { $('#ai-difficulty-out').textContent = t(`ai.level.${e.target.value}`); });
 
@@ -1093,9 +1094,28 @@
 
   const aiFail = err => { $('#ai-error').textContent = t(/^ai\./.test(err.message) ? err.message : 'ai.failed') + (err.detail ? ` (${err.detail})` : ''); };
 
+  // The prompt follows the form: every change (topic, theme, audience, language, difficulty, count...) builds it
+  // again from what the fields say now, so "Copy prompt" never hands out an older version.
+  let aiPrompt = { key: '', text: '' };
+  let aiPromptAsk = 0;
+  async function freshPrompt() {
+    const opts = aiOptions();
+    const key = JSON.stringify(opts);
+    if (aiPrompt.key === key) return aiPrompt.text;
+    const ask = ++aiPromptAsk;
+    const { prompt: text } = await api('POST', '/ai/prompt', opts);
+    if (ask === aiPromptAsk) aiPrompt = { key, text };
+    return text;
+  }
+  let aiPromptTimer = 0;
+  const rebuildPrompt = () => { clearTimeout(aiPromptTimer); aiPromptTimer = setTimeout(() => freshPrompt().catch(() => {}), 150); };
+  $('#ai-form').addEventListener('input', rebuildPrompt);
+  $('#ai-form').addEventListener('change', rebuildPrompt);
+  $('#ai-form').addEventListener('submit', e => e.preventDefault());
+
   $('#ai-copy').addEventListener('click', async () => {
     try {
-      const { prompt: text } = await api('POST', '/ai/prompt', aiOptions());
+      const text = await freshPrompt();
       await copy(text);
       promptCopied = text;
       $('#ai-copy').textContent = t('ai.copied');
