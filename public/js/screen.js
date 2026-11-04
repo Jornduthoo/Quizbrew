@@ -118,10 +118,13 @@
     step();
   }
 
-  QB.info().then(i => {
+  const showJoin = i => {
     $('#qr').innerHTML = i.qr;
     $('#join-url').textContent = i.url.replace(/^https?:\/\//, '');
-  });
+  };
+  QB.info().then(showJoin);
+  // The quizmaster put another address on the QR code.
+  socket.on('joinInfo', showJoin);
 
   function render(s, force) {
     updateFull();

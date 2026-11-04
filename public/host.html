@@ -14,26 +14,69 @@
     <img class="logo" src="/img/logo.webp" alt="Quizbrew">
     <span class="quiz-name" id="quiz-name"></span>
     <div class="top-actions">
-      <span class="join-url" id="join-url" data-i18n-attr="title:host.joinAddress"></span>
-      <a class="ghost-btn" href="/screen" target="quizbrew-screen" data-i18n="host.openScreen"></a>
-      <button class="ghost-btn" id="check-btn" type="button" data-i18n="host.check"></button>
-      <button class="ghost-btn" id="raffle-btn" type="button" data-i18n="host.raffle"></button>
-      <button class="ghost-btn" id="remote-btn" type="button" data-i18n="host.remote"></button>
-<button class="ghost-btn sfx-btn" id="sfx" type="button" data-i18n-attr="title:host.sfx"></button>
-      <label class="lang mode-pick">
-        <span class="sr" data-i18n="host.mode"></span>
-        <select id="mode"></select>
-      </label>
-      <label class="lang look-pick">
-        <span class="sr" data-i18n="host.look"></span>
-        <select id="look"></select>
-      </label>
-      <label class="lang">
-        <span class="sr" data-i18n="host.language"></span>
-        <select id="lang"></select>
-      </label>
+      <button class="ghost-btn join-btn" id="join-btn" type="button" data-ico="qr" data-i18n-attr="title:host.joinAddress"><span class="join-url" id="join-url"></span></button>
+      <a class="ghost-btn" href="/screen" target="quizbrew-screen" data-ico="screen"><span class="lbl" data-i18n="host.openScreen"></span></a>
+      <button class="ghost-btn" id="check-btn" type="button" data-ico="check"><span class="lbl" data-i18n="host.check"></span></button>
+      <button class="ghost-btn" id="raffle-btn" type="button" data-ico="raffle"><span class="lbl" data-i18n="host.raffle"></span></button>
+      <button class="ghost-btn" id="remote-btn" type="button" data-ico="remote"><span class="lbl" data-i18n="host.remote"></span></button>
+      <span class="top-sep" aria-hidden="true"></span>
+      <a class="ghost-btn icon-btn" href="/network" target="quizbrew-network" data-ico="wifi" data-i18n-attr="title:network.title,aria-label:network.title"></a>
+      <button class="ghost-btn icon-btn" id="settings-btn" type="button" data-ico="gear" data-i18n-attr="title:menu.settings,aria-label:menu.settings"></button>
+      <button class="ghost-btn icon-btn sfx-btn" id="sfx" type="button" data-i18n-attr="title:host.sfx,aria-label:host.sfx"></button>
     </div>
   </header>
+
+  <!-- The QR code and the address teams type, with every other address of this laptop. -->
+  <dialog class="modal join-modal" id="join-modal">
+    <header class="modal-head">
+      <h2 data-i18n="menu.joinTitle"></h2>
+      <button class="mini close" type="button" data-close data-i18n-attr="aria-label:builder.close"></button>
+    </header>
+    <div class="join-body">
+      <div class="join-qr" id="join-qr"></div>
+      <p class="join-big" id="join-big"></p>
+      <div class="join-others" id="join-others" hidden>
+        <p class="hint" data-i18n="menu.joinOthers"></p>
+        <ul class="addr-list" id="join-list"></ul>
+      </div>
+      <a class="help-link" href="/network" target="quizbrew-network" data-ico="wifi"><span data-i18n="network.title"></span></a>
+    </div>
+  </dialog>
+
+  <!-- Settings: language, look and how to play; on the laptop also the venue and the network. -->
+  <dialog class="modal settings-modal" id="settings-modal">
+    <header class="modal-head">
+      <h2 data-ico="gear"><span data-i18n="menu.settings"></span></h2>
+      <button class="mini close" type="button" data-close data-i18n-attr="aria-label:builder.close"></button>
+    </header>
+    <div class="settings-body">
+      <label class="set-row lang">
+        <span class="set-name" data-i18n="host.language"></span>
+        <select id="lang"></select>
+      </label>
+      <label class="set-row lang look-pick">
+        <span class="set-name" data-i18n="host.look"></span>
+        <select id="look"></select>
+      </label>
+      <label class="set-row lang mode-pick">
+        <span class="set-name" data-i18n="host.mode"></span>
+        <select id="mode"></select>
+      </label>
+      <div class="set-row" id="settings-venue-row">
+        <span class="set-name" data-i18n="venue.title"></span>
+        <button class="ghost-btn small" id="settings-venue" type="button" data-i18n="menu.venueEdit"></button>
+      </div>
+      <section class="set-net" id="settings-net">
+        <h3 data-ico="wifi"><span data-i18n="menu.network"></span></h3>
+        <p class="hint" data-i18n="menu.networkHint"></p>
+        <div class="set-actions">
+          <button class="ghost-btn small" id="settings-fw" type="button" data-ico="shield"><span data-i18n="network.fwButton"></span></button>
+          <a class="ghost-btn small" href="/network" target="quizbrew-network" data-ico="wifi"><span data-i18n="network.title"></span></a>
+        </div>
+        <p class="error" id="settings-fw-error" role="alert"></p>
+      </section>
+    </div>
+  </dialog>
 
   <!-- The remote: scan with the quizmaster's phone or tablet -->
   <div class="remote-pop panel" id="remote-pop" hidden>
@@ -61,6 +104,7 @@
           <li data-i18n="host.checkTip3"></li>
           <li data-i18n="host.checkTip4"></li>
         </ol>
+        <a class="help-link" href="/network" target="quizbrew-network" data-ico="wifi"><span data-i18n="network.title"></span></a>
         <p class="remote-url" id="check-addr"></p>
       </details>
     </div>
@@ -207,6 +251,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/i18n.js"></script>
   <script src="/js/common.js"></script>
+  <script src="/js/menu.js"></script>
   <script src="/js/host.js"></script>
 </body>
 </html>

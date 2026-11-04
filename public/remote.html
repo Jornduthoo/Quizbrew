@@ -15,21 +15,32 @@
     <span class="quiz-name" id="quiz-name"></span>
     <div class="top-actions">
       <span class="join-url" id="join-url" hidden></span>
-<button class="ghost-btn sfx-btn" id="sfx" type="button" data-i18n-attr="title:host.sfx"></button>
-      <label class="lang mode-pick">
-        <span class="sr" data-i18n="host.mode"></span>
-        <select id="mode"></select>
-      </label>
-      <label class="lang look-pick">
-        <span class="sr" data-i18n="host.look"></span>
-        <select id="look"></select>
-      </label>
-      <label class="lang">
-        <span class="sr" data-i18n="host.language"></span>
-        <select id="lang"></select>
-      </label>
+      <button class="ghost-btn icon-btn" id="settings-btn" type="button" data-ico="gear" data-i18n-attr="title:menu.settings,aria-label:menu.settings"></button>
+      <button class="ghost-btn icon-btn sfx-btn" id="sfx" type="button" data-i18n-attr="title:host.sfx,aria-label:host.sfx"></button>
     </div>
   </header>
+
+  <!-- Settings: language, look and how to play; on the laptop also the venue and the network. -->
+  <dialog class="modal settings-modal" id="settings-modal">
+    <header class="modal-head">
+      <h2 data-ico="gear"><span data-i18n="menu.settings"></span></h2>
+      <button class="mini close" type="button" data-close data-i18n-attr="aria-label:builder.close"></button>
+    </header>
+    <div class="settings-body">
+      <label class="set-row lang">
+        <span class="set-name" data-i18n="host.language"></span>
+        <select id="lang"></select>
+      </label>
+      <label class="set-row lang look-pick">
+        <span class="set-name" data-i18n="host.look"></span>
+        <select id="look"></select>
+      </label>
+      <label class="set-row lang mode-pick">
+        <span class="set-name" data-i18n="host.mode"></span>
+        <select id="mode"></select>
+      </label>
+    </div>
+  </dialog>
 
   <!-- Pick a quiz -->
   <main id="v-idle" class="view library" hidden>
@@ -97,6 +108,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/i18n.js"></script>
   <script src="/js/common.js"></script>
+  <script src="/js/menu.js"></script>
   <script src="/js/host.js"></script>
   <script src="/js/awake.js"></script>
 </body>
