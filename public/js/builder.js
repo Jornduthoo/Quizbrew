@@ -1076,18 +1076,53 @@
     try {
       const { prompt: text } = await api('POST', '/ai/prompt', aiOptions());
       await copy(text);
+      promptCopied = text;
       $('#ai-copy').textContent = t('ai.copied');
       setTimeout(() => { $('#ai-copy').textContent = t('ai.copyPrompt'); }, 2000);
     } catch (err) { aiFail(err); }
   });
 
-  $('#ai-read').addEventListener('click', async () => {
+  async function aiRead() {
     $('#ai-error').textContent = '';
+    // Nothing pasted yet: take the AI answer straight from the clipboard.
+    if (!$('#ai-paste').value.trim()) {
+      const text = await clipboardAnswer(true);
+      if (text) $('#ai-paste').value = text;
+    }
     try {
       const o = aiOptions();
       showAiResult(await api('POST', '/ai/parse', { whole: o.whole, type: o.type, text: $('#ai-paste').value }));
     } catch (err) { aiFail(err); }
-  });
+  }
+  $('#ai-read').addEventListener('click', aiRead);
+  // Pasted in the box: read it at once, no button needed.
+  $('#ai-paste').addEventListener('paste', () => setTimeout(aiRead, 0));
+
+  // Back from the AI chat with the answer copied? Then it lands in the box by itself.
+  // The browser asks permission the first time; without it, pasting by hand keeps working.
+  let promptCopied = '';
+  let lastClipboard = '';
+  async function clipboardAnswer(any) {
+    if (!navigator.clipboard || !navigator.clipboard.readText) return '';
+    let text = '';
+    try { text = await navigator.clipboard.readText(); } catch { return ''; }
+    if (!text || text.trim() === promptCopied.trim() || !/[{[]/.test(text)) return '';
+    if (!any && (text === lastClipboard || !/"?(questions|rounds|vragen|question)"?\s*:/i.test(text))) return '';
+    lastClipboard = text;
+    return text;
+  }
+  async function checkClipboard() {
+    if (!promptCopied || !$('#ai-modal').open || document.visibilityState !== 'visible') return;
+    const text = await clipboardAnswer(false);
+    if (!text) return;
+    $('#ai-paste').value = text;
+    $('#ai-error').textContent = '';
+    $('#ai-copy').textContent = t('ai.fromClipboard');
+    setTimeout(() => { $('#ai-copy').textContent = t('ai.copyPrompt'); }, 3000);
+    aiRead();
+  }
+  window.addEventListener('focus', checkClipboard);
+  document.addEventListener('visibilitychange', checkClipboard);
 
   $('#ai-generate').addEventListener('click', async () => {
     const btn = $('#ai-generate');

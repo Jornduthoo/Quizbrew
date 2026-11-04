@@ -308,7 +308,7 @@
   "ai.generate": "Crear preguntas",
   "ai.working": "Trabajando…",
   "ai.withoutKey": "Sin clave",
-  "ai.withoutKeyHint": "Copia el prompt, pégalo en cualquier chat de IA y luego pega aquí la respuesta.",
+  "ai.withoutKeyHint": "Copia el prompt, pégalo en cualquier chat de IA y luego copia la respuesta: al volver, Quizbrew la pega aquí solo.",
   "ai.copyPrompt": "Copiar prompt",
   "ai.copied": "¡Copiado!",
   "ai.copy": "Copiar",
@@ -982,5 +982,6 @@
   "play.tw.lockdown": "Bloqueo: quédate en esta página o pierdes tu respuesta",
   "play.tw.blackout": "Apagón: lee la pregunta en la pantalla grande",
   "play.tw.underdogMe": "Vais últimos: ¡vuestros puntos cuentan ×1,5!",
-  "play.tw.suddenDeath": "Un error y quedáis fuera de esta ronda"
+  "play.tw.suddenDeath": "Un error y quedáis fuera de esta ronda",
+  "ai.fromClipboard": "¡Respuesta de la IA encontrada en el portapapeles!"
 }

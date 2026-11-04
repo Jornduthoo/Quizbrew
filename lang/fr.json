@@ -308,7 +308,7 @@
   "ai.generate": "Créer les questions",
   "ai.working": "En cours…",
   "ai.withoutKey": "Sans clé",
-  "ai.withoutKeyHint": "Copiez le prompt, collez-le dans n'importe quel chat IA, puis collez la réponse ici.",
+  "ai.withoutKeyHint": "Copiez le prompt, collez-le dans n’importe quel chat IA, puis copiez la réponse : à votre retour, Quizbrew la colle ici tout seul.",
   "ai.copyPrompt": "Copier le prompt",
   "ai.copied": "Copié !",
   "ai.copy": "Copier",
@@ -982,5 +982,6 @@
   "play.tw.lockdown": "Verrouillage : restez sur cette page, sinon votre réponse est perdue",
   "play.tw.blackout": "Blackout : lisez la question sur le grand écran",
   "play.tw.underdogMe": "Vous êtes derniers : vos points comptent ×1,5 !",
-  "play.tw.suddenDeath": "Une erreur et vous êtes éliminés de cette manche"
+  "play.tw.suddenDeath": "Une erreur et vous êtes éliminés de cette manche",
+  "ai.fromClipboard": "Réponse de l’IA trouvée dans le presse-papiers !"
 }
