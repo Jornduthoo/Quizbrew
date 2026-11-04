@@ -1,0 +1,22 @@
+{\
+&#x20; "questions": [\
+&#x20;   {\
+&#x20;     "question": "Waar ligt de Eiffeltoren?",\
+&#x20;     "answer": "Parijs, Frankrijk",\
+&#x20;     "mapHint": "Een wereldkaart met Europa duidelijk zichtbaar",\
+&#x20;     "fact": "De Eiffeltoren is ongeveer 330 meter hoog, inclusief de antenne."\
+&#x20;   },\
+&#x20;   {\
+&#x20;     "question": "Waar leven wilde reuzenpanda's in het wild?",\
+&#x20;     "answer": "China",\
+&#x20;     "mapHint": "Een wereldkaart met Azië duidelijk zichtbaar",\
+&#x20;     "fact": "Panda's eten bijna uitsluitend bamboe, soms wel 14 uur per dag."\
+&#x20;   },\
+&#x20;   {\
+&#x20;     "question": "In welke stad staat het beroemde Colosseum?",\
+&#x20;     "answer": "Rome, Italië",\
+&#x20;     "mapHint": "Een kaart van Europa met Italië en de grote steden zichtbaar",\
+&#x20;     "fact": "Het Colosseum kon vroeger tienduizenden toeschouwers tegelijk ontvangen."\
+&#x20;   }\
+&#x20; ]\
+}

@@ -1,0 +1,28 @@
+{\
+&#x20; "questions": [\
+&#x20;   {\
+&#x20;     "question": "Welke Club Brugge-speler herken je wanneer het beeld langzaam uitzoomt?",\
+&#x20;     "answer": "Hans Vanaken",\
+&#x20;     "accept": ["Vanaken", "Hans"],\
+&#x20;     "imagePrompt": "Photorealistic portrait of Belgian footballer Hans Vanaken wearing the blue and black Club Brugge home kit. Start with an extreme macro close-up of his distinctive eyes and facial details, suitable for a progressive zoom-out reveal. The final view reveals his recognizable face, tall athletic build and eventually his full body standing on a football pitch. Authentic appearance, professional sports photography, sharp focus, no text, no watermark.",\
+&#x20;     "imageSearch": "Hans Vanaken",\
+&#x20;     "fact": "Hans Vanaken won de Gouden Schoen maar liefst drie keer: in 2018, 2019 en 2024."\
+&#x20;   },\
+&#x20;   {\
+&#x20;     "question": "Welke verdediger van Blauw-Zwart staat hier centraal?",\
+&#x20;     "answer": "Brandon Mechele",\
+&#x20;     "accept": ["Mechele", "Brandon"],\
+&#x20;     "imagePrompt": "Photorealistic close-up of Belgian footballer Brandon Mechele wearing the blue and black Club Brugge home shirt. Begin with an extremely tight crop of a recognizable facial feature, such as his eyes, nose or beard stubble. Designed for a progressive zoom-out, eventually revealing his complete face, upper body and full figure as a central defender on the pitch. Authentic likeness, realistic professional football photography, no text, no watermark.",\
+&#x20;     "imageSearch": "Brandon Mechele",\
+&#x20;     "fact": "Brandon Mechele maakte in 2013 zijn debuut voor de A-ploeg van Club Brugge."\
+&#x20;   },\
+&#x20;   {\
+&#x20;     "question": "Welke bekende Zwitserse doelman verdedigt tegenwoordig het Brugse doel?",\
+&#x20;     "answer": "Yann Sommer",\
+&#x20;     "accept": ["Sommer", "Yann"],\
+&#x20;     "imagePrompt": "Photorealistic extreme macro close-up of Swiss goalkeeper Yann Sommer wearing the Club Brugge goalkeeper kit. Begin with a tiny recognizable detail of his face, such as his eyes or short hair. Progressive zoom-out composition eventually reveals his complete face, goalkeeper gloves, athletic body and full goalkeeper stance in front of a football goal. Authentic likeness, professional sports photography, no text, no watermark.",\
+&#x20;     "imageSearch": "Yann Sommer",\
+&#x20;     "fact": "Yann Sommer won de Champions League met Bayern München in 2020 niet: hij speelde toen nog voor Borussia Mönchengladbach."\
+&#x20;   }\
+&#x20; ]\
+}
