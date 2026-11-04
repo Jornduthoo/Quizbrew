@@ -298,3 +298,11 @@ body.builder { font-size: 15px; }
 /* A twist that does nothing in this round type */
 .chip.misfit { opacity: .55; text-decoration: line-through; }
 .twist-warn { margin: 6px 0 0; color: color-mix(in srgb, var(--bad) 45%, var(--cream)); max-width: 46ch; }
+
+/* Word web groups */
+:root { --web-0: rgb(var(--k-amber)); --web-1: rgb(var(--k-cyan)); --web-2: rgb(var(--k-pink)); --web-3: #9dff6a; }
+.web-edit { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+.web-edit-group { padding: 10px; border-radius: 12px; border: 1.5px solid var(--g); background: color-mix(in srgb, var(--g) 10%, transparent); }
+.web-edit-head { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.web-edit-link { flex: 1; font-weight: 800; }
+.web-edit-words { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }

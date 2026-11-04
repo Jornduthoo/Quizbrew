@@ -358,10 +358,11 @@
     const reveal = s.phase === 'reveal';
     const kind = q.kind;
     const typed = kind === 'text' || kind === 'number';
-    const listed = typed || ['point', 'order', 'pairs', 'list', 'level', 'buzz', 'turn'].includes(kind);
+    const listed = typed || ['point', 'order', 'pairs', 'list', 'level', 'buzz', 'turn', 'groups'].includes(kind);
     const silent = MUTE || s.round.twists.includes('silentRound');
     document.body.classList.toggle('silent', s.round.twists.includes('silentRound'));
     $('#q-count').textContent = t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
+    $('#q-twists').replaceChildren(...QB.twistChips(s));
     $('#q-answered').textContent = t('screen.answeredCount', { n: s.answered, total: s.teams.filter(x => !x.paper).length });
     const wasRevealed = document.body.classList.contains('revealed');
     document.body.classList.toggle('revealed', reveal);
@@ -394,6 +395,11 @@
       if (q.left) $('#q-pairs').replaceChildren(
         h('ol', { class: 'pair-col left' }, q.left.map((x, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'num' }, i + 1), x))),
         h('ol', { class: 'pair-col right' }, q.right.map((x, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'letter' }, String.fromCharCode(65 + i)), x))));
+      $('#q-web').hidden = !q.words;
+      if (q.words) {
+        $('#q-web').className = 'web-board';
+        $('#q-web').replaceChildren(...q.words.map((w, i) => h('span', { class: 'web-tile', style: `--k: ${i}` }, w)));
+      }
       $('#q-pins').replaceChildren();
       $('#answered-dots').replaceChildren();
       renderMedia(q);
@@ -424,7 +430,7 @@
       $('#q-clues').hidden = !q.clues;
       if (q.clues) $('#q-clues').replaceChildren(...q.clues.map((c, i) => h('li', { class: 'clue', style: `--k: ${i}` }, h('span', { class: 'clue-pts' }), h('span', {}, c))));
       const own = { bluffBank: 'screen.bluffNow', captionThis: 'screen.captionNow', whosWho: 'screen.aboutUs', actItOut: 'screen.guessAct' }[s.round.type];
-      const hintKey = kind === 'turn' || s.finalists ? null : own || { draw: 'screen.drawNow', photo: 'screen.photoNow', text: 'screen.typeAnswer', number: 'screen.typeNumber', point: 'screen.tapSpot', order: 'screen.putInOrder', pairs: 'screen.makePairs', buzz: 'screen.buzzNow', list: 'screen.listGo', level: 'screen.answerOnPhone' }[kind];
+      const hintKey = kind === 'turn' || s.finalists ? null : own || { draw: 'screen.drawNow', photo: 'screen.photoNow', text: 'screen.typeAnswer', number: 'screen.typeNumber', point: 'screen.tapSpot', order: 'screen.putInOrder', pairs: 'screen.makePairs', groups: 'screen.webGo', buzz: 'screen.buzzNow', list: 'screen.listGo', level: 'screen.answerOnPhone' }[kind];
       $('#q-typehint').hidden = !hintKey;
       $('#q-typehint').textContent = hintKey ? t(hintKey, { n: q.total }) : '';
       $('#q-list').hidden = true;
@@ -497,7 +503,7 @@
     const sol = $('#q-solution');
     // Order and pairs show the solution in the list itself.
     const crowd = s.round.type === 'crowdMind';
-    sol.hidden = !(reveal && (listed || kind === 'buzz')) || ['order', 'pairs', 'list', 'level'].includes(kind) || (kind === 'buzz' && !(s.reveal && s.reveal.answerText));
+    sol.hidden = !(reveal && (listed || kind === 'buzz')) || ['order', 'pairs', 'list', 'level', 'groups'].includes(kind) || (kind === 'buzz' && !(s.reveal && s.reveal.answerText));
     $('#team-answers').hidden = !(reveal && listed && s.answers);
     if (reveal && listed) {
       $('#q-typehint').hidden = true;
@@ -506,18 +512,20 @@
       if (kind === 'number') list.sort((a, b) => (a.answer === null) - (b.answer === null) || Math.abs(a.answer - s.reveal.number) - Math.abs(b.answer - s.reveal.number));
       else list.sort((a, b) => b.correct - a.correct);
       if (kind === 'list') list.sort((a, b) => (b.found || 0) - (a.found || 0));
+      if (kind === 'groups') list.sort((a, b) => (b.points || 0) - (a.points || 0));
       if (kind === 'point') list.sort((a, b) => (a.answer === null) - (b.answer === null) || (a.answer && b.answer ? dist(a.answer, s.reveal.spot) - dist(b.answer, s.reveal.spot) : 0));
       const shown = a => {
         if (a.answer === null) return '—';
         if (kind === 'point') return t('screen.distance', { n: Math.round(dist(a.answer, s.reveal.spot) * 100) });
         if (kind === 'order' || kind === 'pairs') return a.correct ? '✓' : '✗';
         if (kind === 'list') return t('screen.foundN', { n: a.found || 0 });
+        if (kind === 'groups') return t('screen.webFound', { g: (a.found && a.found.g) || 0, l: (a.found && a.found.l) || 0 });
         if (kind === 'level') return `${t(`play.level${a.answer.l}`)} ${a.correct ? '✓' : '✗'}`;
         if (kind === 'buzz') return a.answer === 'right' ? '✓' : '✗';
         return String(a.answer);
       };
       $('#team-answers').style.setProperty('--cols', list.length <= 2 ? Math.max(1, list.length) : list.length <= 4 ? 2 : list.length <= 9 ? 3 : 4);
-      $('#team-answers').replaceChildren(...list.map((a, i) => h('li', { class: 'team-answer' + (a.correct ? ' right' : a.answer === null ? ' none' : ' wrong'), style: `${teamVar(a.color)}; --k: ${i}` },
+      $('#team-answers').replaceChildren(...list.map((a, i) => h('li', { class: 'team-answer' + (a.correct ? ' right' : a.answer === null ? ' none' : a.points > 0 ? ' part' : ' wrong'), style: `${teamVar(a.color)}; --k: ${i}` },
         h('span', { class: 'team-dot' }),
         h('span', { class: 'ta-name' }, a.name),
         h('span', { class: 'ta-answer' }, shown(a)),
@@ -533,6 +541,11 @@
       if (!wasRevealed) Media.reveal();
       if (q.items && s.reveal.order) $('#q-items').replaceChildren(...s.reveal.order.map((it, i) => h('li', { class: 'order-item solved', style: `--k: ${i}` }, h('span', { class: 'letter' }, i + 1), h('span', {}, it))));
       if (q.left && s.reveal.pairs) $('#q-pairs').replaceChildren(h('ol', { class: 'pair-col solved' + (s.reveal.pairs.length > 4 ? ' split' : ''), style: `--rows: ${Math.ceil(s.reveal.pairs.length / 2)}` }, s.reveal.pairs.map((p, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'num' }, i + 1), p[0], h('span', { class: 'eq' }, '='), h('strong', {}, p[1])))));
+      if (q.words && s.reveal.groups) {
+        $('#q-web').className = 'web-board solved';
+        $('#q-web').replaceChildren(...s.reveal.groups.map((g, i) => h('div', { class: 'web-row', style: `--g: var(--web-${i}); --k: ${i}` },
+          ...g.words.map(w => h('span', { class: 'web-tile' }, w)), h('span', { class: 'web-link-text' }, g.link))));
+      }
       if (kind === 'point' && s.reveal.spot) {
         const pins = (s.answers || []).filter(a => a.answer).map(a => h('span', { class: 'pin team', style: `${teamVar(a.color)}; left: ${a.answer.x * 100}%; top: ${a.answer.y * 100}%`, title: a.name }));
         pins.push(h('span', { class: 'pin goal', style: `left: ${s.reveal.spot.x * 100}%; top: ${s.reveal.spot.y * 100}%` }));
@@ -828,6 +841,8 @@
     split($('#awards-title'), t('screen.awards'));
     const grid = $('#award-grid');
     grid.style.setProperty('--n', s.awards.length);
+    grid.classList.toggle('n4', s.awards.length === 4);
+    grid.classList.toggle('many', s.awards.length > 4);
     grid.replaceChildren(...s.awards.map((a, i) => h('li', { class: 'award', style: `${teamVar(a.team.color)}; --d: ${1 + i * 1.8}s` },
       h('span', { class: 'aw-icon' }, AWARD_ICON[a.id] || '★'),
       h('span', { class: 'aw-title' }, t(`award.${a.id}`)),

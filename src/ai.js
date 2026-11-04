@@ -110,6 +110,7 @@ const TYPE_HELP = {
   whosWho: 'teams answer a personal question, then guess which team wrote which answer',
   stakeIt: 'teams see only the category, bet points, then answer a multiple choice question; right wins the bet, wrong loses it',
   localLegend: 'questions about the own town, club or pub of the players (the quizmaster checks every fact)',
+  wordWeb: '12 words hide 3 groups of 4; teams sort the words into groups and name what links each group',
   clueLadder: 'who or what is this: clues appear one by one from very hard to easy, an early answer scores more',
   fiveFacts: 'an open question with exactly five right keywords; every keyword found scores',
   clipRecall: 'the teams watch a short video clip, then type as many details as they remember',

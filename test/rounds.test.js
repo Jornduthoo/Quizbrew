@@ -889,3 +889,73 @@ test('a "did you know" line: from the AI, in a spreadsheet, and with the answer'
   game.answer('team1aaaa', 0);
   assert.equal(game.screenState().reveal.fact, 'Fun, really.');
 });
+
+test('word web: teams find groups of four and name the link, a point for each', () => {
+  const q = { question: 'Find the groups', groups: [
+    { link: 'Rivers', words: ['Seine', 'Rhine', 'Danube', 'Thames'] },
+    { link: 'Planets', words: ['Mars', 'Venus', 'Saturn', 'Jupiter'] },
+    { link: 'Chocolate bars', accept: ['candy bars'], words: ['Twix', 'Bounty', 'Snickers', 'Galaxy'] } ] };
+  const quiz = { title: 'T', rounds: [{ type: 'wordWeb', questions: [q] }] };
+  validateQuiz(quiz);
+  assert.throws(() => validateQuiz({ title: 'T', rounds: [{ type: 'wordWeb', questions: [{ groups: q.groups.slice(0, 2) }] }] }), /3 or 4 groups/);
+  assert.throws(() => validateQuiz({ title: 'T', rounds: [{ type: 'wordWeb', questions: [{ groups: [...q.groups.slice(0, 2), { link: 'X', words: ['Mars', 'a', 'b', 'c'] }] }] }] }), /only once/);
+
+  const g = new Game({});
+  g.load(quiz);
+  g.join('aaaaaaaa1', 'A', 'amber', 's1');
+  g.join('aaaaaaaa2', 'B', 'pink', 's2');
+  g.join('aaaaaaaa3', 'C', 'teal', 's3');
+  g.next(); g.next();
+  const pub = g.teamState('aaaaaaaa1').question;
+  assert.equal(pub.kind, 'groups');
+  assert.equal(pub.groupCount, 3);
+  assert.deepEqual([...pub.words].sort(), q.groups.flatMap(x => x.words).sort());
+  assert.equal(JSON.stringify(pub).includes('Rivers'), false, 'the links stay secret');
+  const idx = w => pub.words.indexOf(w);
+  const ids = ws => ws.map(idx);
+  assert.equal(g.answer('aaaaaaaa3', { groups: [ids(['Seine', 'Rhine', 'Danube', 'Thames'])], links: [] }), false, 'all groups are needed');
+  assert.ok(g.answer('aaaaaaaa1', { groups: [ids(['Seine', 'Rhine', 'Danube', 'Thames']), ids(['Mars', 'Venus', 'Saturn', 'Jupiter']), ids(['Twix', 'Bounty', 'Snickers', 'Galaxy'])], links: ['rivers', 'planet', 'candy bar'] }));
+  // Two words swapped: one group right, and a link still counts when 3 of 4 words are right.
+  assert.ok(g.answer('aaaaaaaa2', { groups: [ids(['Seine', 'Rhine', 'Danube', 'Galaxy']), ids(['Mars', 'Venus', 'Saturn', 'Jupiter']), ids(['Twix', 'Bounty', 'Snickers', 'Thames'])], links: ['Rivers', 'stars', ''] }));
+  if (g.phase === 'question') g.next();
+  const st = g.screenState();
+  const by = Object.fromEntries(st.answers.map(a => [a.name, a]));
+  assert.equal(by.A.points, 6);
+  assert.equal(by.A.correct, true);
+  assert.deepEqual(by.A.found, { g: 3, l: 3 });
+  assert.equal(by.B.points, 2);
+  assert.equal(by.B.correct, false);
+  assert.deepEqual(by.B.found, { g: 1, l: 1 });
+  assert.equal(st.reveal.answerText, 'Rivers · Planets · Chocolate bars');
+  assert.equal(st.reveal.groups.length, 3);
+});
+
+test('word web: the AI shape gives groups', () => {
+  const t = rounds.get('wordWeb');
+  const q = t.fromAI({ question: 'Q', groups: [{ link: 'L', words: ['a', 'b', 'c', 'd', 'e'] }] });
+  assert.deepEqual(q.groups, [{ link: 'L', words: ['a', 'b', 'c', 'd'] }]);
+});
+
+test('twists stay in sight: the underdog is named, and with one mistake and out the screen shows who is still in', () => {
+  const mc = c => ({ question: 'Q' + c, answers: ['a', 'b', 'c', 'd'], correct: c });
+  const quiz = { title: 'T', rounds: [
+    { type: 'classic', questions: [mc(0)] },
+    { type: 'classic', twists: ['underdog', 'suddenDeath'], questions: [mc(0), mc(1)] },
+  ] };
+  const g = new Game({});
+  g.load(quiz);
+  g.join('aaaaaaaa1', 'A', 'amber', 's1');
+  g.join('aaaaaaaa2', 'B', 'pink', 's2');
+  g.next(); g.next();
+  g.answer('aaaaaaaa1', 0); g.answer('aaaaaaaa2', 1);
+  while (g.phase !== 'roundIntro') g.next();
+  assert.deepEqual(g.screenState().round.underdogs.map(x => x.name), ['B']);
+  assert.equal(g.teamState('aaaaaaaa2').underdog, true);
+  assert.equal(g.teamState('aaaaaaaa1').underdog, false);
+  g.next();
+  assert.equal(g.screenState().board, true);
+  g.answer('aaaaaaaa1', 0); g.answer('aaaaaaaa2', 3);
+  if (g.phase === 'question') g.next();
+  g.next();
+  assert.deepEqual(g.screenState().teams.map(x => x.out), [false, true]);
+});

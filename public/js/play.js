@@ -126,7 +126,20 @@
     return I18n.load(deviceLang || info.language);
   }).then(() => state && render(state, true));
 
+  // The round's twists stay in sight on the phone, at the top of whatever the team is looking at.
+  const twistLine = h('div', { class: 'twist-line', 'aria-live': 'polite' });
   function render(s, force) {
+    renderView(s, force);
+    const view = document.querySelector('.view:not([hidden])');
+    const chips = s.team && ['roundIntro', 'question'].includes(s.phase) && view && !['v-join', 'v-audience'].includes(view.id) ? QB.twistChips(s, { phone: true }) : [];
+    if (!chips.length) { twistLine.remove(); return; }
+    const text = chips.map(c => c.textContent).join('|');
+    if (twistLine.dataset.text !== text) { twistLine.replaceChildren(...chips); twistLine.dataset.text = text; }
+    const head = view.querySelector('.mini-head');
+    if (twistLine.parentNode !== view) { if (head) head.after(twistLine); else view.prepend(twistLine); }
+  }
+
+  function renderView(s, force) {
     renderBrand();
     if (audienceOn) { if (aud) renderAudience(aud); return; }
     const key = [s.phase, s.round && s.round.index, s.questionIndex, s.team ? 1 : 0, s.answer, s.blocked, s.wager, s.voted, s.lifelineUsed].join(':');
@@ -206,7 +219,7 @@
         if (s.question.kind === 'list') return renderList(s, fresh);
         if (s.answer !== null && s.answer !== undefined) { wait(t('play.locked'), lockedBadge(s)); if (fresh) $('#wait-quip').textContent = QB.quip('locked'); return; }
         if (s.question.kind === 'text' || s.question.kind === 'number') return renderType(s, fresh);
-        if (['order', 'pairs', 'point'].includes(s.question.kind)) return renderBuild(s, fresh);
+        if (['order', 'pairs', 'point', 'groups'].includes(s.question.kind)) return renderBuild(s, fresh);
         return renderChoices(s, fresh);
       case 'reveal': return renderResult(s, fresh);
       case 'awards': {
@@ -364,7 +377,7 @@
     const k = s.question.kind;
     if (k === 'choice') return LETTERS[s.answer];
     if (k === 'trueFalse') return s.answer === 0 ? '✓' : '✗';
-    if (k === 'order' || k === 'pairs' || k === 'point') return '✓';
+    if (k === 'order' || k === 'pairs' || k === 'point' || k === 'groups') return '✓';
     if (k === 'level') return LETTERS[s.answer.i];
     return String(s.answer).slice(0, 14);
   }
@@ -472,11 +485,12 @@
 
   // Order, pairs and pins: the team builds an answer with taps, can undo, and sends it when it is complete.
   let build = [];
+  let links = [];
   function renderBuild(s, fresh) {
     showView('build');
     const q = s.question;
     $('#b-num').textContent = t('play.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
-    if (fresh) build = [];
+    if (fresh) { build = []; links = []; }
     drawBuild(q, fresh);
     stopTimer = countdown(s.remaining, q.time * 1000, left => {
       $('#b-time').textContent = Math.ceil(left / 1000);
@@ -509,6 +523,24 @@
           onclick: tap(() => build.push(i)),
         }, h('span', { class: 'text' }, r)))),
       );
+    } else if (q.kind === 'groups') {
+      // Word web: tap 4 words to make a group; the last group fills itself. Then name what links each group.
+      const total = q.words.length;
+      if (build.length === total - 4) build.push(...q.words.map((_, i) => i).filter(i => !build.includes(i)));
+      const made = Math.floor(build.length / 4);
+      done = build.length === total;
+      $('#build-label').textContent = done ? t('play.webLinks') : t('play.webPick', { n: made + 1, total: q.groupCount });
+      box.className = 'build web' + (enter ? ' enter' : '');
+      const rows = Array.from({ length: made }, (_, g) => h('div', { class: 'web-group', style: `--g: var(--web-${g})` },
+        h('div', { class: 'web-words' }, build.slice(g * 4, g * 4 + 4).map(i => h('span', { class: 'web-word set' }, q.words[i]))),
+        h('input', { class: 'web-link', maxlength: 60, placeholder: t('play.webLinkPh'), value: links[g] || '', autocomplete: 'off', oninput: e => { links[g] = e.target.value; } })));
+      const pending = build.slice(made * 4);
+      box.replaceChildren(...rows, done ? '' : h('div', { class: 'web-pool' }, q.words.map((w, i) => {
+        const at = pending.indexOf(i);
+        if (build.includes(i) && at < 0) return null;
+        return h('button', { type: 'button', class: 'web-word' + (at >= 0 ? ' on' : ''), style: `--g: var(--web-${made})`,
+          onclick: tap(() => { if (at >= 0) build.splice(made * 4 + at, 1); else build.push(i); }) }, w);
+      })));
     } else {
       $('#build-label').textContent = t('play.tapSpot');
       box.className = 'build point';
@@ -529,11 +561,19 @@
     $('#build-send').disabled = !done;
     $('#build-undo').disabled = build.length === 0;
   }
-  $('#build-undo').addEventListener('click', () => { build.pop(); if (state && state.question) drawBuild(state.question); });
+  $('#build-undo').addEventListener('click', () => {
+    const q = state && state.question;
+    // Undo on a full word web takes back the group that filled itself too.
+    if (q && q.kind === 'groups' && build.length === q.words.length) build.splice(-5);
+    else build.pop();
+    if (q) drawBuild(q);
+  });
   $('#build-send').addEventListener('click', () => {
     const q = state && state.question;
     if (!q) return;
-    socket.emit('answer', q.kind === 'point' ? build[0] : build.slice());
+    socket.emit('answer', q.kind === 'point' ? build[0] : q.kind === 'groups'
+      ? { groups: Array.from({ length: q.groupCount }, (_, g) => build.slice(g * 4, g * 4 + 4)), links: Array.from({ length: q.groupCount }, (_, g) => links[g] || '') }
+      : build.slice());
     if (navigator.vibrate) navigator.vibrate(25);
   });
 

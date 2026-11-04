@@ -348,6 +348,7 @@
     if (type.fields.includes('clues')) q.clues = ['', '', '', ''];
     if (type.fields.includes('items')) q.items = ['', '', '', ''];
     if (type.fields.includes('pairs')) q.pairs = [['', ''], ['', ''], ['', ''], ['', '']];
+    if (type.fields.includes('groups')) q.groups = [0, 1, 2].map(() => ({ link: '', words: ['', '', '', ''] }));
     if (type.fields.includes('images')) { q.images = ['', '', '', '']; q.captions = ['', '', '', '']; q.correct = 0; }
     if (type.fields.includes('audio')) q.audio = '';
     if (type.fields.includes('listItems')) q.items = [];
@@ -514,6 +515,7 @@
     images: (q, set) => imagesField(q, set),
     items: (q, set) => listField(q, 'items', 3, 6, t('builder.f.items'), t('builder.f.itemsHint')),
     pairs: (q, set) => pairsField(q, set),
+    groups: q => groupsField(q),
     // A long list, one item per line ("/" for other spellings).
     listItems: q => {
       const area = h('textarea', { rows: 8, maxlength: 4000, oninput: e => { q.items = e.target.value.split('\n').map(x => x.trim()).filter(Boolean); changed(); } });
@@ -880,6 +882,27 @@
           items.length > min ? h('button', { class: 'mini kick', type: 'button', onclick: () => { items.splice(i, 1); changed(); draw(); } }, '×') : null))),
         items.length < max ? h('button', { class: 'ghost-btn small', type: 'button', onclick: () => { items.push(''); changed(); draw(); } }, t('builder.f.addItem')) : null,
         h('p', { class: 'hint small' }, hint));
+    };
+    draw();
+    return wrap;
+  }
+
+  // Word web: 3 or 4 groups, each with what links it and 4 words.
+  function groupsField(q) {
+    const wrap = h('div', { class: 'field wide' });
+    const draw = () => {
+      const groups = q.groups || (q.groups = [0, 1, 2].map(() => ({ link: '', words: ['', '', '', ''] })));
+      fill(wrap, h('span', {}, t('builder.f.groups')),
+        h('div', { class: 'web-edit' }, groups.map((g, gi) => {
+          g.words = g.words || ['', '', '', ''];
+          return h('div', { class: 'web-edit-group', style: `--g: var(--web-${gi})` },
+            h('div', { class: 'web-edit-head' },
+              h('input', { class: 'web-edit-link', value: g.link || '', maxlength: 60, placeholder: t('builder.f.groupLink', { n: gi + 1 }), oninput: e => { g.link = e.target.value; changed(); } }),
+              groups.length > 3 ? h('button', { class: 'mini kick', type: 'button', title: t('builder.delete'), onclick: () => { groups.splice(gi, 1); changed(); draw(); } }, '×') : null),
+            h('div', { class: 'web-edit-words' }, [0, 1, 2, 3].map(wi => h('input', { value: g.words[wi] || '', maxlength: 30, placeholder: t('builder.f.word', { n: wi + 1 }), oninput: e => { g.words[wi] = e.target.value; changed(); } }))));
+        })),
+        groups.length < 4 ? h('button', { class: 'ghost-btn small', type: 'button', onclick: () => { groups.push({ link: '', words: ['', '', '', ''] }); changed(); draw(); } }, t('builder.f.addGroup')) : null,
+        h('p', { class: 'hint small' }, t('builder.f.groupsHint')));
     };
     draw();
     return wrap;
