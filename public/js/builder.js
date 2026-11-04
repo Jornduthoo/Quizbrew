@@ -680,31 +680,45 @@
   }
 
   // A preview that never shows a broken picture: try the bigger picture once, otherwise leave the choice out.
+  // A small preview; if it fails, a medium one (never the full-size original, that can be many megabytes).
   function thumbImg(r) {
-    const img = h('img', { src: r.thumb, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' });
+    const img = h('img', { src: r.thumb, alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
     img.addEventListener('error', () => {
-      if (img.dataset.retry || !r.url || r.url === r.thumb) { const card = img.closest('button');
+      if (img.dataset.retry || !r.backup || r.backup === r.thumb) { const card = img.closest('button');
         const strip = card && card.closest('.pic-suggest');
         if (card) card.remove();
         if (strip && !strip.querySelector('.pic-mini')) strip.remove();
         return;
       }
       img.dataset.retry = '1';
-      img.src = r.url;
+      img.src = r.backup;
     });
     return img;
   }
 
   // Proposals that show up by themselves under an empty picture field: click one to use it, or just ignore them.
   const suggestCache = new Map();
-  function suggestions(term, onPick) {
+  // Free pictures for a search term, with a time limit so a slow connection never leaves the builder hanging.
+  async function searchOnline(q) {
+    let res;
+    try { res = await fetch('/api/host/pictures?q=' + encodeURIComponent(q), { signal: AbortSignal.timeout(25000) }); } catch { throw new Error('pictures.offline'); }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'pictures.offline');
+    return data;
+  }
+
+  // Up to four pictures to pick with one click, shown while the quizmaster fills in the rest (small grey boxes while searching).
+  function suggestions(term, onPick, { count = 4, compact = false } = {}) {
     const q = String(term || '').trim();
     if (!q) return null;
-    const strip = h('div', { class: 'pic-suggest' }, h('span', { class: 'pic-suggest-label' }, t('pictures.suggested')));
-    if (!suggestCache.has(q)) suggestCache.set(q, api('GET', '/pictures?q=' + encodeURIComponent(q)).then(r => r.results.slice(0, 4)).catch(() => []));
+    const strip = h('div', { class: 'pic-suggest loading' + (compact ? ' compact' : '') }, compact ? null : h('span', { class: 'pic-suggest-label' }, t('pictures.suggested')),
+      ...Array.from({ length: count }, () => h('span', { class: 'pic-mini pic-wait' })));
+    if (!suggestCache.has(q)) suggestCache.set(q, searchOnline(q).then(r => r.results.slice(0, 4)).catch(() => { suggestCache.delete(q); return []; }));
     suggestCache.get(q).then(list => {
+      strip.querySelectorAll('.pic-wait').forEach(x => x.remove());
+      strip.classList.remove('loading');
       if (!list.length) { strip.remove(); return; }
-      strip.append(...list.map(r => h('button', {
+      strip.append(...list.slice(0, count).map(r => h('button', {
         type: 'button', class: 'pic-mini', title: r.credit,
         onclick: () => onPick(r),
       }, thumbImg(r))));
@@ -753,14 +767,20 @@
     if (!q) return;
     const mine = ++picSearch;
     $('#pic-state').textContent = t('pictures.searching');
-    $('#pic-results').replaceChildren();
+    $('#pic-state').classList.add('busy');
+    $('#pic-results').replaceChildren(...Array.from({ length: 8 }, () => h('span', { class: 'pic-card pic-wait' })));
     let results;
     let term = q;
-    try { ({ results, term } = await api('GET', '/pictures?q=' + encodeURIComponent(q))); } catch (err) {
-      if (mine === picSearch) $('#pic-state').textContent = t(/^pictures\./.test(err.message) ? err.message : 'pictures.offline');
+    try { ({ results, term } = await searchOnline(q)); } catch (err) {
+      if (mine === picSearch) {
+        $('#pic-state').classList.remove('busy');
+        $('#pic-results').replaceChildren();
+        $('#pic-state').textContent = t(/^pictures\./.test(err.message) ? err.message : 'pictures.offline');
+      }
       return;
     }
     if (mine !== picSearch) return;
+    $('#pic-state').classList.remove('busy');
     $('#pic-state').textContent = !results.length ? t('pictures.none') : term && term.toLowerCase() !== q.toLowerCase() ? t('pictures.broader', { term }) : '';
     $('#pic-results').replaceChildren(...results.map(r => h('button', {
       type: 'button', class: 'pic-card', title: r.title,
@@ -843,6 +863,28 @@
     return wrap;
   }
 
+  // The words to search a picture for one slot: the AI's search words, else the subject of its picture prompt, else the caption.
+  function slotSearch(q, i) {
+    const own = Array.isArray(q.imageSearches) && String(q.imageSearches[i] || '').trim();
+    if (own) return own;
+    const prompt = String(q.imagePrompt || '').split('|')[i];
+    const subject = promptSubject(prompt);
+    return subject || String((q.captions || [])[i] || '').trim();
+  }
+  // "An emperor penguin standing on Antarctic sea ice, ..." gives "emperor penguin".
+  const STOP = new Set('in on at with of from under over near by for and or into onto inside against during while is are that which who as to'.split(' '));
+  function promptSubject(prompt) {
+    const words = String(prompt || '').split(/[,.;:]/)[0].replace(/[^\p{L}\p{N}' -]+/gu, ' ').split(/\s+/).filter(Boolean);
+    while (words.length && /^(a|an|the|one|single)$/i.test(words[0])) words.shift();
+    const out = [];
+    for (const w of words) {
+      if (STOP.has(w.toLowerCase()) || (out.length && /^[a-z]\w{2,}ing$/.test(w))) break;
+      out.push(w);
+      if (out.length === 4) break;
+    }
+    return out.join(' ');
+  }
+
   // Three or four pictures, one is the odd one out.
   function imagesField(q, set) {
     const wrap = h('div', { class: 'field wide' });
@@ -863,18 +905,30 @@
             try { const url = await job; if (url) { imgs[i] = url; credits[i] = credit; changed(); } } catch (err) { pictureFailed(err); }
             draw();
           };
+          // Suggestions under an empty slot; typed a new caption, then new suggestions for it.
+          let term = slotSearch(q, i);
+          const suggest = () => (src ? null : suggestions(term, pick => take(fromLink(pick.url), pick.credit), { count: 3, compact: true }));
+          let strip = suggest() || h('span', { hidden: true });
+          const retry = () => {
+            if (src || slotSearch(q, i) === term) return;
+            term = slotSearch(q, i);
+            const next = suggest() || h('span', { hidden: true });
+            strip.replaceWith(next);
+            strip = next;
+          };
           const slot = h('div', { class: 'image-slot' + (q.correct === i ? ' right' : ''),
             ondragover: e => { e.preventDefault(); slot.classList.add('drop'); },
             ondragleave: () => slot.classList.remove('drop'),
             ondrop: e => { e.preventDefault(); slot.classList.remove('drop'); take(takePicture(e.dataTransfer)); } },
             src ? h('img', { src, alt: '', title: credits[i] || '' }) : h('label', { class: 'drop-zone' }, fileInput, h('span', {}, LETTERS[i] + ' +')),
             src ? null : h('button', { class: 'mini pic-find-mini', type: 'button', title: t('pictures.find'), onclick: async () => {
-              const pick = await findPicture(q.captions[i] || '');
+              const pick = await findPicture(slotSearch(q, i));
               if (pick) take(Promise.resolve(pick.url), pick.credit);
             } }, '🔍'),
+            strip,
             h('label', { class: 'slot-row' },
               h('input', { type: 'radio', name, checked: q.correct === i ? 'checked' : null, onchange: () => { set('correct', i); draw(); } }),
-              h('input', { value: q.captions[i] || '', maxlength: 40, placeholder: t('builder.f.caption'), oninput: e => { q.captions[i] = e.target.value; changed(); } }),
+              h('input', { value: q.captions[i] || '', maxlength: 40, placeholder: t('builder.f.caption'), oninput: e => { q.captions[i] = e.target.value; changed(); }, onchange: retry }),
               src ? h('button', { class: 'mini kick', type: 'button', onclick: () => { imgs[i] = ''; credits[i] = ''; changed(); draw(); } }, '×') : null));
           return slot;
         })),

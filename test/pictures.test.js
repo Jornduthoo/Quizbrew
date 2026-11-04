@@ -64,7 +64,33 @@ test('a too precise search is tried again with fewer words', async () => {
   const { results, term } = await Pictures.search('Eiffel Tower at dusk', { fetch: net, enough: 1 });
   assert.equal(term, 'Eiffel Tower');
   assert.equal(results.length, 2);
-  assert.deepEqual(asked, ['Eiffel Tower at dusk filetype:bitmap', 'Eiffel Tower at filetype:bitmap', 'Eiffel Tower filetype:bitmap']);
+  assert.deepEqual(asked, ['Eiffel Tower at dusk filetype:bitmap', 'Eiffel Tower at filetype:bitmap', 'Eiffel Tower filetype:bitmap', 'Eiffel filetype:bitmap']);
+});
+
+test('a slow source does not hold up the search, and broader terms go out together', async () => {
+  const slow = () => new Promise(() => {}); // never answers
+  const net = fakeFetch([['commons.wikimedia.org', () => json(commonsAnswer)], ['api.openverse.org', slow]]);
+  const start = Date.now();
+  const { results } = await Pictures.search('lighthouse', { fetch: net, enough: 1, grace: 50 });
+  assert.equal(results.length, 2);
+  assert.ok(Date.now() - start < 1000, 'waited for the slow source');
+  // Too few on the exact words: the broader terms are asked at the same time, not one after the other.
+  let open = 0;
+  let most = 0;
+  const wait = fakeFetch([['commons.wikimedia.org', async () => { open++; most = Math.max(most, open); await new Promise(r => setTimeout(r, 20)); open--; return json({ query: {} }); }], ['api.openverse.org', () => json({ results: [] })]]);
+  await Pictures.search('red double decker bus', { fetch: wait });
+  assert.equal(most, 3);
+});
+
+test('the same search again answers from memory, and a running search is shared', async () => {
+  let calls = 0;
+  const find = Pictures.cached(async () => { calls++; return { results: [{ url: 'x' }], term: 'lion' }; });
+  await Promise.all([find('Lion'), find(' lion ')]);
+  await find('LION');
+  assert.equal(calls, 1);
+  const none = Pictures.cached(async () => { calls++; return { results: [], term: 'zz' }; });
+  await none('zz'); await none('zz');
+  assert.equal(calls, 3, 'an empty answer is not remembered');
 });
 
 test('only pictures on the internet can be fetched', async () => {
