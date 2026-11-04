@@ -30,6 +30,7 @@ test('the remote keeps the phone awake and shows when the link is lost', () => {
   assert.match(awake, /navigator\.wakeLock\.request\('screen'\)/);
   assert.match(awake, /playsinline/); // the fallback for plain http on the wifi
   assert.ok(fs.statSync(path.join(pub, 'img', 'awake.mp4')).size < 80000);
+  assert.match(awake, /width:100vw;height:100vh/, 'Chrome only keeps the screen on for a video that covers 20% of it');
   assert.doesNotMatch(awake, /currentTime\s*=/, 'seeking the video flickers the screen on Android');
   for (const l of ['en', 'nl', 'fr', 'de', 'es']) {
     assert.ok(JSON.parse(fs.readFileSync(path.join(pub, '..', 'lang', `${l}.json`), 'utf8'))['host.remoteExpired'], l);
