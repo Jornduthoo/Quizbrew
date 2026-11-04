@@ -11,7 +11,7 @@ window.PROMO_TEXT = {
     answer: 'Everyone answers on their phone', answerSub: 'One button, one sentence',
     reveal: 'The big reveal', revealSub: 'Live on the big screen',
     score: 'Live scoreboard', scoreSub: 'Drama between every round',
-    looks: '5 looks, one click', looksSub: 'Pub, space, jungle, haunted, arcade',
+    looks: '10 looks, one click', looksSub: 'Pub, space, winter, disco, beach and more',
     endTitle: 'Pay once. No subscription.', endSub: 'Try the free demo',
   },
   nl: {
@@ -25,7 +25,7 @@ window.PROMO_TEXT = {
     answer: 'Iedereen antwoordt op zijn gsm', answerSub: 'Eén knop, één zin',
     reveal: 'Het grote moment', revealSub: 'Live op het grote scherm',
     score: 'Live scorebord', scoreSub: 'Spanning na elke ronde',
-    looks: '5 looks, één klik', looksSub: 'Café, ruimte, jungle, spookhuis, arcade',
+    looks: '10 looks, één klik', looksSub: 'Café, ruimte, winter, disco, strand en meer',
     endTitle: 'Eén keer betalen. Geen abonnement.', endSub: 'Probeer de gratis demo',
   },
   fr: {
@@ -39,7 +39,7 @@ window.PROMO_TEXT = {
     answer: 'Chacun répond sur son téléphone', answerSub: 'Un bouton, une phrase',
     reveal: 'Le grand moment', revealSub: 'En direct sur le grand écran',
     score: 'Classement en direct', scoreSub: 'Du suspense entre chaque manche',
-    looks: '5 ambiances, un clic', looksSub: 'Pub, espace, jungle, manoir hanté, arcade',
+    looks: '10 ambiances, un clic', looksSub: 'Pub, espace, hiver, disco, plage et plus',
     endTitle: 'Un seul paiement. Sans abonnement.', endSub: 'Essaie la démo gratuite',
   },
   de: {
@@ -53,7 +53,7 @@ window.PROMO_TEXT = {
     answer: 'Alle antworten am Handy', answerSub: 'Ein Knopf, ein Satz',
     reveal: 'Die große Auflösung', revealSub: 'Live auf dem großen Bildschirm',
     score: 'Live-Punktestand', scoreSub: 'Spannung nach jeder Runde',
-    looks: '5 Looks, ein Klick', looksSub: 'Kneipe, Weltraum, Dschungel, Spuk, Arcade',
+    looks: '10 Looks, ein Klick', looksSub: 'Kneipe, Weltraum, Winter, Disco, Strand und mehr',
     endTitle: 'Einmal zahlen. Kein Abo.', endSub: 'Teste die Gratis-Demo',
   },
   es: {
@@ -67,7 +67,7 @@ window.PROMO_TEXT = {
     answer: 'Todos responden con el móvil', answerSub: 'Un botón, una frase',
     reveal: 'El gran momento', revealSub: 'En directo en la pantalla grande',
     score: 'Marcador en directo', scoreSub: 'Emoción tras cada ronda',
-    looks: '5 estilos, un clic', looksSub: 'Bar, espacio, jungla, mansión, arcade',
+    looks: '10 estilos, un clic', looksSub: 'Bar, espacio, invierno, disco, playa y más',
     endTitle: 'Pagas una vez. Sin suscripción.', endSub: 'Prueba la demo gratis',
   },
 };
