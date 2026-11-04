@@ -841,6 +841,23 @@ test('twist: lifeline hides two wrong answers once per round', () => {
   assert.equal(game.useLifeline(ids[0]), false);
 });
 
+test('twist: the lifeline is announced to the room, and only offered where it can work', () => {
+  const { game, ids, go } = play({ type: 'classic', twists: ['lifeline'], questions: [mc('Q1', 1)] });
+  const sent = [];
+  game.emit = (to, event, payload) => sent.push([to, event, payload]);
+  go();
+  game.useLifeline(ids[0]);
+  const alerts = sent.filter(([, e]) => e === 'alert').map(([to, , p]) => [to, p.kind, p.name]);
+  assert.deepEqual(alerts, [['host', 'lifeline', 'A'], ['screen', 'lifeline', 'A']]);
+
+  const types = Object.fromEntries(rounds.catalog().types.map(t => [t.id, t.twists]));
+  assert.ok(types.classic.includes('lifeline'));
+  assert.ok(types.picture.includes('lifeline'), 'picture rounds can be multiple choice');
+  assert.ok(!types.open.includes('lifeline'));
+  assert.ok(!types.trueFalse.includes('shrinkingOptions'));
+  assert.ok(types.open.includes('double'));
+});
+
 test('twist: mystery category keeps the round title hidden until the last answer', () => {
   const { game, ids, go } = play({ type: 'classic', title: 'Cheese', twists: ['mysteryCategory'], questions: [mc('Q1'), mc('Q2')] });
   assert.equal(game.screenState().round.title, '? ? ?');

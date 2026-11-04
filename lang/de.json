@@ -587,7 +587,7 @@
   "play.yourTurn": "Du bist dran! Antworte laut",
   "play.theirTurn": "{name} antwortet",
   "play.clockOut": "Deine Zeit ist um",
-  "play.lifeline": "50/50",
+  "play.lifeline": "🛟 Rettungsanker: 2 falsche weg",
   "play.lifelineConfirm": "Deinen Rettungsanker für diese Runde nutzen? Zwei falsche Antworten verschwinden.",
   "play.clockLeft": "noch {n} s",
   "host.realTitle": "Verborgener Titel: {title}",
@@ -898,5 +898,9 @@
   "manage.editCopy": "Kopie bearbeiten",
   "manage.sample": "Beispiel",
   "manage.copyWord": "Kopie",
-  "manage.none": "Kein Quiz mit diesem Namen."
+  "manage.none": "Kein Quiz mit diesem Namen.",
+  "screen.alertLifeline": "{name} nutzt den Rettungsanker!",
+  "host.alertLifeline": "{name} hat den Rettungsanker genutzt: zwei falsche Antworten sind auf dem Handy weg.",
+  "builder.twistChoiceNone": "Rettungsanker und schrumpfende Auswahl wirken nur bei Fragen mit Antworten zum Antippen. Diese Runde hat keine, hier tun sie also nichts.",
+  "builder.twistChoiceSome": "Rettungsanker und schrumpfende Auswahl wirken nur bei Fragen mit Antwortmöglichkeiten (Multiple Choice), nicht bei getippten Antworten."
 }

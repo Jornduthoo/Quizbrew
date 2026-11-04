@@ -853,6 +853,10 @@ const kindOf = (type, q) => (type.kindOf ? type.kindOf(q) : type.kind);
 const stepsOf = (type, q) => (type.steps ? type.steps(q) : type.effect ? 5 : 1);
 const isTurn = type => !!(type && type.turns);
 
+// Twists that hide or remove answer options only work on questions with options to tap.
+const CHOICE_TWISTS = ['shrinkingOptions', 'lifeline'];
+const twistFits = (type, tw) => !CHOICE_TWISTS.includes(tw) || (!!type && (type.kind === 'choice' || !!type.kindOf));
+
 // Fill the defaults of the round type into a round, without changing what the quizmaster set.
 function withDefaults(round) {
   const type = get(round.type);
@@ -871,8 +875,8 @@ function catalog() {
     families: FAMILIES,
     scorings: SCORINGS,
     twists: TWISTS,
-    types: TYPES.map(t => ({ id: t.id, family: t.family, kind: t.kindOf ? 'choiceOrText' : t.kind, fields: t.fields, defaults: t.defaults, scorings: t.scorings, wager: t.wager || false, effect: t.effect || null, media: t.media || null, finale: !!t.finale, clock: t.clock || null })),
+    types: TYPES.map(t => ({ id: t.id, family: t.family, kind: t.kindOf ? 'choiceOrText' : t.kind, fields: t.fields, defaults: t.defaults, scorings: t.scorings, wager: t.wager || false, effect: t.effect || null, media: t.media || null, finale: !!t.finale, clock: t.clock || null, twists: TWISTS.filter(tw => twistFits(t, tw)) })),
   };
 }
 
-module.exports = { isTurn, listFound, permutation, pointDistance, TYPES, SCORINGS, TWISTS, FAMILIES, get, kindOf, stepsOf, withDefaults, catalog, normalize, textMatches, scramble, list, str };
+module.exports = { twistFits, CHOICE_TWISTS, isTurn, listFound, permutation, pointDistance, TYPES, SCORINGS, TWISTS, FAMILIES, get, kindOf, stepsOf, withDefaults, catalog, normalize, textMatches, scramble, list, str };

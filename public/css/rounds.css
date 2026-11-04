@@ -400,7 +400,9 @@ body.silent.urgent .timer { animation-duration: .8s; }
 
 /* Clock rounds, picks and lifelines (wave 5) */
 .phone .choice.gone { opacity: .15; filter: grayscale(1); pointer-events: none; transform: scale(.96); transition: opacity .5s, transform .5s; }
-.phone .lifeline-btn { margin-top: 12px; align-self: center; font-weight: 800; letter-spacing: .08em; border-color: var(--neon-cyan, #3ee6ff); color: var(--neon-cyan, #3ee6ff); box-shadow: 0 0 14px rgb(var(--k-cyan) / .35); }
+.phone .lifeline-btn { margin-top: 14px; align-self: stretch; padding: .8em 1em; font-size: 1.05em; font-weight: 800; letter-spacing: .03em; border-color: rgb(var(--k-cyan)); color: rgb(var(--k-cyan)); background: rgb(var(--k-cyan) / .08); box-shadow: 0 0 16px rgb(var(--k-cyan) / .4); animation: lifeline-call 1.6s ease-in-out 3; }
+@keyframes lifeline-call { 50% { box-shadow: 0 0 30px rgb(var(--k-cyan) / .8); transform: scale(1.02); } }
+@media (prefers-reduced-motion: reduce) { .phone .lifeline-btn { animation: none; } }
 .phone .turn-clock {
   width: min(64vw, 260px); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; margin: 4vh 0 2vh;
   border: 6px solid color-mix(in srgb, var(--c, var(--me)) 50%, transparent); background: radial-gradient(circle, rgba(0, 0, 0, .3), rgba(0, 0, 0, .7));

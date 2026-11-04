@@ -587,7 +587,7 @@
   "play.yourTurn": "¡Tu turno! Responde en voz alta",
   "play.theirTurn": "{name} está respondiendo",
   "play.clockOut": "Se te acabó el tiempo",
-  "play.lifeline": "50/50",
+  "play.lifeline": "🛟 Salvavidas: quita 2 malas",
   "play.lifelineConfirm": "¿Usar tu salvavidas en esta ronda? Desaparecen dos respuestas incorrectas.",
   "play.clockLeft": "quedan {n} s",
   "host.realTitle": "Título oculto: {title}",
@@ -898,5 +898,9 @@
   "manage.editCopy": "Editar una copia",
   "manage.sample": "Ejemplo",
   "manage.copyWord": "copia",
-  "manage.none": "Ningún quiz con ese nombre."
+  "manage.none": "Ningún quiz con ese nombre.",
+  "screen.alertLifeline": "¡{name} usa el salvavidas!",
+  "host.alertLifeline": "{name} usó el salvavidas: dos respuestas malas han desaparecido en su móvil.",
+  "builder.twistChoiceNone": "El salvavidas y las opciones menguantes solo funcionan con respuestas para tocar. Esta ronda no tiene, así que aquí no hacen nada.",
+  "builder.twistChoiceSome": "El salvavidas y las opciones menguantes solo funcionan con preguntas de opciones, no con respuestas escritas."
 }

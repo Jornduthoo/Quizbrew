@@ -587,3 +587,5 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 body.mouse .fs-btn.quiet { opacity: .9; pointer-events: auto; }
 /* The other teams under the podium stay clear of the "Made with" corner and the sponsors. */
 .end .rest { max-width: calc(100vw - 2 * (2.5vw + 13.5em)); }
+
+.screen-alert.lifeline { --c: rgb(var(--k-cyan)); }
