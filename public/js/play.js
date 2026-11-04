@@ -705,7 +705,7 @@
       box.replaceChildren(...s.ballot.map((b, i) => h('button', {
         type: 'button', class: 'ballot-item' + (b.mine ? ' mine' : '') + (b.image ? ' pic' : ''), disabled: b.mine, style: `--k: ${i}`,
         onclick: () => { socket.emit('vote', i); if (navigator.vibrate) navigator.vibrate(25); },
-      }, h('span', { class: 'letter' }, String.fromCharCode(65 + i)), b.image ? h('img', { src: b.content, alt: '' }) : h('span', { class: 'text' }, b.content),
+      }, h('span', { class: 'letter' }, QB.cardLetter(i)), b.image ? h('img', { src: b.content, alt: '' }) : h('span', { class: 'text' }, b.content),
       b.mine ? h('span', { class: 'mine-tag' }, t('play.yours')) : null)));
     }
     stopTimer = countdown(s.remaining, s.vote.time * 1000, left => { $('#v-time').textContent = Math.ceil(left / 1000); });

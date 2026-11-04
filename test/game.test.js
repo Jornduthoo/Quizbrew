@@ -49,6 +49,17 @@ test('teams join with a unique name and colour', () => {
   assert.equal(game.teamState(null).takenColors.length, 2);
 });
 
+test('a big night: once every colour is taken, colours are shared, up to 40 teams', () => {
+  const { game } = setup();
+  const { TEAM_COLORS, MAX_TEAMS } = require('../src/teams');
+  assert.equal(MAX_TEAMS, 40);
+  TEAM_COLORS.forEach((c, i) => assert.ok(game.join(`team${i}aaaaa`, `Team ${i}`, c, `s${i}`).ok));
+  assert.deepEqual(game.teamState(null).takenColors, []);
+  for (let i = TEAM_COLORS.length; i < MAX_TEAMS; i++) assert.ok(game.join(`team${i}aaaaa`, `Team ${i}`, TEAM_COLORS[i % TEAM_COLORS.length], `s${i}`).ok);
+  assert.equal(game.join('teamFullaaa', 'One more', 'amber', 'sx').error, 'error.full');
+  assert.equal(game.addPaperTeam('Paper').error, 'error.full');
+});
+
 test('joining needs a loaded quiz and is closed after the start', () => {
   const g = new Game();
   assert.equal(g.join('team1aaaa', 'A', 'amber', 's1').error, 'error.noQuiz');

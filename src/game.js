@@ -4,7 +4,7 @@
 // What a question looks like and how it scores comes from its round type (rounds.js).
 // Errors are returned as i18n keys, never as screen text.
 
-const { TEAM_COLORS } = require('./teams');
+const { TEAM_COLORS, MAX_TEAMS } = require('./teams');
 const rounds = require('./rounds');
 const tiebreak = require('./tiebreak');
 const i18n = require('./i18n');
@@ -120,7 +120,9 @@ class Game {
     const teams = [...this.teams.values()];
     if (teams.some(t => t.name.toLowerCase() === clean.toLowerCase())) return { error: 'error.nameTaken' };
     if (!TEAM_COLORS.includes(color)) return { error: 'error.colorInvalid' };
-    if (teams.some(t => t.color === color)) return { error: 'error.colorTaken' };
+    if (teams.length >= MAX_TEAMS) return { error: 'error.full' };
+    // Every colour has its own team, until all of them are taken: then colours are shared.
+    if (teams.some(t => t.color === color) && this.freeColors().length) return { error: 'error.colorTaken' };
     this.teams.set(teamId, {
       name: clean, color, score: 0, phones: new Set([socketId]), connected: true,
       answer: null, answeredAt: 0, correct: false, lastPoints: 0, away: false, blocked: false, wager: null,
@@ -138,6 +140,7 @@ class Game {
     if (!clean) return { error: 'error.nameEmpty' };
     const teams = [...this.teams.values()];
     if (teams.some(t => t.name.toLowerCase() === clean.toLowerCase())) return { error: 'error.nameTaken' };
+    if (teams.length >= MAX_TEAMS) return { error: 'error.full' };
     const color = TEAM_COLORS.find(c => !teams.some(t => t.color === c)) || TEAM_COLORS[teams.length % TEAM_COLORS.length];
     let id;
     do id = `paper-${Math.random().toString(36).slice(2, 10)}`; while (this.teams.has(id));
@@ -167,6 +170,11 @@ class Game {
     t.paper = { ...t.paper, [r]: p };
     this.broadcast();
     return true;
+  }
+
+  freeColors() {
+    const used = new Set([...this.teams.values()].map(t => t.color));
+    return TEAM_COLORS.filter(c => !used.has(c));
   }
 
   disconnect(socketId) {
@@ -1117,7 +1125,7 @@ class Game {
 
   teamState(teamId) {
     const t = this.teams.get(teamId);
-    const state = { ...this.common(), takenColors: [...this.teams.values()].map(x => x.color) };
+    const state = { ...this.common(), takenColors: this.freeColors().length ? [...this.teams.values()].map(x => x.color) : [] };
     // Blackout: the question and the answer texts are only on the big screen.
     if (state.question && this.hasTwist('blackout') && this.phase === 'question') {
       state.question = { ...state.question, text: '', clues: undefined, answers: state.question.answers ? state.question.answers.map(() => '') : undefined, blackout: true };

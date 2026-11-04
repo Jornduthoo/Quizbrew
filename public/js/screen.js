@@ -241,12 +241,13 @@
     teamsBox.style.fontSize = '';
     requestAnimationFrame(() => {
       if (board.offsetParent === null) return;
-      if (!teamsBox.hidden) QB.fit(teamsBox, { height: innerHeight * 0.22, min: 0.55 });
+      // A big night (more than 24 teams) gets a little more room for its long list.
+      if (!teamsBox.hidden) QB.fit(teamsBox, { height: innerHeight * (teamsBox.children.length > 24 ? 0.3 : 0.22), min: 0.45 });
       // Pots, streaks and who is out: one pill per team, so many teams make the pills smaller.
       const roundBoard = $('#round-board');
       if (!roundBoard.hidden) QB.fit(roundBoard, { height: innerHeight * (teamsBox.hidden ? 0.2 : 0.14), min: 0.45 });
       const clocks = $('#clock-board');
-      if (!clocks.hidden) QB.fit(clocks, { height: innerHeight * 0.42, min: 0.5 });
+      if (!clocks.hidden) QB.fit(clocks, { height: innerHeight * (clocks.children.length > 24 ? 0.36 : 0.42), min: 0.4 });
       // The lists under the board: everything inside .q-main is sized in em, so one font size scales it all.
       const gap = parseFloat(getComputedStyle(main).rowGap) || 0;
       const outer = c => { const cs = getComputedStyle(c); return c.offsetHeight + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom); };
@@ -254,7 +255,7 @@
       // Measure the board at its own height, not at the height it grew to fill the zone.
       board.style.flexGrow = '0';
       let size = parseFloat(getComputedStyle(main).fontSize);
-      const minMain = size * 0.5;
+      const minMain = size * (teamsBox.children.length > 24 ? 0.4 : 0.5);
       while (size > minMain && needed() > body.clientHeight + 1) {
         size *= 0.93;
         main.style.fontSize = size + 'px';
@@ -390,11 +391,11 @@
         return out;
       }, []).map((c, i) => h('span', { class: 'emo', style: `--k: ${i}` }, c)));
       $('#q-items').hidden = !q.items;
-      if (q.items) $('#q-items').replaceChildren(...q.items.map((it, i) => h('li', { class: 'order-item', style: `--k: ${i}` }, h('span', { class: 'letter' }, String.fromCharCode(65 + i)), h('span', {}, it))));
+      if (q.items) $('#q-items').replaceChildren(...q.items.map((it, i) => h('li', { class: 'order-item', style: `--k: ${i}` }, h('span', { class: 'letter' }, QB.cardLetter(i)), h('span', {}, it))));
       $('#q-pairs').hidden = !q.left;
       if (q.left) $('#q-pairs').replaceChildren(
         h('ol', { class: 'pair-col left' }, q.left.map((x, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'num' }, i + 1), x))),
-        h('ol', { class: 'pair-col right' }, q.right.map((x, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'letter' }, String.fromCharCode(65 + i)), x))));
+        h('ol', { class: 'pair-col right' }, q.right.map((x, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'letter' }, QB.cardLetter(i)), x))));
       $('#q-web').hidden = !q.words;
       if (q.words) {
         $('#q-web').className = 'web-board';
@@ -524,7 +525,7 @@
         if (kind === 'buzz') return a.answer === 'right' ? '✓' : '✗';
         return String(a.answer);
       };
-      $('#team-answers').style.setProperty('--cols', list.length <= 2 ? Math.max(1, list.length) : list.length <= 4 ? 2 : list.length <= 9 ? 3 : 4);
+      $('#team-answers').style.setProperty('--cols', list.length <= 2 ? Math.max(1, list.length) : list.length <= 4 ? 2 : list.length <= 9 ? 3 : list.length <= 30 ? 4 : 5);
       $('#team-answers').replaceChildren(...list.map((a, i) => h('li', { class: 'team-answer' + (a.correct ? ' right' : a.answer === null ? ' none' : a.points > 0 ? ' part' : ' wrong'), style: `${teamVar(a.color)}; --k: ${i}` },
         h('span', { class: 'team-dot' }),
         h('span', { class: 'ta-name' }, a.name),
@@ -726,12 +727,12 @@
     const grid = $('#ballot-grid');
     const n = s.ballot.length;
     grid.className = 'ballot-grid n' + Math.min(n, 8) + (n > 8 ? ' many' : '') + (s.ballot.some(b => b.image) ? ' pics' : '');
-    // Up to 8 cards keep the classic columns; more teams get more columns: 4 up to 12, then 5 or 6.
-    grid.style.setProperty('--cols', n <= 8 ? '' : n <= 12 ? 4 : n <= 15 ? 5 : 6);
+    // Up to 8 cards keep the classic columns; more teams get more columns: 4 up to 12, then 5, 6, 8 or 10.
+    grid.style.setProperty('--cols', n <= 8 ? '' : n <= 12 ? 4 : n <= 15 ? 5 : n <= 24 ? 6 : n <= 32 ? 8 : 10);
     grid.replaceChildren(...s.ballot.map((b, i) => {
       const win = reveal && mode !== 'match' && (b.truth || (mode === 'best' && most > 0 && (b.votes || []).length === most));
       return h('li', { class: 'ballot-card' + (b.image ? ' pic' : '') + (b.truth ? ' truth' : '') + (win ? ' win' : ''), style: `--k: ${i}` + (reveal && b.by ? `; ${teamVar(b.by.color)}` : '') },
-        h('span', { class: 'letter' }, String.fromCharCode(65 + i)),
+        h('span', { class: 'letter' }, QB.cardLetter(i)),
         b.image ? h('img', { src: b.content, alt: '' }) : h('span', { class: 'bc-text' }, b.content),
         reveal ? h('span', { class: 'bc-by' }, b.truth ? t('screen.theTruth') : b.by ? b.by.name : '') : null,
         reveal && mode !== 'match' ? h('span', { class: 'bc-votes' }, (b.votes || []).map(v => h('i', { class: 'team-dot', style: teamVar(v.color), title: v.name }))) : null);
@@ -788,8 +789,11 @@
     $('#sb-quip').textContent = rows[0] ? QB.quip('leader', { name: rows[0].name }) : '';
     const n = rows.length;
     const list = $('#sb-list');
-    list.classList.toggle('two-col', n > 10);
-    list.style.setProperty('--n', Math.max(1, n > 10 ? Math.ceil(n / 2) : n));
+    // More than 10 teams: two columns; a big night with more than 24 teams: three.
+    const cols = n > 24 ? 3 : n > 10 ? 2 : 1;
+    list.classList.toggle('two-col', cols === 2);
+    list.classList.toggle('three-col', cols === 3);
+    list.style.setProperty('--n', Math.max(1, Math.ceil(n / cols)));
     // The reveal goes from last place to first: the bottom rows appear first, the leader last.
     const step = Math.min(0.7, 6 / Math.max(1, n));
     // The drum roll ends with a cymbal just when the leader lands.
@@ -866,7 +870,17 @@
       h('div', { class: 'block' }, h('span', { class: 'medal' }, r.rank)))));
     const crown = $('#podium .crown-wrap');
     if (crown) crown.innerHTML = CROWN;
-    $('#rest').replaceChildren(...rows.slice(3).map(r => h('li', { style: teamVar(r.color) }, h('span', { class: 'rank' }, r.rank), QB.dot(r), r.name, h('span', { class: 'score' }, r.score))));
+    // A big night: the rest becomes a tidy table in columns that shrinks to fit under the podium.
+    const rest = $('#rest');
+    const others = rows.slice(3);
+    rest.classList.toggle('many', others.length > 12);
+    $('#v-end').classList.toggle('crowded', others.length > 12);
+    const cols = 3;
+    rest.style.setProperty('--cols', cols);
+    rest.style.setProperty('--rows', Math.ceil(others.length / cols));
+    rest.style.fontSize = '';
+    rest.replaceChildren(...others.map(r => h('li', { style: teamVar(r.color) }, h('span', { class: 'rank' }, r.rank), QB.dot(r), h('span', { class: 'name' }, r.name), h('span', { class: 'score' }, r.score))));
+    if (others.length > 12) requestAnimationFrame(() => QB.fit(rest, { height: innerHeight * 0.3, min: 0.4 }));
     const winner = rows[0];
     if (!winner) return;
     // The winner lands at about 2.3 s: the spots swing onto the podium, brass sparks fly, gold light swarms up.

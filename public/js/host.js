@@ -347,6 +347,7 @@
         qr.innerHTML = joinInfo.qr;
         preview.append(h('div', { class: 'join-box' }, qr, h('div', {}, h('p', { class: 'hint' }, t('host.joinAddress')), h('p', { class: 'big-url' }, joinInfo.url.replace(/^https?:\/\//, '')))));
       }
+      preview.append(h('p', { class: 'net-note lobby-tip' }, t('host.lobbyTip')));
     } else if (s.phase === 'roundIntro') {
       kicker.textContent = t('screen.roundOf', { n: s.round.index + 1, total: s.round.total });
       title.textContent = s.round.title || t(`round.${s.round.type}`);
@@ -366,7 +367,7 @@
       kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('host.phase.vote')}`;
       title.textContent = s.question.text || '';
       preview.append(h('ol', { class: 'mini-answers ballot-mini' }, s.ballot.map((b, i) => h('li', {},
-        h('span', { class: 'letter' }, String.fromCharCode(65 + i)), b.image ? h('img', { class: 'ballot-thumb', src: b.content, alt: '' }) : b.content))));
+        h('span', { class: 'letter' }, QB.cardLetter(i)), b.image ? h('img', { class: 'ballot-thumb', src: b.content, alt: '' }) : b.content))));
       preview.append(h('p', { class: 'hint' }, t('screen.votedCount', { n: s.answered, total: s.teams.filter(x => !x.paper).length })));
     } else if (s.phase === 'question' || s.phase === 'reveal') {
       kicker.textContent = `${s.round.title || t(`round.${s.round.type}`)} · ${t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions })}`;
@@ -377,7 +378,7 @@
       if (s.actor) preview.append(h('p', { class: 'hint' }, t('screen.actsNow', { name: s.actor.name })));
       if (s.phase === 'reveal' && s.ballot) {
         preview.append(h('ol', { class: 'mini-answers ballot-mini' }, s.ballot.map((b, i) => h('li', { class: b.truth ? 'key' : '' },
-          h('span', { class: 'letter' }, String.fromCharCode(65 + i)), b.image ? h('img', { class: 'ballot-thumb', src: b.content, alt: '' }) : b.content,
+          h('span', { class: 'letter' }, QB.cardLetter(i)), b.image ? h('img', { class: 'ballot-thumb', src: b.content, alt: '' }) : b.content,
           h('span', { class: 'n' }, `${b.truth ? t('screen.theTruth') : b.by ? b.by.name : ''} · ${(b.votes || []).length}`)))));
       }
       const key = s.phase === 'reveal' ? s.reveal : s.answerKey;

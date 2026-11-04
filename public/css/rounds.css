@@ -89,7 +89,7 @@ body.screen[data-phase="wager"] .bg-stage { opacity: 1; animation-play-state: ru
 
 /* Bets */
 .screen .wager-category { font-size: 4.4em; margin: 2vh 0; --glow: var(--theme, var(--neon-amber)); }
-.screen .answered-dots.big { gap: 1.4vw; margin-top: 4vh; }
+.screen .answered-dots.big { gap: 1.4vw; margin-top: 4vh; max-width: 80vw; }
 .screen .answered-dots.big .dot { width: 3vh; height: 3vh; }
 
 /* ---------- big screen: pictures and sound (wave 2) ---------- */
@@ -236,7 +236,7 @@ body.screen .vote { display: grid; grid-template-rows: auto auto minmax(0, 1fr);
   background: rgba(0, 0, 0, .5); border: 3px solid var(--c, var(--theme, var(--brass))); box-shadow: 0 0 18px color-mix(in srgb, var(--c, var(--theme, var(--brass))) 40%, transparent);
   animation: tube-on .8s linear both; animation-delay: calc(.3s + var(--k) * .12s); transition: opacity .5s, transform .5s;
 }
-.screen .ballot-card .letter { position: absolute; left: 1vh; top: 1vh; width: 1.8em; height: 1.8em; display: grid; place-items: center; border-radius: 10px; font-weight: 800; color: var(--ink); background: var(--c, var(--theme, var(--brass))); }
+.screen .ballot-card .letter { position: absolute; left: 1vh; top: 1vh; min-width: 1.8em; height: 1.8em; padding: 0 .3em; box-sizing: border-box; display: grid; place-items: center; border-radius: 10px; font-weight: 800; color: var(--ink); background: var(--c, var(--theme, var(--brass))); }
 .screen .bc-text { font-size: 1.7em; font-weight: 700; line-height: 1.2; }
 .screen .ballot-card.pic { padding: 1.2vh; }
 .screen .ballot-card img { width: 100%; max-height: 30vh; object-fit: contain; border-radius: 10px; background: var(--wood-900); }
@@ -389,7 +389,7 @@ body.silent.urgent .timer { animation-duration: .8s; }
   background: rgba(0, 0, 0, .45); border: 2px solid rgb(var(--k-brass-l) / .35); animation: choice-in .45s cubic-bezier(.2, 1.3, .4, 1) both; animation-delay: calc(var(--k) * .06s);
 }
 .phone .ballot-item:active { transform: scale(.97); border-color: var(--me, var(--brass)); }
-.phone .ballot-item .letter { flex: none; width: 2em; height: 2em; display: grid; place-items: center; border-radius: 10px; background: var(--brass); color: var(--ink); font-weight: 800; }
+.phone .ballot-item .letter { flex: none; min-width: 2em; height: 2em; padding: 0 .3em; box-sizing: border-box; display: grid; place-items: center; border-radius: 10px; background: var(--brass); color: var(--ink); font-weight: 800; }
 .phone .ballot-item.pic img { flex: 1; min-width: 0; max-height: 34vh; object-fit: contain; border-radius: 10px; background: var(--wood-900); }
 .phone .ballot-item.mine { opacity: .45; }
 .phone .mine-tag { margin-left: auto; font-size: .8em; color: var(--muted); }
