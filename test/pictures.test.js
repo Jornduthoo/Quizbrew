@@ -139,6 +139,17 @@ test('the AI gives a search term for picture questions', () => {
   assert.match(rounds.get('silhouette').aiShape, /imageSearch/);
 });
 
+test('silhouette prompts ask for one flat black shape, never a detailed drawing', () => {
+  const sil = rounds.get('silhouette');
+  assert.match(sil.aiShape, /without the name/);
+  const p = sil.fromAI({ question: 'Who?', answer: 'Some player', imagePrompt: 'Full body silhouette of a tall football player standing with arms spread, isolated on a solid white background, sharp black vector outline' }).imagePrompt;
+  assert.match(p, /^Solid black silhouette of a tall football player standing with arms spread\. /);
+  for (const rule of [/filled with flat pure black/, /no face/, /no text, no numbers, no logos/, /white background/, /Not a line drawing/]) assert.match(p, rule);
+  assert.doesNotMatch(p, /vector outline|isolated on/);
+  assert.equal(sil.fromAI({ question: 'Q', answer: 'A', imagePrompt: p }).imagePrompt, p, 'not wrapped twice');
+  assert.equal(sil.fromAI({ question: 'Q', answer: 'A' }).imagePrompt, '');
+});
+
 test('the image AI makes a picture from a prompt with the Gemini key, trying the next model when one is gone', async t => {
   const Ai = require('../src/ai');
   const v = {};
