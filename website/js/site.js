@@ -20,7 +20,7 @@
     style: 'currency', currency: C.currency, minimumFractionDigits: C.price % 1 ? 2 : 0, maximumFractionDigits: 2,
   }).format(C.price);
   const fill = (lang, key) => (T[lang][key] ?? T.en[key] ?? '')
-    .replace(/\{price\}/g, price(lang)).replace(/\{demo\}/g, C.demoTeams).replace(/\{max\}/g, C.maxTeams).replace(/\{compare\}/g, C.compare);
+    .replace(/\{price\}/g, price(lang)).replace(/\{demo\}/g, C.demoTeams).replace(/\{max\}/g, C.maxTeams).replace(/\{compare\}/g, C.compare).replace(/\{rounds\}/g, R.reduce((n, f) => n + f.rounds.length, 0));
 
   function apply(lang) {
     document.documentElement.lang = lang;
