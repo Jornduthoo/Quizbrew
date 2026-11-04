@@ -18,7 +18,7 @@ body.phone::before {
   animation: rise .4s ease both;
 }
 .view.center { align-items: center; justify-content: center; text-align: center; }
-.logo { width: min(78vw, 340px); margin: 8px auto 0; display: block; filter: drop-shadow(0 0 18px rgb(var(--k-amber) / .25)); }
+.logo { width: min(78vw, 340px); margin: 8px auto 0; display: block; }
 
 .card { padding: 22px 18px; display: flex; flex-direction: column; gap: 12px; background-color: rgb(var(--k-wood-8) / .88); }
 .label { margin: 4px 0 0; font-size: .82em; text-transform: uppercase; letter-spacing: .14em; color: var(--brass-light); font-weight: 700; }
