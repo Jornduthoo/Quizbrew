@@ -101,7 +101,7 @@ const TYPE_HELP = {
   soundCheck: 'a sound plays (animal, machine, place); teams say what it is',
   lyricGap: 'a line of a song with one word missing; teams type the missing word',
   pixelFog: 'a picture starts as big blocks and gets sharper; teams name what it is',
-  silhouette: 'only the black outline of a picture is shown; teams name it',
+  silhouette: 'only a solid black shape of the subject is shown, no details; teams name it, so pick subjects with a famous shape or pose',
   oddOneOut: 'four pictures, one does not belong; teams pick it',
   emoji: 'a row of emoji spells out a film, song, saying or place; teams type it',
   orderUp: 'teams put 4 items in the right order (by year, size, distance...)',

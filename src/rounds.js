@@ -282,6 +282,24 @@ const choiceOrText = {
   fromAI: it => ({ question: str(it.question), ...choiceOrTextAI(it), imagePrompt: str(it.imagePrompt), imageSearch: str(it.imageSearch) }),
 };
 
+// Silhouette pictures must be one flat black shape: an image AI asked for a "silhouette" or "outline"
+// of a named person tends to draw a line drawing with face, shirt number and logos, which gives the answer away.
+const SILHOUETTE_START = 'Solid black silhouette of ';
+function silhouettePrompt(raw) {
+  let shape = str(raw).trim();
+  if (!shape) return '';
+  if (shape.startsWith(SILHOUETTE_START)) return shape;
+  shape = shape
+    .replace(/^(a |an )?(full[- ]body |solid |black |sharp )*(silhouette|outline|shadow|vector|line drawing)s?( of)?\s*/i, '')
+    .replace(/,?\s*(isolated )?(on|against) (a )?(solid |plain |pure )*white background.*$/i, '')
+    .replace(/,?\s*(sharp |clean |clear )*(black )?(vector )?(outline|line art|lines?)\s*$/i, '')
+    .replace(/[.\s]+$/, '');
+  return SILHOUETTE_START + (shape || 'the subject') + '. ' +
+    'The whole figure is filled with flat pure black, like a shadow cut out of black paper: ' +
+    'no face, no eyes, no hair or skin detail, no clothing details, no inner lines, no text, no numbers, no logos, no colours. ' +
+    'Plain pure white background, nothing else in the picture. Not a line drawing: only the outer shape tells what it is.';
+}
+
 // Drawings and photos arrive as a media url (the server stores the picture first).
 const mediaUrl = raw => (typeof raw === 'string' && /^\/media\/[a-f0-9]{20}\.(webp|png|jpg)$/.test(raw) ? raw : undefined);
 
@@ -503,7 +521,8 @@ const TYPES = [
     id: 'silhouette', family: 'visual', ...choiceOrText, effect: 'silhouette',
     defaults: { time: 20, points: 1, scoring: 'points' },
     fields: ['image', 'question', 'answerOrChoices', 'time', 'points'],
-    aiShape: '{"question": "Whose shadow is this?", "answer": "short answer", "accept": ["..."], "imagePrompt": "a prompt for an image AI: the subject alone on a plain white background, clear outline", "imageSearch": "1 to 3 plain English words for a photo search: only the main subject, for example Eiffel Tower or lion, no details"}',
+    aiShape: '{"question": "Whose shadow is this?", "answer": "short answer", "accept": ["..."], "imagePrompt": "only the shape and pose in a few plain words, without the name, for example: a tall footballer standing with both arms spread wide", "imageSearch": "1 to 3 plain English words for a photo search: only the main subject, for example Eiffel Tower or lion, no details"}',
+    fromAI: it => ({ ...choiceOrText.fromAI(it), imagePrompt: silhouettePrompt(it.imagePrompt) }),
   },
   {
     id: 'oddOneOut', family: 'visual', kind: 'choice',
