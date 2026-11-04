@@ -14,3 +14,9 @@ const out = FAMILIES.map(f => ({
 const file = path.join(__dirname, '..', 'js', 'rounds.js');
 fs.writeFileSync(file, '// Made by website/tools/build.js from lang/*.json: do not edit by hand.\nwindow.QB_ROUNDS = ' + JSON.stringify(out) + ';\n');
 console.log(file, types.length + ' round types');
+
+// New version stamp on the stylesheet and scripts in index.html, so browsers fetch the new files after a change.
+const index = path.join(__dirname, '..', 'index.html');
+const stamp = new Date().toISOString().replace(/\D/g, '').slice(0, 12);
+fs.writeFileSync(index, fs.readFileSync(index, 'utf8').replace(/\?v=\d+/g, `?v=${stamp}`));
+console.log(index, 'version ' + stamp);
