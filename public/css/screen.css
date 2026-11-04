@@ -163,13 +163,15 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .lobby-left .logo { animation: flicker 7s infinite; }
 .lobby-right { height: 78vh; padding: 3vh 2vw; display: flex; flex-direction: column; background-color: rgb(var(--k-wood-8) / .82); backdrop-filter: blur(4px); }
 .teams-head { margin: 0 0 2vh; font-size: 1.2em; color: var(--brass-light); text-transform: uppercase; letter-spacing: .14em; font-weight: 700; }
-.team-grid { --rows: 6; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1.4vh 1vw; align-content: start; overflow: hidden; font-size: min(1em, calc(9vh / var(--rows) * 1.6)); }
+/* The lobby list starts at full size; fitLobby() in screen.js makes it smaller until every team fits. */
+.team-grid { --cols: 2; list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 1.4vh 1vw; align-content: start; overflow: hidden; flex: 1; min-height: 0; }
+.team-grid.many { gap: .9vh .8vw; }
 .team-chip {
   display: inline-flex; align-items: center; gap: .55em;
   padding: .45em .95em .45em .7em;
   border-radius: 999px;
   font-size: 1.3em; font-weight: 700;
-  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0; max-width: 100%;
   color: #fff;
   border: 2px solid var(--c);
   background: rgba(0, 0, 0, .35);
@@ -377,7 +379,7 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
   animation-delay: var(--d, 0s);
 }
 .sb-row .rank { font-weight: 800; color: var(--muted); text-align: center; }
-.sb-row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-row .name { min-width: 0; }
 .sb-row .score { text-align: right; font-size: 1.15em; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
 .sb-row .moved { font-size: .7em; font-weight: 700; }
 .sb-row .moved.up { color: var(--good); }
@@ -462,7 +464,7 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .end .rest.many { max-width: calc(100vw - 2 * (2.5vw + 14.5 * clamp(12px, min(1.6vw, 2.85vh), 40px))); }
 .rest.many li { min-width: 0; }
 .rest.many .rank { min-width: 1.6em; text-align: right; }
-.rest.many .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rest.many .name { flex: 1; min-width: 0; }
 
 /* One-liners on the big screen. */
 .lobby-quip, .sb-quip, .end-quip { margin: 0; font-family: var(--display); letter-spacing: var(--display-track); text-transform: var(--display-case); color: var(--brass-light); text-shadow: 0 3px 10px rgb(0 0 0 / .8); }
@@ -574,7 +576,7 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
   animation: slide-in .6s cubic-bezier(.2, 1.1, .4, 1) both; animation-delay: calc(var(--k) * 80ms);
 }
 .br-rank { color: var(--muted); font-weight: 800; text-align: center; }
-.br-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.br-name { min-width: 0; }
 .br-score { color: #fff; font-weight: 800; font-variant-numeric: tabular-nums; }
 @keyframes break-in { from { opacity: 0; } }
 @keyframes break-pulse { to { transform: scale(1.04); } }

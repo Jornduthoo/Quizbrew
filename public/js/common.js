@@ -191,6 +191,38 @@
     return size / base;
   }
 
+  // A team name is always shown in full: first a little smaller on one line, then over two lines (smaller if
+  // needed), and only cut off with … as a last resort. The name element needs the class .tn (see base.css).
+  // Sizes are in em, so a list that shrinks afterwards keeps its names fitting.
+  // `one`: how much smaller a name may get on one line before it goes over two lines.
+  function fitName(el, { min = 0.55, one = 0.8 } = {}) {
+    if (!el || el.offsetParent === null) return;
+    el.style.fontSize = '';
+    el.classList.remove('two', 'break', 'cut');
+    // The text itself, to the fraction of a pixel: an ellipsis shows at even half a pixel too wide.
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const wide = () => el.scrollWidth > el.clientWidth + 1 || range.getBoundingClientRect().width > el.getBoundingClientRect().width + 0.001;
+    // Measured without a line clamp: more than two lines is too high.
+    const high = () => el.scrollHeight > parseFloat(getComputedStyle(el).lineHeight) * 2.5;
+    let scale = 1;
+    const set = v => { scale = v; el.style.fontSize = v + 'em'; };
+    while (wide() && scale > one) set(scale * 0.95);
+    if (!wide()) return;
+    // Two lines, broken between words.
+    el.classList.add('two');
+    set(1);
+    while ((high() || wide()) && scale > Math.max(min, 0.7)) set(scale * 0.94);
+    if (!high() && !wide()) return;
+    // One word is too long for the line: it may break, so the name stays readable.
+    if (wide()) { el.classList.add('break'); set(Math.max(scale, one)); }
+    while (high() && scale > min) set(scale * 0.94);
+    if (high() || wide()) el.classList.add('cut');
+  }
+  function fitNames(root, sel = '.tn', opts) {
+    if (root) root.querySelectorAll(sel).forEach(el => fitName(el, opts));
+  }
+
   // Count a number up in an element, with an ease-out. Respects the effects level.
   function countUp(el, to, ms, delay) {
     const from = 0;
@@ -218,5 +250,5 @@
     return keys.length ? t(keys[(Math.random() * keys.length) | 0], vars) : '';
   }
 
-  window.QB = { twistChips, quip, applyLook, $, h, showView, LETTERS, cardLetter, REACTIONS, teamVar, dot, countdown, mmss, info, ROUND_THEMES, roundTheme, CROWN, split, fit, countUp, later, clearLater };
+  window.QB = { twistChips, quip, applyLook, $, h, showView, LETTERS, cardLetter, REACTIONS, teamVar, dot, countdown, mmss, info, ROUND_THEMES, roundTheme, CROWN, split, fit, fitName, fitNames, countUp, later, clearLater };
 })();

@@ -53,6 +53,14 @@ function problems() {
       if (x > slack && y > slack) out.push(`${label(zones[i])} overlaps ${label(zones[j])}`);
     }
   }
+  // Team names are shown in full: smaller or over two lines, but never cut off (20 letters is the longest name).
+  for (const el of view.querySelectorAll('.tn, .team-chip, .sb-row .name, .rest .name, .ta-name, .rb-name, .br-name')) {
+    if (!shown(el) || el.closest('.crown-wrap')) continue;
+    const text = document.createRange();
+    text.selectNodeContents(el);
+    const tooWide = text.getBoundingClientRect().width > el.getBoundingClientRect().width + 0.001 && getComputedStyle(el).overflowX !== 'visible';
+    if (el.matches('.cut') || tooWide || el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1) out.push(`the team name "${el.textContent.trim()}" is cut off`);
+  }
   // A title never breaks in the middle of a word.
   for (const w of view.querySelectorAll('.w')) {
     if (!shown(w)) continue;

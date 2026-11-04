@@ -19,7 +19,7 @@ const SCREENS = [
   { name: 'laptop', width: 1366, height: 768 },
 ];
 // 8 teams by default; LAYOUT_TEAMS=18 (up to 40; past 24 colours are shared) for a big night.
-const NAMES = ['Ik ben geslaagd vrr', 'MegaMachtigeMuizen', 'Jorn', 'Voet', 'De Quizzende Kwissers', 'Team Tafel Nummer 7', 'Pubquizpiraten', 'Wablieft Wat Zegt Ge',
+const NAMES = ['Kben weer gescheiden', 'Supercalifragilistic', 'Jorn', 'Voet', 'De Quizzende Kwissers', 'Team Tafel Nummer 7', 'Pubquizpiraten', 'Wablieft Wat Zegt Ge',
   'De Slimme Sloebers', 'Quiz Khalifa', 'Tafel 11', 'Les Cerveaux Fous', 'Die Besserwisser', 'Los Sabelotodos', 'Bier en Bitterballen', 'De Laatste Rij',
   'Kwis Kwis Kwis', 'Antwoord 42', 'De Nerds van Nu', 'Smart Alecs', 'Mama Mia', 'Opa en de Kleinkids', 'Team Onverwacht', 'Wie Is Dit',
   'Hersenkrakers', 'De Buren', 'Tafel Plezier', 'Quizzly Bears', 'Les Malins', 'Die Füchse', 'Los Listos', 'De Gouden Gans',
@@ -50,7 +50,8 @@ function pageProblems() {
     const inner = b.firstElementChild && b.firstElementChild.classList.contains('badge-text') ? b.firstElementChild : null;
     const r = b.getBoundingClientRect();
     const e = inner ? inner.getBoundingClientRect() : null;
-    if (inner ? e.width > r.width * 0.9 || e.height > r.height * 0.9 : b.scrollWidth > b.clientWidth + 1) out.push(`the locked answer "${b.textContent}" sticks out of its circle`);
+    const clipped = inner && inner.scrollWidth > inner.clientWidth + 1;
+    if (clipped || (inner ? e.width > r.width * 0.9 || e.height > r.height * 0.9 : b.scrollWidth > b.clientWidth + 1)) out.push(`the locked answer "${b.textContent}" sticks out of its circle`);
   }
   return out;
 }
@@ -83,7 +84,8 @@ test('big screen, phone, host and remote: no overlap, nothing sticks out, every 
   }
   // One phone of the third team ('Jorn'), the quizmaster's laptop and the remote on a phone.
   const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-  await phone.addInitScript(() => localStorage.setItem('qb.teamId', 'team000002'));
+  // With big text on, like a phone held at arm's length: the locked answer must still fit its circle.
+  await phone.addInitScript(() => { localStorage.setItem('qb.teamId', 'team000002'); localStorage.setItem('qb.bigText', '1'); });
   const hostPage = await browser.newPage({ viewport: { width: 1366, height: 768 } });
   const remote = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const others = [['phone', phone], ['host', hostPage], ['remote', remote]];
@@ -118,7 +120,7 @@ test('big screen, phone, host and remote: no overlap, nothing sticks out, every 
       case 'point': return { x: 0.1 * (i + 1), y: 0.5 };
       case 'level': return { l: i % 3, i: 0 };
       case 'buzz': return 'buzz';
-      default: return i === 2 ? 'Eiffeltoren' : ['de Backstreet Boys', 'Take That en nog wat', 'sinck', 'Olympus Mons', 'Een hele lange foute gok van dit team'][i % 5];
+      default: return i === 2 ? 'Broodje eekhoorntjes' : ['de Backstreet Boys', 'Take That en nog wat', 'sinck', 'Olympus Mons', 'Een hele lange foute gok van dit team'][i % 5];
     }
   };
 
