@@ -142,7 +142,7 @@ async function record(lang, tall) {
   await wait(3200);
   // 7. Scoreboard, on the big screen only.
   await scene('score');
-  await page.evaluate(() => { window.focusTv(true); window.showLap(true); });
+  await page.evaluate(() => window.focusTv(true));
   host.emit('next');
   await wait(5200);
   // 8. Five looks on the next round intro.
