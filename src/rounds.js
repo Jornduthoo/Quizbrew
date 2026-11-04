@@ -403,7 +403,11 @@ const TYPES = [
     publicQ: q => ({ images: q.images, answers: q.images.map((_, i) => (q.captions && q.captions[i]) || '') }),
     revealQ: q => ({ correct: q.correct, answerText: (q.captions && q.captions[q.correct]) || '' }),
     aiShape: '{"question": "Which one does not belong?", "captions": ["...", "...", "...", "..."], "correct": 2, "imagePrompts": ["...", "...", "...", "..."]}',
-    fromAI: it => ({ question: str(it.question), captions: list(it.captions).slice(0, 4), correct: Number(it.correct) || 0, images: [], imagePrompt: list(it.imagePrompts).join(' | ') }),
+    fromAI: it => {
+      const captions = list(it.captions).slice(0, 4);
+      while (captions.length < 3) captions.push('');
+      return { question: str(it.question), captions, correct: Math.min(captions.length - 1, Math.max(0, Number(it.correct) || 0)), images: captions.map(() => ''), imagePrompt: list(it.imagePrompts).join(' | ') };
+    },
   },
   {
     id: 'emoji', family: 'visual', ...textType,

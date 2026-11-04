@@ -840,8 +840,12 @@
     const wrap = h('div', { class: 'field wide' });
     const name = 'o' + Math.random().toString(36).slice(2);
     const draw = () => {
-      const imgs = q.images || (q.images = ['', '', '', '']);
-      q.captions = q.captions || imgs.map(() => '');
+      // Always 3 or 4 slots, also for questions from the AI that came without pictures.
+      const want = Math.min(4, Math.max(3, (q.images || []).length, (q.captions || []).length || 4));
+      const imgs = Array.isArray(q.images) ? q.images : (q.images = []);
+      while (imgs.length < want) imgs.push('');
+      q.captions = Array.isArray(q.captions) ? q.captions : [];
+      while (q.captions.length < imgs.length) q.captions.push('');
       fill(wrap, h('span', {}, t('builder.f.images')),
         h('div', { class: 'image-grid' }, imgs.map((src, i) => {
           const fileInput = h('input', { type: 'file', accept: 'image/*', hidden: true, onchange: e => e.target.files[0] && take(upload(e.target.files[0])) });

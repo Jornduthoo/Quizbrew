@@ -991,3 +991,10 @@ test('the AI answer shape of every round type can be read back, also wrapped in 
     }
   }
 });
+
+test('odd one out from the AI comes with an empty picture slot per caption', () => {
+  const q = rounds.get('oddOneOut').fromAI({ question: 'Welke rivier?', captions: ['Schelde', 'Maas', 'Rijn', 'IJzer'], correct: 2, imagePrompts: ['a', 'b', 'c', 'd'] });
+  assert.deepEqual(q.images, ['', '', '', '']);
+  assert.equal(q.correct, 2);
+  assert.equal(rounds.get('oddOneOut').fromAI({ captions: ['a', 'b', 'c'], correct: 9 }).correct, 2);
+});
