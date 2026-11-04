@@ -66,13 +66,22 @@
     swarm: { n: 160, colors: ['#ffcf5a', '#ffb43c', '#fff0b0', '#f6d48c'], size: [3, 12], vy: [-25, -70], vx: 14, alpha: [0.3, 0.9] },
     stage: { n: 28, colors: ['#ffe2a8', '#f6d48c'], size: [2, 6], vy: [-3, -9], vx: 5, alpha: [0.15, 0.45] },
   };
+  // Some looks tint the ambient light: snow glints, disco pink and gold, lantern light, floodlight white, gala gold.
+  const TINTS = {
+    winter: ['#ffffff', '#dfefff', '#ffcf8a', '#c9e4ff'],
+    disco: ['#ff3ea5', '#ffcf3a', '#ff8c28', '#c86eff'],
+    beach: ['#ffc46b', '#ff9a5a', '#fff0c0', '#2fe0d0'],
+    stadium: ['#ffffff', '#fff3c0', '#ffc21a'],
+    gala: ['#e2bd6b', '#f7e2aa', '#fff6dc'],
+  };
+  const tint = () => TINTS[document.documentElement.dataset.look];
   let mode = null;
   let motes = [];
   function spawnMote(m, anywhere) {
     return {
       x: rnd(0, W), y: anywhere ? rnd(0, H) : H + 20,
       s: rnd(m.size[0], m.size[1]), vy: rnd(m.vy[0], m.vy[1]), vx: rnd(-m.vx, m.vx),
-      a: rnd(m.alpha[0], m.alpha[1]), c: pick(m.colors), ph: rnd(0, 6.28), tw: rnd(0.5, 1.6),
+      a: rnd(m.alpha[0], m.alpha[1]), c: pick(tint() || m.colors), ph: rnd(0, 6.28), tw: rnd(0.5, 1.6),
     };
   }
   FX.ambient = function (name) {

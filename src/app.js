@@ -25,7 +25,7 @@ const rounds = require('./rounds');
 
 const TEAM_ID = /^[a-z0-9]{8,40}$/;
 
-const LOOKS = ['pub', 'space', 'jungle', 'spooky', 'arcade'];
+const LOOKS = ['pub', 'space', 'jungle', 'spooky', 'arcade', 'winter', 'disco', 'beach', 'stadium', 'gala'];
 const MODES = ['screen', 'phones'];
 
 // A quiz file: our own export, or a quiz an AI wrote and someone saved as a file (other type names, AI question shapes,
