@@ -528,3 +528,42 @@ test('leaving the quiz page warns the quizmaster and the big screen, once per qu
   assert.deepEqual(sent.filter(m => m.ev === 'alert').map(m => [m.to, m.p.kind, m.p.seconds]), [['host', 'back', 7]]);
   assert.equal(game.hostState().teams[0].awayCount, 1);
 });
+
+test('the quizmaster\'s call: hand-given points and an overruled answer show on the big screen and stay through the reveal', () => {
+  const { game, sent } = setup();
+  game.join('team1aaaa', 'A', 'amber', 's1');
+  game.join('team2aaaa', 'B', 'pink', 's2');
+  game.next();
+  game.next();
+  game.answer('team1aaaa', 1);
+  game.answer('team2aaaa', 0);
+  assert.equal(game.phase, 'reveal');
+  const calls = () => sent.filter(x => x.to === 'screen' && x.ev === 'alert' && ['score', 'judge'].includes(x.p.kind)).map(x => x.p);
+  // A bonus of 5 for B, then a penalty of 2 for A.
+  assert.ok(game.adjustScore('team2aaaa', 5));
+  assert.ok(game.adjustScore('team1aaaa', -2));
+  assert.equal(game.teams.get('team2aaaa').score, 5);
+  assert.equal(game.teams.get('team1aaaa').score, -1);
+  // Nonsense is ignored, and a wild number is capped.
+  assert.equal(game.adjustScore('team1aaaa', 0), false);
+  assert.equal(game.adjustScore('team1aaaa', NaN), false);
+  assert.equal(game.adjustScore('nobody', 3), false);
+  game.adjustScore('team1aaaa', 1e9);
+  assert.equal(game.teams.get('team1aaaa').score, 999);
+  game.adjustScore('team1aaaa', -1000);
+  // Overrule B's answer: the question points come on top of the bonus, and only a real change makes a note.
+  assert.ok(game.judge('team2aaaa', true));
+  assert.equal(game.teams.get('team2aaaa').score, 6);
+  game.judge('team2aaaa', true);
+  assert.ok(game.judge('team2aaaa', false));
+  assert.equal(game.teams.get('team2aaaa').score, 5);
+  assert.deepEqual(calls().map(c => [c.kind, c.name, c.delta ?? c.correct]), [
+    ['score', 'B', 5], ['score', 'A', -2], ['score', 'A', 1000], ['score', 'A', -1000], ['judge', 'B', true], ['judge', 'B', false],
+  ]);
+  assert.ok(calls().every(c => c.color));
+  // The hand-given points stay when the next question is scored.
+  game.next();
+  game.answer('team1aaaa', 0);
+  game.answer('team2aaaa', 0);
+  assert.equal(game.teams.get('team2aaaa').score, 6);
+});

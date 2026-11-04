@@ -202,11 +202,16 @@ class Game {
     this.broadcast();
   }
 
+  // The quizmaster gives or takes points by hand (a dispute, a bonus, a penalty). The room sees it on the big screen.
   adjustScore(teamId, delta) {
     const t = this.teams.get(teamId);
-    if (!t || !Number.isFinite(delta)) return;
-    t.score += Math.trunc(delta);
+    if (!t || !Number.isFinite(delta)) return false;
+    const d = Math.max(-1000, Math.min(1000, Math.trunc(delta)));
+    if (!d) return false;
+    t.score += d;
+    this.emit('screen', 'alert', { kind: 'score', name: t.name, color: t.color, delta: d });
     this.broadcast();
+    return true;
   }
 
   // One button for the quizmaster: always moves to the next logical step.
@@ -794,8 +799,10 @@ class Game {
   judge(teamId, correct) {
     const t = this.teams.get(teamId);
     if (!t || this.phase !== 'reveal' || !this.canJudge()) return false;
+    const was = t.correct;
     this.overrides.set(teamId, !!correct);
     this.applyPoints();
+    if (was !== t.correct) this.emit('screen', 'alert', { kind: 'judge', name: t.name, color: t.color, correct: t.correct });
     this.broadcast();
     return true;
   }

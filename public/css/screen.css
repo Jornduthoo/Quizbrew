@@ -613,3 +613,7 @@ body.mouse .fs-btn.quiet { opacity: .9; pointer-events: auto; }
 .end .rest { max-width: calc(100vw - 2 * (2.5vw + 13.5em)); }
 
 .screen-alert.lifeline { --c: rgb(var(--k-cyan)); }
+/* The quizmaster's call: a brass stamp in front of the team-coloured note. */
+.screen-alert.call { padding-left: .55em; }
+.call-tag { padding: .25em .75em; border-radius: 999px; font-size: .62em; letter-spacing: .16em; text-transform: uppercase; text-shadow: none; color: var(--wood-900, #1a0f08); background: linear-gradient(180deg, var(--brass-light), var(--brass)); box-shadow: 0 0 14px rgb(var(--k-amber) / .45); }
+.screen-alert.call.down { border-style: dashed; }

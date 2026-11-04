@@ -983,5 +983,14 @@
   "play.tw.blackout": "Blackout: lies die Frage auf dem großen Bildschirm",
   "play.tw.underdogMe": "Ihr seid Letzte: eure Punkte zählen ×1,5!",
   "play.tw.suddenDeath": "Ein Fehler und ihr seid in dieser Runde raus",
-  "ai.fromClipboard": "Antwort der KI in der Zwischenablage gefunden!"
+  "ai.fromClipboard": "Antwort der KI in der Zwischenablage gefunden!",
+  "host.scoreOpen": "Punkte geben oder abziehen",
+  "host.scoreNow": "Punktestand:",
+  "host.scoreOther": "z. B. 3 oder -2",
+  "host.scoreGive": "Geben",
+  "host.scoreHint": "Mit Minus ziehst du Punkte ab. Der große Bildschirm zeigt deine Entscheidung kurz an.",
+  "screen.callTag": "Quizmaster",
+  "screen.callScore": "{n} für {name}",
+  "screen.callRight": "Die Antwort von {name} zählt doch!",
+  "screen.callWrong": "Die Antwort von {name} zählt nicht"
 }

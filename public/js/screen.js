@@ -74,7 +74,28 @@
   socket.on('state', s => { state = s; if (I18n.dict['app.name']) render(s); });
 
   // Anti-cheat: the whole room sees which team left the quiz page during a question.
+  // The quizmaster's call: points given or taken by hand, or an answer overruled. Quick taps for one team add up in one note.
+  const calls = new Map();
+  function showCall(n) {
+    let stack = $('#alerts');
+    if (!stack) { stack = h('div', { id: 'alerts', class: 'screen-alerts' }); document.body.append(stack); }
+    const key = n.kind + '|' + n.name;
+    const prev = calls.get(key);
+    const total = n.kind === 'score' && prev ? prev.total + n.delta : n.delta;
+    if (prev) { clearTimeout(prev.out); clearTimeout(prev.gone); prev.toast.remove(); }
+    const sign = total > 0 ? '+' + total : '−' + Math.abs(total);
+    const text = n.kind === 'score' ? t('screen.callScore', { name: n.name, n: sign }) : t(n.correct ? 'screen.callRight' : 'screen.callWrong', { name: n.name });
+    const up = n.kind === 'score' ? total > 0 : n.correct;
+    const toast = h('div', { class: 'screen-alert call ' + (up ? 'up' : 'down'), style: teamVar(n.color) },
+      h('span', { class: 'call-tag' }, t('screen.callTag')), h('span', {}, text));
+    stack.append(toast);
+    const entry = { toast, total, out: setTimeout(() => toast.classList.add('out'), 5000), gone: setTimeout(() => { toast.remove(); calls.delete(key); }, 5700) };
+    calls.set(key, entry);
+    while (stack.children.length > 3) stack.firstChild.remove();
+  }
+
   socket.on('alert', n => {
+    if (n && ['score', 'judge'].includes(n.kind) && I18n.dict['app.name']) return showCall(n);
     if (!n || !['left', 'lifeline'].includes(n.kind) || !I18n.dict['app.name']) return;
     let stack = $('#alerts');
     if (!stack) { stack = h('div', { id: 'alerts', class: 'screen-alerts' }); document.body.append(stack); }

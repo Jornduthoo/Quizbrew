@@ -983,5 +983,14 @@
   "play.tw.blackout": "Blackout: lees de vraag op het grote scherm",
   "play.tw.underdogMe": "Jullie staan laatst: je punten tellen ×1,5!",
   "play.tw.suddenDeath": "Eén fout en je ligt eruit voor deze ronde",
-  "ai.fromClipboard": "Antwoord van de AI gevonden op het klembord!"
+  "ai.fromClipboard": "Antwoord van de AI gevonden op het klembord!",
+  "host.scoreOpen": "Punten geven of afnemen",
+  "host.scoreNow": "Score nu:",
+  "host.scoreOther": "bv. 3 of -2",
+  "host.scoreGive": "Geef",
+  "host.scoreHint": "Met een min neem je punten af. Het grote scherm toont je beslissing even.",
+  "screen.callTag": "Quizmaster",
+  "screen.callScore": "{n} voor {name}",
+  "screen.callRight": "Het antwoord van {name} telt toch!",
+  "screen.callWrong": "Het antwoord van {name} telt niet"
 }

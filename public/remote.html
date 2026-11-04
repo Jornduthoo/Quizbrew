@@ -102,6 +102,23 @@
     </aside>
   </main>
 
+  <!-- The quizmaster's call: give or take points for one team -->
+  <dialog class="modal score-modal" id="score-modal">
+    <header class="modal-head">
+      <h2 id="score-title"></h2>
+      <button class="mini close" type="button" data-close data-i18n-attr="aria-label:builder.close"></button>
+    </header>
+    <form class="score-body" id="score-form" autocomplete="off">
+      <p class="score-now" id="score-now"></p>
+      <div class="score-steps" id="score-steps"></div>
+      <div class="score-own">
+        <input id="score-amount" type="number" inputmode="numeric" step="1" min="-1000" max="1000" data-i18n-attr="placeholder:host.scoreOther,aria-label:host.scoreOther">
+        <button class="brass-btn" type="submit" data-i18n="host.scoreGive"></button>
+      </div>
+      <p class="hint" data-i18n="host.scoreHint"></p>
+    </form>
+  </dialog>
+
   <div class="remote-offline" id="remote-offline" role="status" hidden></div>
   <div id="alerts" class="alerts" aria-live="assertive"></div>
 
