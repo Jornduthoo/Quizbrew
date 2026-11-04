@@ -588,6 +588,19 @@ test('CSV: Excel semicolons, quotes, letters for the right answer, round trip', 
 
 // ---------- AI ----------
 
+test('AI prompts: the chosen difficulty wins, also for round types that sound hard', () => {
+  const easy = ai.roundPrompt({ type: 'jackpot', count: 6, topic: 'football', difficulty: 2, audience: 'mixed' });
+  assert.match(easy, /Difficulty: easy - most of this audience/);
+  assert.match(easy, /mixed adult pub crowd/);
+  assert.match(easy, /no exact years/);
+  assert.doesNotMatch(easy.split('\n').filter(l => !l.startsWith('This difficulty')).join('\n'), /\bhard\b/, 'no round type text may ask for hard questions when easy was chosen');
+  const hard = ai.roundPrompt({ type: 'jackpot', count: 6, topic: 'football', difficulty: 4 });
+  assert.match(hard, /Difficulty: hard - only a few teams/);
+  assert.notEqual(easy, hard);
+  assert.match(ai.quizPrompt({ topic: 'pub', difficulty: 1 }), /Difficulty: very easy - nearly everyone/);
+  for (const t of rounds.TYPES) assert.doesNotMatch(ai.TYPE_HELP[t.id], /medium-hard|one hard|very hard questions/, t.id);
+});
+
 test('AI prompts describe the round type and never name other brands', () => {
   const p = ai.roundPrompt({ type: 'closest', count: 5, topic: 'Belgium', language: 'nl', difficulty: 4, audience: 'kids' });
   assert.match(p, /5 questions/);
