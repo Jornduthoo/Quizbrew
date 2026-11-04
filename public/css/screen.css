@@ -444,7 +444,6 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .end .made-with { position: absolute; right: 2.5vw; bottom: 2.5vh; display: flex; flex-direction: column; align-items: center; gap: .2em; margin: 0; max-width: 14em; text-align: center; font-size: .95em; color: var(--muted); opacity: 0; animation: made-in 1s ease forwards 5s; }
 .end .made-with img { height: 3em; width: auto; filter: drop-shadow(0 0 8px rgb(0 0 0 / .8)); }
 .end .made-own { color: var(--brass-light); }
-.end .made-url { color: var(--cream); font-weight: 700; letter-spacing: .02em; }
 @keyframes made-in { to { opacity: .85; } }
 /* Long team names get smaller and may wrap between words on the podium, so tied teams never overlap. */
 .step .who { max-width: 100%; }
