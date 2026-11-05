@@ -41,13 +41,6 @@
         Square44x44Logo="assets\Square44x44Logo.png">
         <uap:DefaultTile Wide310x150Logo="assets\Wide310x150Logo.png" />
       </uap:VisualElements>
-      <Extensions>
-        <desktop2:Extension Category="windows.firewallRules">
-          <desktop2:FirewallRules Executable="Quizbrew.exe">
-            <desktop2:Rule Direction="in" IPProtocol="TCP" Profile="all" LocalPortMin="3001" LocalPortMax="3010" />
-          </desktop2:FirewallRules>
-        </desktop2:Extension>
-      </Extensions>
     </Application>
   </Applications>
 
@@ -57,4 +50,11 @@
     <Capability Name="privateNetworkClientServer" />
     <rescap:Capability Name="runFullTrust" />
   </Capabilities>
+  <Extensions>
+    <desktop2:Extension Category="windows.firewallRules">
+      <desktop2:FirewallRules Executable="Quizbrew.exe">
+        <desktop2:Rule Direction="in" IPProtocol="TCP" Profile="all" LocalPortMin="3001" LocalPortMax="3010" />
+      </desktop2:FirewallRules>
+    </desktop2:Extension>
+  </Extensions>
 </Package>
