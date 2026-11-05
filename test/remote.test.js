@@ -10,7 +10,7 @@ const js = fs.readFileSync(path.join(pub, 'js', 'host.js'), 'utf8');
 const remote = fs.readFileSync(path.join(pub, 'remote.html'), 'utf8');
 
 // Laptop-only tools: host.js checks for these before using them.
-const LAPTOP_ONLY = /^(check-|raffle-|remote-|venue-|sponsor-|samples-restore|screen-copy|pro-|settings-pro)/;
+const LAPTOP_ONLY = /^(check-|raffle-|remote-|venue-|sponsor-|samples-restore|screen-copy|pro-|settings-pro|settings-quit)/;
 
 test('every element host.js needs exists on the remote page', () => {
   const ids = new Set([...js.matchAll(/\$\('#([a-z0-9-]+)/g)].map(m => m[1]));
@@ -19,7 +19,7 @@ test('every element host.js needs exists on the remote page', () => {
 });
 
 test('laptop-only tools are guarded in host.js', () => {
-  for (const id of ['check-btn', 'raffle-btn', 'venue-tile', 'samples-restore']) assert.match(js, new RegExp(`if \\(\\$\\('#${id}'\\)\\)`));
+  for (const id of ['check-btn', 'raffle-btn', 'venue-tile', 'samples-restore', 'settings-quit']) assert.match(js, new RegExp(`if \\(\\$\\('#${id}'\\)\\)`));
   assert.match(js, /if \(!remote\) \{\s*\$\('#remote-tile'\)/);
 });
 
