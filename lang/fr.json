@@ -1006,5 +1006,13 @@
   "screen.callTag": "Quizmaster",
   "screen.callScore": "{n} pour {name}",
   "screen.callRight": "La réponse de {name} compte finalement !",
-  "screen.callWrong": "La réponse de {name} ne compte pas"
+  "screen.callWrong": "La réponse de {name} ne compte pas",
+  "play.truthTyped": "C'est la vraie réponse ! Inventez-en une fausse.",
+  "screen.truthOnPhone": "Trouvez la vérité sur votre téléphone",
+  "screen.truthPerPhone": "{n} réponses en jeu · chaque téléphone en reçoit {k}",
+  "screen.houseBluff": "Bluff de la maison",
+  "screen.otherBluffs": "{n} autres bluffs ont piégé {m} fois de plus",
+  "screen.otherBluffsNobody": "{n} autres bluffs n'ont piégé personne",
+  "builder.f.decoys": "Bluffs de la maison (facultatif)",
+  "builder.f.decoysHint": "fausses réponses pour compléter une petite partie, séparées par |"
 }

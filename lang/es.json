@@ -1006,5 +1006,13 @@
   "screen.callTag": "Presentador",
   "screen.callScore": "{n} para {name}",
   "screen.callRight": "¡La respuesta de {name} sí cuenta!",
-  "screen.callWrong": "La respuesta de {name} no cuenta"
+  "screen.callWrong": "La respuesta de {name} no cuenta",
+  "play.truthTyped": "¡Esa es la respuesta real! Inventa una falsa.",
+  "screen.truthOnPhone": "Encuentra la verdad en tu móvil",
+  "screen.truthPerPhone": "{n} respuestas en juego · cada móvil recibe sus propias {k}",
+  "screen.houseBluff": "Farol de la casa",
+  "screen.otherBluffs": "{n} faroles más engañaron {m} veces",
+  "screen.otherBluffsNobody": "{n} faroles más no engañaron a nadie",
+  "builder.f.decoys": "Faroles de la casa (opcional)",
+  "builder.f.decoysHint": "respuestas falsas que completan una partida pequeña, separadas por |"
 }

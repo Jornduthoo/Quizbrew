@@ -484,6 +484,14 @@
       $('#type-unit').textContent = s.question.unit || '';
       setTimeout(() => input.focus(), 50);
     }
+    // Bluff: the team typed the real answer. Say so (they know it now) and let them make up another one.
+    const warn = $('#type-warn');
+    if (s.truthTyped && warn.hidden) {
+      warn.textContent = t('play.truthTyped');
+      $('#type-input').select();
+      if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+    }
+    warn.hidden = !s.truthTyped;
     stopTimer = countdown(s.remaining, s.question.time * 1000, left => {
       $('#t-time').textContent = Math.ceil(left / 1000);
     });
@@ -780,7 +788,7 @@
       $('#match-send').hidden = true;
       box.replaceChildren(...s.ballot.map((b, i) => h('button', {
         type: 'button', class: 'ballot-item' + (b.mine ? ' mine' : '') + (b.image ? ' pic' : ''), disabled: b.mine, style: `--k: ${i}`,
-        onclick: () => { socket.emit('vote', i); if (navigator.vibrate) navigator.vibrate(25); },
+        onclick: () => { socket.emit('vote', b.id ?? i); if (navigator.vibrate) navigator.vibrate(25); },
       }, h('span', { class: 'letter' }, QB.cardLetter(i)), b.image ? h('img', { src: b.content, alt: '' }) : h('span', { class: 'text' }, b.content),
       b.mine ? h('span', { class: 'mine-tag' }, t('play.yours')) : null)));
     }

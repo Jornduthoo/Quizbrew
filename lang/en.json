@@ -1006,5 +1006,13 @@
   "screen.callTag": "Quizmaster",
   "screen.callScore": "{n} for {name}",
   "screen.callRight": "{name}'s answer counts after all!",
-  "screen.callWrong": "{name}'s answer does not count"
+  "screen.callWrong": "{name}'s answer does not count",
+  "play.truthTyped": "That's the real answer! Make up a fake one.",
+  "screen.truthOnPhone": "Find the truth on your phone",
+  "screen.truthPerPhone": "{n} answers in play · every phone gets its own {k}",
+  "screen.houseBluff": "House bluff",
+  "screen.otherBluffs": "{n} other bluffs fooled {m} more",
+  "screen.otherBluffsNobody": "{n} other bluffs fooled nobody",
+  "builder.f.decoys": "House bluffs (optional)",
+  "builder.f.decoysHint": "fake answers that fill up a small game, separated by |"
 }
