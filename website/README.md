@@ -5,9 +5,9 @@ The promo site: plain HTML, CSS and a little JavaScript. No build step, no libra
 - **Price, demo, links, contact**: `js/config.js` (one place).
 - **Texts in 5 languages**: `js/i18n.js`. The page picks `?lang=`, then the visitor's earlier choice, then their country (Cloudflare's `/cdn-cgi/trace`; in Belgium, Switzerland, Luxembourg and Canada the browser language picks among the local languages), then the browser language.
 - **Round types and version stamp**: `node website/tools/build.js` makes `js/rounds.js` from the app's own `lang/*.json` and gives the CSS and JS links in `index.html` a new `?v=` stamp. Run it after every change to the CSS or JS, or visitors keep the old files for up to an hour.
-- **Screenshots**: `node website/tools/shots.js [pub|space|jungle|spooky|arcade]` plays an English sample night with Playwright and saves webp files in `img/shots`.
-- **Builder screenshots**: `node website/tools/builder-shots.js` opens the real quiz builder (with a stand-in for the AI, so no key) and saves `img/shots/builder-*.webp`.
-- **Round screenshots**: `node website/tools/round-shots.js [type ...]` plays one English question of every round type and saves `img/rounds/<type>.webp` for the round viewer.
+- **Screenshots**: `node website/tools/shots.js [look|all] [lang|all]` plays the sample night of each language with Playwright and saves webp files in `img/shots/<lang>/`. The page swaps every screenshot to the visitor's language, so each language needs the same files (the test checks it). Team names, quiz title and translated round samples live in `tools/shot-lang.js`.
+- **Builder screenshots**: `node website/tools/builder-shots.js [lang|all]` opens the real quiz builder (with a stand-in for the AI, so no key) and saves `img/shots/<lang>/builder-*.webp`.
+- **Round screenshots**: `node website/tools/round-shots.js [lang|all] [type ...]` plays one question of every round type and saves `img/rounds/<lang>/<type>.webp` for the round viewer.
 
 ## Hosting on Cloudflare Pages
 

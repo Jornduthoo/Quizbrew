@@ -1,5 +1,5 @@
-// Screenshots for the website: plays an English sample night in a real browser and saves the nicest moments
-// as small webp files in website/img/shots. Run from the repo root: node website/tools/shots.js [look]
+// Screenshots for the website: plays the sample night in a real browser and saves the nicest moments
+// as small webp files in website/img/shots/<lang>. Run from the repo root: node website/tools/shots.js [look|all] [lang|all]
 // Needs Playwright with Chromium (and ImageMagick `convert` for webp).
 const fs = require('fs');
 const os = require('os');
@@ -9,28 +9,30 @@ const { chromium } = require('playwright');
 const { io: connect } = require('socket.io-client');
 const { createServer } = require('../../src/app');
 
-const LOOK = process.argv[2] || 'pub';
-const OUT = path.join(__dirname, '..', 'img', 'shots');
+const L = require('./shot-lang');
+const LOOKS = ['pub', 'space', 'jungle', 'arcade', 'spooky', 'disco', 'beach', 'winter', 'gala', 'stadium'];
+const [lookArg = 'pub', langArg = 'all'] = process.argv.slice(2);
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'qb-shots-'));
-const TEAMS = ['Quizzly Bears', 'Know-It-Owls', 'Table Six', 'The Brainiacs', 'Fact Hunters', 'Late Again', 'Mind the Gap', 'Grandma Knows'];
 const COLORS = require('../../src/teams').TEAM_COLORS;
 const NO_MOTION = '*, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition: none !important; }';
 const settle = (ms = 600) => new Promise(r => setTimeout(r, ms));
 
-const pack = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'quizzes', 'night-pack-1.en.json'), 'utf8'));
-const quiz = { ...pack, title: 'Friday Quiz Night', tiebreak: false, rounds: pack.rounds.slice(0, 3).map(r => ({ ...r, questions: r.questions.slice(0, 1) })) };
 
-async function main() {
+async function run(LOOK, LANG) {
+  const OUT = path.join(__dirname, '..', 'img', 'shots', LANG);
+  const TEAMS = L.TEAMS[LANG];
+  const pack = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'quizzes', `night-pack-1.${LANG}.json`), 'utf8'));
+  const quiz = { ...pack, title: L.TITLE[LANG], tiebreak: false, rounds: pack.rounds.slice(0, 3).map(r => ({ ...r, questions: r.questions.slice(0, 1) })) };
   fs.mkdirSync(OUT, { recursive: true });
-  const data = { language: 'en', sfx: false, look: LOOK };
-  const qb = createServer({ port: 0, settings: { get: k => data[k], set: (k, v) => { data[k] = v; } }, library: require('../../src/library').create(TMP), lanAddresses: () => ['192.168.1.20'] });
+  const data = { language: LANG, sfx: false, look: LOOK };
+  const qb = createServer({ port: 0, license: require('../../test/fixtures/pro').proLicense(), settings: { get: k => data[k], set: (k, v) => { data[k] = v; } }, library: require('../../src/library').create(TMP), lanAddresses: () => ['192.168.1.20'] });
   const port = await qb.listen();
   const url = `http://127.0.0.1:${port}`;
   const sockets = [];
   const open = query => { const s = connect(url, { query, transports: ['websocket'], forceNew: true }); sockets.push(s); return s; };
   const browser = await chromium.launch();
   const tv = await browser.newPage({ viewport: { width: 1600, height: 900 } });
-  const phone = await browser.newPage({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const phone = await browser.newPage({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: L.LOCALE[LANG] });
   await phone.addInitScript(() => localStorage.setItem('qb.teamId', 'team000000'));
   const shot = async (page, name, w) => {
     await settle();
@@ -77,6 +79,10 @@ async function main() {
   host.emit('stop'); await settle();
   return done();
 
-  async function done() { sockets.forEach(s => s.close()); await browser.close(); await qb.close(); process.exit(0); }
+  async function done() { sockets.forEach(s => s.close()); await browser.close(); await qb.close(); }
 }
-main().catch(e => { console.error(e); process.exit(1); });
+(async () => {
+  for (const look of lookArg === 'all' ? LOOKS : [lookArg]) for (const lang of langArg === 'all' ? L.LANGS : [langArg]) await run(look, lang);
+  fs.rmSync(TMP, { recursive: true, force: true });
+  process.exit(0);
+})().catch(e => { console.error(e); process.exit(1); });
