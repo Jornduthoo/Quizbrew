@@ -703,6 +703,7 @@
   }
   const day = ms => new Date(ms).toLocaleDateString(I18n.lang, { day: 'numeric', month: 'long', year: 'numeric' });
   function proLine(v) {
+    if (v.pro && v.kind === 'store') return t('pro.store');
     if (v.pro) return v.kind === 'tester' && v.until ? t('pro.tester', { date: day(v.until) }) : t('pro.active', { name: v.name });
     if (v.expired) return t('pro.expired', { date: day(v.until) });
     return t('pro.demoLine');
@@ -715,9 +716,10 @@
     $('#pro-state').classList.toggle('good', v.pro);
     $('#pro-sell').hidden = v.pro && v.kind !== 'tester';
     $('#pro-form').hidden = v.pro && v.kind !== 'tester';
-    $('#pro-remove').hidden = !v.pro;
+    $('#pro-remove').hidden = !v.pro || v.kind === 'store';
     $('#pro-price').textContent = t('pro.price', { price: v.price });
     $('#pro-buy').href = v.shop;
+    $('#pro-buy').textContent = t(v.store ? 'pro.buyStore' : 'pro.buy');
     $('#pro-list').replaceChildren(...v.features.map(f => h('li', { class: f === highlight ? 'hi' : '' }, h('span', { class: 'pro-check', 'aria-hidden': 'true' }, '✓'), t(`pro.locked.${f}`))));
   }
   async function openPro(feature) {

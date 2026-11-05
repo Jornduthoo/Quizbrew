@@ -103,7 +103,20 @@ jobs:
           $pkg = Get-AppxPackage -Name $store.identityName
           if (-not $pkg) { throw 'The Store package did not install' }
           Start-Process "shell:AppsFolder\$($pkg.PackageFamilyName)!Quizbrew"
-          try { Wait-Quizbrew 3001 } finally {
+          try {
+            Wait-Quizbrew 3001
+            # Inside the package Quizbrew asks Windows about the Store licence (a test install is never "bought").
+            $lic = $null
+            for ($i = 0; $i -lt 40; $i++) {
+              $lic = Invoke-RestMethod 'http://127.0.0.1:3001/api/host/license'
+              if ($lic.storeState.checked) { break }
+              Start-Sleep 1
+            }
+            $lic.storeState | Format-List | Out-String | Write-Host
+            if (-not $lic.store) { throw 'Quizbrew did not see that it runs from the Store package' }
+            if (-not $lic.storeState.checked) { throw 'The Store licence check gave no answer' }
+            if ($lic.pro) { throw 'A test install must stay the demo' }
+          } finally {
             Get-Process Quizbrew -ErrorAction SilentlyContinue | Stop-Process -Force
             Remove-AppxPackage $pkg.PackageFullName
           }

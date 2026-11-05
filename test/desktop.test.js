@@ -94,3 +94,31 @@ test('installer, Store package and starter open the same ports', () => {
   const store = JSON.parse(fs.readFileSync(path.join(ROOT, 'desktop', 'msix', 'store.json'), 'utf8'));
   assert.ok(store.identityName && /^CN=/.test(store.publisher) && store.publisherDisplayName);
 });
+
+test('Store version: a bought copy is Pro, the free trial is the demo, the answer is remembered', async () => {
+  const Store = require('../desktop/store');
+  const License = require('../src/license');
+  const dir = tmp();
+  let answer = { ok: true, active: true, trial: true };
+  const ask = done => done(answer);
+  const settings = { values: {}, get(k) { return this.values[k]; }, set(k, v) { this.values[k] = v; } };
+  let store = Store.create({ dataDir: dir, storeId: '9NTEST', ask, every: 0 });
+  const lic = License.create(settings, { store });
+  await store.check();
+  assert.equal(lic.pro(), false, 'trial = demo');
+  assert.equal(lic.view().store, true);
+  assert.equal(lic.view().shop, 'ms-windows-store://pdp/?ProductId=9NTEST');
+  answer = { ok: true, active: true, trial: false };
+  await store.check();
+  assert.equal(lic.pro(), true, 'bought = Pro');
+  assert.equal(lic.view().kind, 'store');
+  // Windows can't answer at the next start: the last answer counts.
+  answer = { ok: false, error: 'offline' };
+  store = Store.create({ dataDir: dir, ask, every: 0 });
+  assert.equal(store.pro(), true, 'remembered before asking');
+  await store.check();
+  assert.equal(store.pro(), true, 'still Pro when the Store is silent');
+  assert.equal(Store.packaged('C:\\Program Files\\WindowsApps\\Quizbrew_0.1.0.0_x64__abc\\Quizbrew.exe'), true);
+  assert.equal(Store.packaged('C:\\Program Files\\Quizbrew\\Quizbrew.exe'), false);
+  assert.deepEqual(License.create(settings).view().store, false);
+});

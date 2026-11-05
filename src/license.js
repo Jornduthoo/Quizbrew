@@ -96,19 +96,24 @@ function trim(quiz) {
   return { quiz: { ...quiz, rounds: kept }, skipped };
 }
 
-function create(settings, { now = () => Date.now(), publicKey = PUBLIC_KEY } = {}) {
+// store: the Microsoft Store version passes { pro(), url } (desktop/store.js): bought in the Store = Pro, and
+// "Get Pro" opens the Store page. A code (a tester's, say) still works next to it.
+function create(settings, { now = () => Date.now(), publicKey = PUBLIC_KEY, store = null } = {}) {
   const current = () => {
     const code = settings.get('license');
     const info = code ? decode(code, publicKey) : null;
     if (!info) return null;
     return { ...info, expired: !!(info.until && now() > info.until) };
   };
-  const pro = () => { const c = current(); return !!c && !c.expired; };
+  const bought = () => { try { return !!(store && store.pro()); } catch { return false; } };
+  const codePro = () => { const c = current(); return !!c && !c.expired; };
+  const pro = () => bought() || codePro();
   const view = () => {
     const c = current();
+    if (bought() && !codePro()) return { pro: true, name: '', kind: 'store', until: null, expired: false, free: FREE, features: FEATURES, price: PRICE, shop: store.url || SHOP, store: true, storeState: store.status ? store.status() : null };
     return {
       pro: !!c && !c.expired, name: c ? c.name : '', kind: c ? c.kind : null, until: c ? c.until : null, expired: !!(c && c.expired),
-      free: FREE, features: FEATURES, price: PRICE, shop: SHOP,
+      free: FREE, features: FEATURES, price: PRICE, shop: (store && store.url) || SHOP, store: !!store, storeState: store && store.status ? store.status() : null,
     };
   };
   return {
