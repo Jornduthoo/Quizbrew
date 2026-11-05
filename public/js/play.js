@@ -768,26 +768,29 @@
     const box = $('#ballot');
     box.className = 'ballot ' + mode;
     if (mode === 'match') {
+      // Many teams: a few answers, each with a few teams to choose from (b.suspects); else every team.
       box.replaceChildren(...s.ballot.map((b, i) => (b.mine ? null : h('div', { class: 'match-row' },
         h('p', { class: 'match-text' }, b.content),
-        h('div', { class: 'match-teams' }, s.teamsToMatch.map(tm => h('button', {
-          type: 'button', class: 'match-team' + (matchPick[i] === tm.color ? ' on' : ''), style: teamVar(tm.color),
-          onclick: () => { matchPick[i] = tm.color; renderVote(state); },
+        h('div', { class: 'match-teams' }, (b.suspects || s.teamsToMatch || []).map(tm => h('button', {
+          type: 'button', class: 'match-team' + (matchPick[i] === (tm.key ?? tm.color) ? ' on' : ''), style: teamVar(tm.color),
+          onclick: () => { matchPick[i] = tm.key ?? tm.color; renderVote(state); },
         }, tm.name)))))).filter(Boolean));
       $('#match-send').hidden = false;
-      $('#match-send').disabled = s.ballot.some((b, i) => !b.mine && !matchPick[i]);
+      $('#match-send').disabled = s.ballot.some((b, i) => !b.mine && (matchPick[i] === null || matchPick[i] === undefined));
     } else {
       $('#match-send').hidden = true;
       box.replaceChildren(...s.ballot.map((b, i) => h('button', {
         type: 'button', class: 'ballot-item' + (b.mine ? ' mine' : '') + (b.image ? ' pic' : ''), disabled: b.mine, style: `--k: ${i}`,
-        onclick: () => { socket.emit('vote', i); if (navigator.vibrate) navigator.vibrate(25); },
+        onclick: () => { socket.emit('vote', b.id ?? i); if (navigator.vibrate) navigator.vibrate(25); },
       }, h('span', { class: 'letter' }, QB.cardLetter(i)), b.image ? h('img', { src: b.content, alt: '' }) : h('span', { class: 'text' }, b.content),
       b.mine ? h('span', { class: 'mine-tag' }, t('play.yours')) : null)));
     }
     stopTimer = countdown(s.remaining, s.vote.time * 1000, left => { $('#v-time').textContent = Math.ceil(left / 1000); });
   }
   $('#match-send').addEventListener('click', () => {
-    socket.emit('vote', matchPick.map(c => c || ''));
+    // A short list sends only its own answers, in order; the full ballot sends one colour per entry.
+    const short = state.ballot.some(b => b.suspects);
+    socket.emit('vote', short ? matchPick.filter((c, i) => !state.ballot[i].mine) : matchPick.map(c => c || ''));
     if (navigator.vibrate) navigator.vibrate(25);
   });
 

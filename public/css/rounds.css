@@ -544,6 +544,14 @@ body[data-phase="reveal"] .q-fact:not([hidden]) ~ .answered-dots, body[data-phas
 .screen .ballot-grid.pics .bc-votes .more { font-size: .8em; line-height: 1; color: var(--brass-light); }
 /* Pages of drawings: the cards of other pages are out, the dots under the grid show where the carousel is. */
 .screen .ballot-grid .ballot-card.off { display: none; }
+/* Many teams: a counter card while the phones vote on their own short lists, then a top 5 with places. */
+.screen .ballot-grid.wait { grid-template-columns: minmax(0, 60vw); justify-content: center; align-content: center; }
+.screen .vote-wait { align-items: center; text-align: center; gap: 2vh; padding: 4vh 3vw; }
+.screen .vote-wait img { max-height: 40vh; }
+.screen .vote-wait .vw-count { font-size: 4.5em; font-weight: 800; line-height: 1; color: var(--theme, var(--neon-amber)); text-shadow: 0 0 .4em var(--theme, var(--neon-amber)); font-variant-numeric: tabular-nums; }
+.screen .ballot-card .letter.rank { font-size: 1.15em; }
+.screen .ballot-card .bc-count { font-weight: 800; font-size: 1.1em; color: var(--brass-light); }
+.screen .ballot-grid.pics .bc-count { flex: none; font-size: .95em; line-height: 1.1; }
 body.screen .vote:has(.ballot-pages:not([hidden])) { grid-template-rows: auto auto minmax(0, 1fr) auto; }
 .screen .ballot-pages { display: flex; justify-content: center; align-items: center; gap: .7em; }
 .screen .ballot-pages[hidden] { display: none; }

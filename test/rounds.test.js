@@ -364,6 +364,73 @@ test("who's who: match answers to teams by colour", () => {
   assert.deepEqual(scores(game), [2, 1, 0]);
 });
 
+// 40 teams: every phone votes on its own short list, dealt so every entry lands on about as many phones.
+function playMany(round, n) {
+  const { TEAM_COLORS } = require('../src/teams');
+  const clock = fakeClock();
+  const game = new Game({ clock });
+  game.load({ title: 'T', rounds: [round] });
+  const ids = Array.from({ length: n }, (_, i) => { const id = `team${String(i).padStart(2, '0')}aaaa`; game.join(id, 'T' + i, TEAM_COLORS[i % TEAM_COLORS.length], 's' + i); return id; });
+  game.next();
+  game.next();
+  return { game, ids };
+}
+
+test('40 teams, best entry: own short list of 6, never your own, fair spread, votes only from your list', () => {
+  const { game, ids } = playMany({ type: 'captionThis', questions: [{ image: '/media/x.webp', question: 'Caption?' }] }, 40);
+  ids.forEach((id, i) => game.answer(id, 'Caption ' + i));
+  assert.equal(game.phase, 'vote');
+  const seen = new Map();
+  for (const id of ids) {
+    const list = game.teamState(id).ballot;
+    assert.equal(list.length, 6);
+    assert.ok(list.every(b => !b.mine && Number.isInteger(b.id)));
+    assert.equal(new Set(list.map(b => b.id)).size, 6);
+    for (const b of list) seen.set(b.id, (seen.get(b.id) || 0) + 1);
+  }
+  assert.equal(seen.size, 40, 'every entry is on some phones');
+  assert.ok(Math.max(...seen.values()) - Math.min(...seen.values()) <= 1, 'about as many phones each');
+  assert.equal(game.screenState().ballot.length, 40, 'the big screen still knows all entries');
+  const st = game.teamState(ids[0]);
+  const off = game.screenState().ballot.findIndex((b, i) => !st.ballot.some(x => x.id === i) && game.ballot[i].teamId !== ids[0]);
+  assert.equal(game.castVote(ids[0], off), false, 'not on your list');
+  ids.forEach(id => assert.equal(game.castVote(id, game.teamState(id).ballot[0].id), true));
+  assert.equal(game.phase, 'reveal');
+  assert.equal([...game.teams.values()].reduce((a, t) => a + t.score, 0), 40);
+  assert.equal(game.teamState(ids[0]).ballot.length, 40, 'the reveal shows everything again');
+});
+
+test("40 teams, who's who: 3 answers per phone, each with 4 teams to pick from, the author among them", () => {
+  const { game, ids } = playMany({ type: 'whosWho', questions: [{ question: 'Our hidden talent' }] }, 40);
+  ids.forEach((id, i) => game.answer(id, 'Talent ' + i));
+  const st = game.teamState(ids[5]);
+  assert.equal(st.teamsToMatch, null);
+  assert.equal(st.ballot.length, 3);
+  const me = game.teams.get(ids[5]);
+  for (const b of st.ballot) {
+    assert.equal(b.suspects.length, 4);
+    assert.ok(b.suspects.some(x => x.name === game.teams.get(game.ballot[b.id].teamId).name), 'the author is a choice');
+    assert.ok(!b.suspects.some(x => x.name === me.name), 'never yourself');
+  }
+  // Two right, one wrong.
+  const nameOf = id => game.teams.get(id).name;
+  const pick = st.ballot.map((b, k) => b.suspects.find(x => (x.name === nameOf(game.ballot[b.id].teamId)) === (k < 2)).key);
+  assert.equal(game.castVote(ids[5], pick.slice(0, 2)), false, 'one colour per listed answer');
+  assert.equal(game.castVote(ids[5], pick), true);
+  game.finishVote();
+  assert.equal(me.score, 2);
+  const right = game.screenState().ballot.filter(b => b.votes.some(v => v.name === me.name));
+  assert.equal(right.length, 2, 'the reveal knows who recognised whom');
+});
+
+test('up to 8 entries everyone keeps the full ballot', () => {
+  const { game, ids } = playMany({ type: 'drawGuess', questions: [{ question: 'Draw a cat' }] }, 8);
+  ids.forEach((id, i) => game.answer(id, `/media/0123456789abcdef01${String(i).padStart(2, '0')}.webp`));
+  assert.equal(game.phase, 'vote');
+  assert.equal(game.teamState(ids[0]).ballot.length, 8);
+  assert.equal(game.teams.get(ids[0]).shortlist, null);
+});
+
 test('act it out: one team acts, the others guess, the actors score when someone gets it', () => {
   const { game, ids, go } = play({ type: 'actItOut', questions: [{ answer: 'Penguin' }, { answer: 'Firefighter' }] }, { teams: ['A', 'B', 'C'] });
   go();
