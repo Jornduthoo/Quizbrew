@@ -48,7 +48,7 @@ function pictureProblems(min) {
 
 test('drawing round vote screen: 4 to 40 drawings fit under the question', { skip: !chromium && 'Playwright is not installed', timeout: 300000 }, async t => {
   const settingsData = { language: 'nl', sfx: false, look: 'pub' };
-  const qb = createServer({ port: 0, settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } }, library: require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-'))), lanAddresses: () => ['192.168.1.50'] });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } }, library: require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-'))), lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
   const url = `http://127.0.0.1:${port}`;
   const sockets = [];

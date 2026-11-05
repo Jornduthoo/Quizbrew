@@ -650,3 +650,11 @@ body.mouse .fs-btn.quiet { opacity: .9; pointer-events: auto; }
 .screen-alert.call { padding-left: .55em; }
 .call-tag { padding: .25em .75em; border-radius: 999px; font-size: .62em; letter-spacing: .16em; text-transform: uppercase; text-shadow: none; color: var(--wood-900, #1a0f08); background: linear-gradient(180deg, var(--brass-light), var(--brass)); box-shadow: 0 0 14px rgb(var(--k-amber) / .45); }
 .screen-alert.call.down { border-style: dashed; }
+
+/* The free demo: a small brass tag in the bottom left corner, out of the way of every zone. */
+.demo-tag {
+  position: fixed; left: 1.2vw; bottom: 1.4vh; z-index: 50; margin: 0; pointer-events: none;
+  padding: .25em .8em; border-radius: 999px; font-size: clamp(11px, .85vw, 16px); font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--brass-light); background: rgb(var(--k-wood-9) / .72); box-shadow: 0 0 0 1px rgb(var(--k-brass) / .55);
+  opacity: .8;
+}

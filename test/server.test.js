@@ -12,7 +12,7 @@ const once = (socket, event, pred = () => true) => new Promise(resolve => {
 });
 
 test('host, screen and phone play a question together', async t => {
-  const qb = createServer({ port: 0, settings: memorySettings(), library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: memorySettings(), library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
   const url = `http://127.0.0.1:${port}`;
   const sockets = [];
@@ -91,7 +91,7 @@ test('host, screen and phone play a question together', async t => {
 test('host controls only work from this laptop', async t => {
   const lan = require('../src/network').lanAddresses()[0];
   if (!lan) return t.skip('no network address on this machine');
-  const qb = createServer({ port: 0, settings: memorySettings(), library: tmpLibrary() });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: memorySettings(), library: tmpLibrary() });
   const port = await qb.listen();
   t.after(() => qb.close());
   // Through the network address the server sees a non-local client, like a phone would be.
@@ -108,7 +108,7 @@ test('host controls only work from this laptop', async t => {
 test('the remote link lets a phone drive the quiz; the run sheet stays on this laptop', async t => {
   const lan = require('../src/network').lanAddresses()[0];
   if (!lan) return t.skip('no network address on this machine');
-  const qb = createServer({ port: 0, settings: memorySettings(), library: tmpLibrary() });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: memorySettings(), library: tmpLibrary() });
   const port = await qb.listen();
   t.after(() => qb.close());
   const base = `http://${lan}:${port}`;
@@ -129,7 +129,7 @@ test('the remote link lets a phone drive the quiz; the run sheet stays on this l
 });
 
 test('the builder sees how every question went after a quiz night', async t => {
-  const qb = createServer({ port: 0, settings: memorySettings(), library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: memorySettings(), library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
   const url = `http://127.0.0.1:${port}`;
   const sockets = [];
@@ -163,7 +163,7 @@ test('the builder sees how every question went after a quiz night', async t => {
 });
 
 test('connection test, raffle and stars at the end', async t => {
-  const qb = createServer({ port: 0, settings: memorySettings(), library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: memorySettings(), library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
   const url = `http://127.0.0.1:${port}`;
   const sockets = [];
@@ -216,7 +216,7 @@ test('connection test, raffle and stars at the end', async t => {
 
 test('venue and sponsors reach every screen; autopilot is a host setting', async t => {
   const settings = memorySettings();
-  const qb = createServer({ port: 0, settings, library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings, library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
   const url = `http://127.0.0.1:${port}`;
   const sockets = [];
@@ -247,7 +247,7 @@ test('venue and sponsors reach every screen; autopilot is a host setting', async
 });
 
 test('a photo answer is confirmed, and sending it again (a retry) is not refused', async t => {
-  const qb = createServer({ port: 0, settings: memorySettings(), library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: memorySettings(), library: tmpLibrary(), lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
   const url = `http://127.0.0.1:${port}`;
   const sockets = [];

@@ -62,7 +62,7 @@ function pageProblems() {
 test('big screen, phone, host and remote: no overlap, nothing sticks out, every round type with long texts and many teams', { skip: !chromium && 'Playwright is not installed', timeout: 2400000 }, async t => {
   // LAYOUT_LOOK=<look> checks the layout with that look's font (each display font has its own width).
   const settingsData = { language: 'nl', sfx: false, look: process.env.LAYOUT_LOOK || 'pub' };
-  const qb = createServer({ port: 0, settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } }, library: require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-'))), lanAddresses: () => ['192.168.1.50'] });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } }, library: require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-'))), lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
   const url = `http://127.0.0.1:${port}`;
   const sockets = [];

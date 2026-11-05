@@ -217,6 +217,7 @@
 
   // The venue and its sponsors (set by the quizmaster under "Venue & sponsors").
   let brand = { venue: '', logo: '', sponsors: [] };
+  socket.on('license', l => { document.getElementById('demo-tag').hidden = !l || !!l.pro; });
   socket.on('brand', b => { brand = b || brand; if (I18n.dict['app.name']) renderBrand(); });
   function sponsorItem(sp) {
     return h('li', { class: 'sp-item' }, sp.logo ? h('img', { src: sp.logo, alt: sp.name }) : null, sp.logo && sp.name ? null : h('span', {}, sp.name));
