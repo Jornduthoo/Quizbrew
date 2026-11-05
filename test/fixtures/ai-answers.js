@@ -35,7 +35,7 @@ module.exports = {
   crowdMind: { question: 'Name something you take to the beach' },
   drawGuess: { question: 'Draw a cat riding a bicycle' },
   captionThis: { question: 'Write the funniest caption', imagePrompt: 'a dog wearing sunglasses in a shopping cart', imageSearch: 'dog sunglasses' },
-  bluffBank: { question: 'What did the ancient Romans use as mouthwash?', answer: 'urine' },
+  bluffBank: { question: 'What did the ancient Romans use as mouthwash?', answer: 'urine', decoys: ['crushed mint and vinegar', 'sea water with honey', 'olive oil'] },
   actItOut: { answer: 'brushing your teeth', accept: ['teeth brushing'] },
   photoHunt: { question: 'Take a photo of your whole team making a pyramid' },
   whosWho: { question: 'Our worst holiday ever was ...' },

@@ -24,7 +24,8 @@ const COLORS = require('../src/teams').TEAM_COLORS;
 const NO_MOTION = '*, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition: none !important; }';
 
 // Runs in the page: the pictures are big enough to see, and stay inside their card with the name and the dots.
-// More than 12 drawings turn over in pages of at most 12: every page is checked.
+// More than 12 drawings turn over in pages of at most 12: every page is checked. More than 8: no letters (every
+// phone has its own short list) and the reveal is a top 5.
 function pictureProblems(min) {
   const out = [];
   const shown = [...document.querySelectorAll('#ballot-grid .ballot-card')].filter(c => !c.classList.contains('off'));
@@ -32,7 +33,7 @@ function pictureProblems(min) {
   const q = document.querySelector('#vote-q').getBoundingClientRect();
   for (const card of shown) {
     const c = card.getBoundingClientRect();
-    const letter = card.querySelector('.letter').textContent;
+    const letter = card.dataset.n;
     if (c.top < q.bottom - 2) out.push(`card ${letter} runs under the question`);
     if (c.bottom > innerHeight + 2 || c.right > innerWidth + 2) out.push(`card ${letter} runs off the screen`);
     const img = card.querySelector('img');
@@ -48,7 +49,7 @@ function pictureProblems(min) {
 
 test('drawing round vote screen: 4 to 40 drawings fit under the question', { skip: !chromium && 'Playwright is not installed', timeout: 300000 }, async t => {
   const settingsData = { language: 'nl', sfx: false, look: 'pub' };
-  const qb = createServer({ port: 0, settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } }, library: require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-'))), lanAddresses: () => ['192.168.1.50'] });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } }, library: require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-'))), lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
   const url = `http://127.0.0.1:${port}`;
   const sockets = [];
@@ -100,15 +101,21 @@ test('drawing round vote screen: 4 to 40 drawings fit under the question', { ski
   // Every page of the carousel (turned with the arrow key), and every drawing was on one of them.
   const check = async (step, count) => {
     await settle();
+    const reveal = step.endsWith('reveal');
+    const big = count > 8;
     const perPage = count > 12 ? Math.ceil(count / Math.ceil(count / 12)) : count;
-    const pageCount = Math.ceil(count / perPage) + (step.endsWith('reveal') && count > 12 ? 1 : 0);
+    const pageCount = reveal && big ? 1 : Math.ceil(count / perPage);
+    const expect = reveal && big ? Math.min(5, voted) : count;
     for (let p = 0; p < pageCount; p++) {
       if (p) { for (const { page } of pages) await page.keyboard.press('ArrowRight'); await settle(200); }
       await checkPage(`${step}-p${p + 1}`);
     }
     for (const { page, size } of pages) {
       const seen = await page.evaluate(() => window.__seen.size);
-      if (seen !== count) failures.push(`${step} @ ${size.name}: only ${seen} of ${count} drawings were on screen`);
+      if (seen !== expect) failures.push(`${step} @ ${size.name}: ${seen} of ${expect} drawings were on screen`);
+      const letters = await page.evaluate(() => [...document.querySelectorAll('#ballot-grid .ballot-card .letter')].map(l => l.textContent));
+      if (big && !reveal && letters.length) failures.push(`${step} @ ${size.name}: letters on the TV while every phone has its own list`);
+      if (big && reveal && letters.join() !== letters.map((x, i) => i + 1).join()) failures.push(`${step} @ ${size.name}: the top is not numbered 1 to ${letters.length}`);
     }
   };
   const checkPage = async step => {
@@ -117,11 +124,12 @@ test('drawing round vote screen: 4 to 40 drawings fit under the question', { ski
       await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
       (await page.evaluate(problems)).forEach(p => failures.push(`${step} @ ${size.name}: ${p}`));
       (await page.evaluate(pictureProblems, 60)).forEach(p => failures.push(`${step} @ ${size.name}: ${p}`));
-      await page.evaluate(() => { window.__seen = window.__seen || new Set(); document.querySelectorAll('#ballot-grid .ballot-card:not(.off) .letter').forEach(l => window.__seen.add(l.textContent)); });
+      await page.evaluate(() => { window.__seen = window.__seen || new Set(); document.querySelectorAll('#ballot-grid .ballot-card:not(.off)').forEach(c => window.__seen.add(c.dataset.n)); });
       if (shots) await page.screenshot({ path: path.join(shots, `${step}-${size.name}.png`) });
     }
   };
 
+  let voted = 0;
   for (const count of COUNTS) {
     { const res = await new Promise(r => host.emit('load', { library: saved.path }, r)); assert.equal(res.ok, true, JSON.stringify([res, saved])); }
     const teams = [];
@@ -141,8 +149,10 @@ test('drawing round vote screen: 4 to 40 drawings fit under the question', { ski
     assert.equal(state.phase, 'vote', `${count} drawings go to the vote`);
     await check(`draw-${count}-vote`, count);
     for (const { page } of pages) await page.evaluate(() => { window.__seen = new Set(); });
-    // Most teams vote for the first drawing, so one card gets a long row of dots.
-    teams.forEach((s, i) => s.emit('vote', i === 0 ? 1 : 0));
+    // Most teams vote for the first drawing on their list, so one card gets a long row of dots.
+    const firsts = teams.map(s => s.last.ballot.filter(b => !b.mine)[0].id);
+    voted = new Set(firsts).size;
+    teams.forEach((s, i) => s.emit('vote', firsts[i]));
     if (!(await phaseLeaves('vote'))) { host.emit('next'); await phaseLeaves('vote'); }
     assert.equal(state.phase, 'reveal');
     await check(`draw-${count}-reveal`, count);

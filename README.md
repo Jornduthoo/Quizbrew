@@ -134,6 +134,25 @@ A phone that leaves the page during a question is always shown to the quizmaster
 
 The definitions live in `src/rounds.js`; each type needs `round.<type>` and `round.<type>.desc` in the language files, a theme in `QB.ROUND_THEMES` and an AI hint in `src/ai.js`. Tests check all three.
 
+## Demo and Pro
+
+Quizbrew starts as a free demo: 4 teams, the Pub look, 15 round types (at least one of every family), AI help up to
+10 questions at a time and 3 quizzes of your own. The examples play in full, as a taste. Everything Pro stays visible
+with a small lock: all 45 round types with every twist and scoring, up to 40 teams, ten looks, venue and sponsors,
+autopilot, run sheet and answer sheets, audience mode, raffle, the quiz folder sync and AI pictures. The remote stays free.
+
+Pro is unlocked with a code (Settings, or the "Get Pro" button). A code is a signed note (Ed25519) with a name, Pro or
+tester, and maybe an end date; it is checked on the laptop, offline. The app only holds the public key
+(`src/license.js`), so codes can only be made with the private key:
+
+```
+npm run make-code -- --name "Bar Zoet"                Pro, no end date
+npm run make-code -- --name "Tester" --days 60 --count 5   five tester codes for 60 days
+```
+
+The private key lives in `keys/quizbrew-private.pem` (git ignores `keys/`) or in the file named by `QUIZBREW_PRIVATE_KEY`.
+Never put it in the repo. Keep a backup: without it no new codes can be made for this version of the app.
+
 ## Quiz files
 
 Bundled samples are JSON files in `quizzes/` (see `round-tour.json` for every round type):

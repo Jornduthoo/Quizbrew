@@ -259,7 +259,7 @@ test('every round type from the AI: saved, exported and imported as JSON and CSV
 test('importing a quiz file an AI wrote: other type names, AI shapes and sloppy JSON become a quiz the builder can open', async t => {
   const { createServer } = require('../src/app');
   const settingsData = {};
-  const qb = createServer({ port: 0, settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } }, library: Library.create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-imp-'))), lanAddresses: () => ['192.168.1.50'] });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } }, library: Library.create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-imp-'))), lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
   t.after(() => qb.close());
   const post = async body => {

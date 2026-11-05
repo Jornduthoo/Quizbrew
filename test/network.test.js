@@ -50,7 +50,7 @@ test('the quizmaster picks another address for the QR code; the first phone in s
     { address: '172.28.0.1', name: 'vEthernet (WSL)', kind: 'virtual' },
     { address: '192.168.137.1', name: 'Local Area Connection* 10', kind: 'hotspot' },
   ];
-  const qb = createServer({ port: 0, settings: { get: k => v[k], set: (k, x) => { v[k] = x; } }, library, interfaces });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: { get: k => v[k], set: (k, x) => { v[k] = x; } }, library, interfaces });
   const port = await qb.listen();
   const base = `http://127.0.0.1:${port}`;
   const sockets = [];

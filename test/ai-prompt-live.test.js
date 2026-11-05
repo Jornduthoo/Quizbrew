@@ -14,7 +14,7 @@ try { ({ chromium } = require('playwright')); } catch { /* not installed: skip *
 test('AI dialog: the copied prompt follows every change in the form', { skip: !chromium && 'Playwright is not installed', timeout: 120000 }, async t => {
   const settingsData = { language: 'en', sfx: false };
   const qb = createServer({
-    port: 0,
+    port: 0, license: require('./fixtures/pro').proLicense(),
     settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } },
     library: require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-aiprompt-'))),
     lanAddresses: () => ['192.168.1.50'],

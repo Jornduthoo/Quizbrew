@@ -22,6 +22,8 @@ const Pictures = require('./pictures');
 const Ai = require('./ai');
 const csv = require('./csv');
 const rounds = require('./rounds');
+const License = require('./license');
+const { MAX_TEAMS } = require('./teams');
 
 const TEAM_ID = /^[a-z0-9]{8,40}$/;
 
@@ -62,14 +64,18 @@ function readQuizFile(text) {
   return { ...quiz, rounds: out };
 }
 
-function createServer({ port = 3000, settings = Settings.create(), library = Library.create(), lanAddresses = null, interfaces = null, hostFromAnywhere = false, cloudEvery = 60000, webFetch = globalThis.fetch } = {}) {
+function createServer({ port = 3000, settings = Settings.create(), library = Library.create(), lanAddresses = null, interfaces = null, hostFromAnywhere = false, cloudEvery = 60000, webFetch = globalThis.fetch, license = null } = {}) {
   const app = express();
   const server = http.createServer(app);
   const io = new Server(server, { serveClient: true, pingInterval: 10000, pingTimeout: 8000, maxHttpBufferSize: 3e6 });
   const pub = path.join(__dirname, '..', 'public');
 
+  // Demo or Pro: the demo has 4 teams, one look and a set of round types; Pro has everything.
+  if (!license) license = License.create(settings);
+  const pro = () => license.pro();
+  const lookFree = name => pro() || License.FREE.looks.includes(name);
   // The look of the evening (backgrounds, colours, fonts) for every screen. Pub is the default.
-  const look = () => (LOOKS.includes(settings.get('look')) ? settings.get('look') : LOOKS[0]);
+  const look = () => (LOOKS.includes(settings.get('look')) && lookFree(settings.get('look')) ? settings.get('look') : LOOKS[0]);
   // Big screen (default), or phones only: then every phone shows a small copy of the big screen.
   const mode = () => (MODES.includes(settings.get('mode')) ? settings.get('mode') : MODES[0]);
   const language = () => (i18n.isSupported(settings.get('language')) ? settings.get('language') : i18n.DEFAULT);
@@ -159,10 +165,12 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     }
   }
   game.language = language();
-  const brand = () => Brand.clean(settings.get('brand'));
+  game.maxTeams = pro() ? MAX_TEAMS : License.FREE.teams;
+  // The venue and its sponsors are Pro: the demo keeps them, but shows none.
+  const brand = () => (pro() ? Brand.clean(settings.get('brand')) : Brand.clean({}));
   audience = new Audience(game, { emit: (target, event, payload) => io.to(target).emit(event, payload) });
   autopilot = new Autopilot(game, { onUpdate: view => io.to('host').emit('auto', view) });
-  autopilot.set(settings.get('autopilot') === true);
+  autopilot.set(settings.get('autopilot') === true && pro());
   const ai = Ai.create(settings);
 
   // Raffle: the quizmaster draws a team or a ticket number; the big screen spins it out. Winners are not drawn twice.
@@ -228,14 +236,14 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   const cloud = Cloud.create({ dataDir: library.dataDir, settings });
   let cloudSoon = null;
   const cloudLater = () => {
-    if (!cloud.folder()) return;
+    if (!cloud.folder() || !pro()) return;
     clearTimeout(cloudSoon);
     cloudSoon = setTimeout(() => cloud.sync(), 3000);
     cloudSoon.unref();
   };
-  const cloudTimer = setInterval(() => cloud.sync(), cloudEvery);
+  const cloudTimer = setInterval(() => { if (pro()) cloud.sync(); }, cloudEvery);
   cloudTimer.unref();
-  cloud.sync();
+  if (pro()) cloud.sync();
 
   // A quiz to play: a bundled sample by file name, or { library: 'folder/quiz.json' }.
   const quizFor = ref => (ref && typeof ref === 'object' && ref.library ? library.read(String(ref.library)) : quizzes.load(String(ref)));
@@ -260,6 +268,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   // The run sheet to print: every round, question and answer.
   app.get('/print', (req, res) => {
     if (!canHost(req.socket.remoteAddress)) return res.redirect('/play');
+    if (!pro()) return res.redirect('/host#pro-print');
     res.sendFile(path.join(pub, 'print.html'));
   });
   app.get('/screen', (req, res) => res.sendFile(path.join(pub, 'screen.html')));
@@ -294,10 +303,49 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       if (req.method !== 'GET' && !req.path.startsWith('/cloud') && !req.path.startsWith('/ai')) cloudLater();
       res.json(out);
     } catch (err) {
-      if (/^(cloud|pictures)\./.test(err.message)) return res.status(400).json({ error: err.message });
+      if (/^(cloud|pictures|pro)\./.test(err.message)) return res.status(400).json({ error: err.message });
       if (err instanceof Ai.AiError || /^ai\./.test(err.message)) return res.status(400).json({ error: err.key || err.message, detail: err.detail || '' });
       res.status(400).json({ error: 'error.generic', detail: err.message });
     }
+  };
+  // Demo or Pro: the code is checked here, offline. After a change every screen hears it.
+  const proLocked = feature => { if (!pro()) throw new Error(`pro.locked.${feature}`); };
+  const licenseChanged = () => {
+    game.maxTeams = pro() ? MAX_TEAMS : License.FREE.teams;
+    if (!pro()) autopilot.set(false); else autopilot.set(settings.get('autopilot') === true);
+    io.emit('license', publicLicense());
+    io.emit('look', look());
+    io.emit('brand', brand());
+    io.to('host').emit('auto', autopilot.view());
+    game.broadcast();
+  };
+  api.get('/license', handle(() => license.view()));
+  api.post('/license', handle(req => { const v = license.activate(req.body.code); licenseChanged(); if (pro()) cloud.sync(); return v; }));
+  api.delete('/license', handle(() => { const v = license.remove(); licenseChanged(); return v; }));
+  // The demo keeps 3 quizzes of its own.
+  const ownQuizzes = () => { const flat = node => node.quizzes.length + node.folders.reduce((n, f) => n + flat(f), 0); return flat(library.tree()); };
+  const roomForQuiz = () => { if (!pro() && ownQuizzes() >= License.FREE.quizzes) throw new Error('pro.locked.quizzes'); };
+  // The AI in the demo: up to 10 questions at a time, free round types only.
+  const aiDemo = body => {
+    if (pro()) return body;
+    const o = { ...body };
+    if (o.whole) {
+      o.rounds = Math.min(License.FREE.aiRounds, Number(o.rounds) || License.FREE.aiRounds);
+      o.perRound = Math.min(License.FREE.aiPerRound, Number(o.perRound) || License.FREE.aiPerRound);
+      o.types = License.FREE.types;
+    } else {
+      if (!License.FREE.types.includes(o.type)) throw new Error('pro.locked.types');
+      o.count = Math.min(License.FREE.aiQuestions, Number(o.count) || License.FREE.aiQuestions);
+    }
+    return o;
+  };
+  const aiDemoOut = out => {
+    if (pro()) return out;
+    if (out.questions) return { ...out, questions: out.questions.slice(0, License.FREE.aiQuestions) };
+    if (out.quiz && Array.isArray(out.quiz.rounds)) {
+      return { ...out, quiz: { ...out.quiz, rounds: out.quiz.rounds.slice(0, License.FREE.aiRounds).map(r => ({ ...r, questions: (r.questions || []).slice(0, License.FREE.aiPerRound) })) } };
+    }
+    return out;
   };
   api.get('/remote', handle(async () => {
     const url = `${baseUrl()}/remote?key=${remoteKey}`;
@@ -327,7 +375,9 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   })));
   // The venue and its sponsors, for every screen.
   api.get('/brand', handle(() => brand()));
+  api.get('/brand/saved', handle(() => Brand.clean(settings.get('brand'))));
   api.put('/brand', handle(req => {
+    proLocked('venue');
     const b = Brand.clean(req.body);
     settings.set('brand', b);
     io.emit('brand', b);
@@ -349,10 +399,11 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   }));
   api.post('/library/restore-samples', handle(() => { settings.set('hiddenSamples', []); return { ok: true }; }));
   api.get('/library/quiz', handle(req => (req.query.sample ? quizzes.load(String(req.query.sample)) : library.read(String(req.query.path || '')))));
-  api.put('/library/quiz', handle(req => library.save(req.body.path || null, req.body.quiz, { folder: req.body.folder || '' })));
+  api.put('/library/quiz', handle(req => (req.body.path ? null : roomForQuiz(), library.save(req.body.path || null, req.body.quiz, { folder: req.body.folder || '' }))));
   api.delete('/library/item', handle(req => { library.remove(String(req.query.path || '')); return { ok: true }; }));
   api.post('/library/folder', handle(req => { library.mkdir(String(req.body.path || '')); return { ok: true }; }));
   api.post('/library/duplicate', handle(req => {
+    roomForQuiz();
     const quiz = req.body.sample ? quizzes.load(String(req.body.sample)) : library.read(String(req.body.path || ''));
     const folder = req.body.sample ? '' : String(req.body.path || '').split('/').slice(0, -1).join('/');
     return library.duplicate(quiz, { folder, title: req.body.title || (req.body.sample ? quiz.title : `${quiz.title || 'Quiz'} (${req.body.copyWord || 'copy'})`) });
@@ -363,6 +414,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     try { validateQuiz(req.body.quiz); return { ok: true }; } catch (err) { return { ok: false, problem: err.message.replace(/^Invalid quiz: /, '') }; }
   }));
   api.post('/import', handle(req => {
+    roomForQuiz();
     const { name = '', text = '' } = req.body;
     const title = String(name).replace(/\.(json|csv|txt)$/i, '') || 'Imported quiz';
     const quiz = /\.json$/i.test(name) || /^\s*[{[]/.test(String(text)) ? readQuizFile(text) : csv.toQuiz(text, title);
@@ -384,7 +436,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   });
   api.post('/media', express.raw({ type: () => true, limit: '40mb' }), handle(req => ({ url: library.addMedia(req.body, String(req.headers['content-type'] || '').split(';')[0]) })));
   api.get('/cloud', handle(() => ({ ...cloud.view(), suggestions: cloud.suggestions(), canPick: process.platform === 'win32' })));
-  api.post('/cloud/choose', handle(async req => { cloud.choose(req.body.folder); if (cloud.folder()) await cloud.sync(); return cloud.view(); }));
+  api.post('/cloud/choose', handle(async req => { if (req.body.folder) proLocked('cloud'); cloud.choose(req.body.folder); if (cloud.folder()) await cloud.sync(); return cloud.view(); }));
   api.post('/cloud/sync', handle(async () => { await cloud.sync(); return cloud.view(); }));
   api.post('/cloud/pick', handle(req => new Promise(resolve => {
     if (process.platform !== 'win32' || !network.isLocal(req.socket.remoteAddress)) return resolve({ error: 'cloud.typeIt' });
@@ -409,17 +461,18 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   // A picture made by the image AI; the builder makes it small like any other picture.
   api.post('/ai/image', async (req, res) => {
     try {
+      proLocked('aiImage');
       const { type, buffer } = await ai.makeImage(req.body.prompt);
       res.type(type).set('Cache-Control', 'no-store').send(buffer);
     } catch (err) {
-      res.status(400).json({ error: err.key || 'ai.failed', detail: err.detail || '' });
+      res.status(400).json({ error: err.key || (/^pro\./.test(err.message) ? err.message : 'ai.failed'), detail: err.detail || '' });
     }
   });
   api.get('/ai/settings', handle(() => ai.publicSettings()));
   api.put('/ai/settings', handle(req => ai.update(req.body)));
-  api.post('/ai/prompt', handle(req => ({ prompt: req.body.whole ? Ai.quizPrompt(req.body) : Ai.roundPrompt(req.body) })));
-  api.post('/ai/parse', handle(req => (req.body.whole ? { quiz: Ai.parseQuiz(req.body.text) } : { questions: Ai.parseRound(req.body.text, req.body.type) })));
-  api.post('/ai/generate', handle(async req => (req.body.whole ? { quiz: await ai.generateQuiz(req.body) } : { questions: await ai.generateRound(req.body) })));
+  api.post('/ai/prompt', handle(req => { const o = aiDemo(req.body); return { prompt: o.whole ? Ai.quizPrompt(o) : Ai.roundPrompt(o) }; }));
+  api.post('/ai/parse', handle(req => aiDemoOut(req.body.whole ? { quiz: Ai.parseQuiz(req.body.text) } : { questions: Ai.parseRound(req.body.text, req.body.type) })));
+  api.post('/ai/generate', handle(async req => { const o = aiDemo(req.body); return aiDemoOut(o.whole ? { quiz: await ai.generateQuiz(o) } : { questions: await ai.generateRound(o) }); }));
   app.use('/api/host', api);
 
   app.get('/lang/:code.json', (req, res) => {
@@ -429,8 +482,11 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
 
   app.get('/api/info', async (req, res) => {
     const { url, qr } = await joinInfo();
-    res.json({ url, qr, language: language(), languages: i18n.LANGUAGES, look: look(), looks: LOOKS, mode: mode(), modes: MODES, colors: TEAM_COLORS });
+    res.json({ url, qr, language: language(), languages: i18n.LANGUAGES, look: look(), looks: LOOKS, license: publicLicense(), mode: mode(), modes: MODES, colors: TEAM_COLORS });
   });
+
+  // What every screen may know: demo or Pro (the big screen shows a small "Demo" label).
+  function publicLicense() { return { pro: pro(), freeLooks: License.FREE.looks, teams: game.maxTeams }; }
 
   const REACTIONS = 5; // the length of QB.REACTIONS in public/js/common.js
 
@@ -449,6 +505,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     socket.emit('mode', mode());
     socket.emit('sfx', settings.get('sfx') !== false);
     socket.emit('brand', brand());
+    socket.emit('license', publicLicense());
 
     if (role === 'host') {
       if (!canHost(socket.handshake.address) && !isRemote(socket.handshake.query.key)) return socket.disconnect(true);
@@ -463,15 +520,24 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       });
       on('load', (ref, cb) => {
         try {
-          game.load(quizFor(ref));
+          // The demo plays the examples in full (a taste of Pro); its own quizzes keep the free round types only.
+          let quiz = quizFor(ref);
+          let skipped = [];
+          if (!pro() && ref && typeof ref === 'object') {
+            ({ quiz, skipped } = License.trim(quiz));
+            if (!quiz.rounds.length) return cb && cb({ error: 'pro.noFreeRounds' });
+          }
+          game.maxTeams = pro() ? MAX_TEAMS : License.FREE.teams;
+          game.load(quiz);
           currentRef = ref;
           statsSaved = false;
-          cb && cb({ ok: true });
+          cb && cb({ ok: true, skipped });
         } catch (err) {
           cb && cb({ error: 'error.quizInvalid', detail: err.message.replace(/^Invalid quiz: /, '') });
         }
       });
       on('judge', ({ teamId, correct } = {}) => game.judge(String(teamId), !!correct));
+      on('judgeLink', ({ teamId, group, correct } = {}) => game.judgeLink(String(teamId), group, !!correct));
       on('buzzJudge', right => game.judgeBuzz(!!right));
       // Play the sound of the question again (or stop it) on the big screen.
       on('media', action => { if (['replay', 'stop'].includes(action)) io.to('screen').emit('media', action); });
@@ -501,13 +567,13 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       on('kick', teamId => game.kick(String(teamId)));
       on('paperTeam', (name, cb) => { const r = game.addPaperTeam(name); if (typeof cb === 'function') cb(r); });
       on('paperPoints', ({ teamId, round, points } = {}) => game.setPaperPoints(String(teamId), round, points));
-      on('raffle', (opts, cb) => { const r = drawRaffle(opts); if (typeof cb === 'function') cb(r); });
+      on('raffle', (opts, cb) => { const r = pro() ? drawRaffle(opts) : { error: 'pro.locked.raffle' }; if (typeof cb === 'function') cb(r); });
       on('raffleHide', () => io.to('screen').emit('raffle', null));
-      on('autopilot', value => { settings.set('autopilot', !!value); autopilot.set(!!value); });
+      on('autopilot', value => { if (!pro()) return; settings.set('autopilot', !!value); autopilot.set(!!value); });
       on('raffleReset', () => { raffleWinners = []; io.to('host').emit('raffleState', raffleView()); });
       on('score', ({ teamId, delta } = {}) => game.adjustScore(String(teamId), Number(delta)));
       on('look', name => {
-        if (!LOOKS.includes(name)) return;
+        if (!LOOKS.includes(name) || !lookFree(name)) return;
         settings.set('look', name);
         io.emit('look', name);
       });
@@ -595,6 +661,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     on('audienceJoin', ({ id, name } = {}, cb) => {
       if (typeof cb !== 'function') return;
       if (typeof id !== 'string' || !TEAM_ID.test(id)) return cb({ error: 'error.generic' });
+      if (!pro()) return cb({ error: 'pro.locked.audience' });
       const result = audience.join(id, name, socket.id);
       if (result.ok) {
         audienceId = id;
@@ -641,7 +708,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   });
 
   return {
-    app, io, server, game, remoteKey, cloud,
+    app, io, server, game, remoteKey, cloud, license,
     listen: (p = port) => new Promise(resolve => server.listen(p, () => resolve(server.address().port))),
     close: () => new Promise(resolve => { clearInterval(cloudTimer); clearTimeout(cloudSoon); clearTimeout(saveSoon); game.reset(); io.close(); server.close(() => resolve()); }),
   };

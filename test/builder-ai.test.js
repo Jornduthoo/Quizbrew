@@ -40,7 +40,7 @@ function textsOf(sample) {
 test('builder: every round type from a pasted AI answer, completed by hand, passes the check and plays', { skip: !chromium && 'Playwright is not installed', timeout: 900000 }, async t => {
   const settingsData = { language: 'en', sfx: false };
   const qb = createServer({
-    port: 0,
+    port: 0, license: require('./fixtures/pro').proLicense(),
     settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } },
     library: require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-builder-'))),
     lanAddresses: () => ['192.168.1.50'],

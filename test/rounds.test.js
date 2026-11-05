@@ -34,7 +34,7 @@ function play(round, { teams = ['A', 'B'], jokers = false } = {}) {
   game.load({ title: 'T', jokers, rounds: [round] });
   const ids = teams.map((name, i) => {
     const id = `team${i}aaaa`;
-    game.join(id, name, ['amber', 'pink', 'cyan'][i], 's' + i);
+    game.join(id, name, require('../src/teams').TEAM_COLORS[i], 's' + i);
     return id;
   });
   game.next(); // round intro
@@ -47,6 +47,7 @@ test('every round type, scoring mode, twist and family has a name in every langu
     for (const type of rounds.TYPES) {
       assert.ok(d[`round.${type.id}`], `${code}: round.${type.id}`);
       assert.ok(d[`round.${type.id}.desc`], `${code}: round.${type.id}.desc`);
+      assert.ok(d[`round.${type.id}.how`], `${code}: round.${type.id}.how (the rules for the players)`);
       if (!type.scorings.length) assert.ok(d[`scoring.own.${type.id}`], `${code}: scoring.own.${type.id}`);
     }
     for (const s of rounds.SCORINGS) assert.ok(d[`scoring.${s}`] && d[`scoring.${s}.desc`], `${code}: scoring.${s}`);
@@ -123,6 +124,20 @@ test('closest wins: closest team scores, spot on doubles', () => {
   r2.game.answer(r2.ids[0], 7);
   r2.game.answer(r2.ids[1], 8);
   assert.equal(r2.game.teams.get(r2.ids[0]).score, 6);
+});
+
+test('closest: numbers are read the way people type them', () => {
+  const { game, ids, go } = play({ type: 'closest', questions: [{ question: 'Q', answer: 1500 }] }, { teams: ['A', 'B', 'C'] });
+  go();
+  game.answer(ids[0], '1.500');
+  game.answer(ids[1], '1,4');
+  game.answer(ids[2], '1 450');
+  assert.deepEqual([...game.teams.values()].map(t => t.answer), [1500, 1.4, 1450]);
+  assert.deepEqual(scores(game), [4, 0, 0], 'spot on doubles');
+  const t = rounds.get('closest');
+  assert.equal(t.parse('1.375', { answer: 1.2 }), 1.375, 'a small answer reads a point as a decimal point');
+  assert.equal(t.parse('8.849', { answer: 8849 }), 8849);
+  assert.equal(t.parse('abc', { answer: 1 }), undefined);
 });
 
 test('picture round needs a picture and plays as buttons or typed', () => {
@@ -222,6 +237,21 @@ test('buzzer: first buzz stops the clock, wrong lets the others buzz', () => {
   assert.deepEqual(scores(game), [-1, 1, 0]);
 });
 
+test('buzzer: the fastest finger wins, not the fastest wifi', () => {
+  const { game, ids, go, clock } = play({ type: 'buzzer', questions: [{ question: 'Q', answer: 'A', time: 30 }] }, { teams: ['A', 'B', 'C'] });
+  go();
+  clock.advance(2000);
+  assert.ok(game.answer(ids[0], { buzz: true, rt: 1900 }));
+  clock.advance(150);
+  assert.ok(game.answer(ids[1], { buzz: true, rt: 1700 }), 'pressed sooner, arrived later over a slow wifi');
+  assert.equal(game.screenState().buzz.name, 'B');
+  clock.advance(200);
+  assert.equal(game.answer(ids[2], { buzz: true, rt: 10 }), false, 'nobody can claim to be quicker than the network allows');
+  clock.advance(300);
+  assert.equal(game.answer(ids[0], { buzz: true, rt: 100 }), false, 'too late to take the floor back');
+  assert.equal(game.remaining(), 28000, 'the clock stopped at the first buzz');
+});
+
 test('last team standing: a miss and you are out for the round', () => {
   const { game, ids, go } = play({ type: 'lastStanding', questions: [ch('Q1'), ch('Q2'), ch('Q3')] }, { teams: ['A', 'B'] });
   go();
@@ -233,6 +263,28 @@ test('last team standing: a miss and you are out for the round', () => {
   game.answer(ids[0], 0);
   assert.equal(game.phase, 'reveal', 'the out team does not hold up the reveal');
   assert.deepEqual(scores(game), [2, 0]);
+});
+
+test('last team standing: when every team is out, the round ends instead of running empty questions', () => {
+  const { game, ids, go } = play({ type: 'lastStanding', questions: [ch('Q1'), ch('Q2'), ch('Q3')] }, { teams: ['A', 'B'] });
+  go();
+  game.answer(ids[0], 1);
+  game.answer(ids[1], 2);
+  assert.equal(game.phase, 'reveal');
+  go();
+  assert.equal(game.phase, 'scoreboard', 'nobody left to play: straight to the scoreboard');
+  game.back();
+  assert.equal(game.phase, 'reveal', 'undo still works');
+});
+
+test('a played-in round is not cut short: with one team still in, the questions go on', () => {
+  const { game, ids, go } = play({ type: 'lastStanding', questions: [ch('Q1'), ch('Q2')] }, { teams: ['A', 'B'] });
+  go();
+  game.answer(ids[0], 0);
+  game.answer(ids[1], 2);
+  go();
+  assert.equal(game.phase, 'question');
+  assert.equal(game.screenState().teams.filter(t => !t.out).length, 1, 'the answered counter only counts teams still in');
 });
 
 test('push your luck: pots double, banking keeps them, a miss empties', () => {
@@ -262,6 +314,17 @@ test('steal: right teams take points from the leader', () => {
   assert.deepEqual(scores(game), [1, 2, 2]);
   game.judge(ids[2], false);
   assert.deepEqual(scores(game), [3, 2, 0], 'the quizmaster can overrule and the steal follows');
+});
+
+test('steal: with many right teams the leader loses at most three times the points per question', () => {
+  const names = ['Lead', 'B', 'C', 'D', 'E', 'F', 'G'];
+  const { game, ids, go } = play({ type: 'steal', questions: [{ question: 'Q', answer: 'Lima', points: 2 }] }, { teams: names });
+  game.adjustScore(ids[0], 20);
+  go();
+  ids.forEach((id, i) => game.answer(id, i === 0 ? 'Paris' : 'Lima'));
+  assert.equal(game.phase, 'reveal');
+  assert.equal(game.teams.get(ids[0]).score, 20 - 3 * 2, 'six thieves, but only three times the points');
+  assert.ok(ids.slice(1).every(id => game.teams.get(id).score === 2), 'every thief still scores');
 });
 
 test('pick your level: every team plays its own question for 1, 2 or 3 times the points', () => {
@@ -312,6 +375,18 @@ test('crowd mind: the most common answer scores', () => {
   assert.equal(game.screenState().reveal.answerText, 'Apple');
 });
 
+test('crowd mind: a typo or a plural counts as the same answer', () => {
+  const { game, ids, go } = play({ type: 'crowdMind', questions: [{ question: 'Name a food' }] }, { teams: ['A', 'B', 'C', 'D', 'E'] });
+  go();
+  game.answer(ids[0], 'Pizza');
+  game.answer(ids[1], "pizza's");
+  game.answer(ids[2], 'Pizzas');
+  game.answer(ids[3], 'Fries');
+  game.answer(ids[4], 'Fris');
+  assert.deepEqual(scores(game), [2, 2, 2, 0, 0]);
+  assert.equal(game.screenState().reveal.answerText, 'Pizza');
+});
+
 test('caption this: entries go on a ballot, every vote is worth the points, no voting for yourself', () => {
   const { game, ids, go } = play({ type: 'captionThis', questions: [{ image: '/media/x.webp', question: 'Caption?' }] }, { teams: ['A', 'B', 'C'] });
   go();
@@ -349,6 +424,87 @@ test('bluff: find the truth, fool the others', () => {
   assert.equal(game.screenState().ballot.find(b => b.truth).content, 'Watching a coffee pot');
 });
 
+test('bluff: typing the real answer is no bluff, and the phone hears so', () => {
+  const { game, ids, go } = play({ type: 'bluffBank', questions: [{ question: 'What was the first webcam used for?', answer: 'Watching a coffee pot' }] }, { teams: ['A', 'B'] });
+  go();
+  assert.equal(game.answer(ids[0], 'Watching a coffee pot'), false);
+  assert.equal(game.teamState(ids[0]).truthTyped, true);
+  assert.equal(game.teamState(ids[1]).truthTyped, false);
+  assert.equal(game.answer(ids[0], 'Spying on a cat'), true);
+  assert.equal(game.teamState(ids[0]).truthTyped, false);
+});
+
+test('bluff: house bluffs fill a small ballot up and score nobody', () => {
+  const { game, ids, go } = play({ type: 'bluffBank', questions: [{ question: 'What was the first webcam used for?', answer: 'Watching a coffee pot',
+    decoys: ['Guarding a fish tank', 'watching a coffee pot', 'Counting birds', 'Timing a kettle', 'Reading a meter', 'Checking a door', 'Spotting rain'] }] }, { teams: ['A', 'B'] });
+  go();
+  game.answer(ids[0], 'Counting birds');
+  game.answer(ids[1], 'Spying on a cat');
+  const ballot = game.teamState(ids[0]).ballot;
+  // 2 bluffs + the truth + house bluffs up to 7 cards; the decoy that is the truth or a team's bluff is left out.
+  assert.equal(ballot.length, 7);
+  assert.equal(ballot.filter(b => /coffee pot/i.test(b.content)).length, 1);
+  assert.equal(ballot.filter(b => b.content === 'Counting birds').length, 1);
+  const idx = text => ballot.find(b => b.content === text).id;
+  game.castVote(ids[0], idx('Guarding a fish tank'));
+  game.castVote(ids[1], idx('Watching a coffee pot'));
+  assert.deepEqual(scores(game), [0, 1]);
+  const shown = game.screenState().ballot.find(b => b.content === 'Guarding a fish tank');
+  assert.equal(shown.house, true);
+  assert.equal(shown.by, null);
+});
+
+test('bluff: the same bluff from two teams is one card, and both score', () => {
+  const { game, ids, go } = play({ type: 'bluffBank', questions: [{ question: 'What was the first webcam used for?', answer: 'Watching a coffee pot' }] }, { teams: ['A', 'B', 'C'] });
+  go();
+  game.answer(ids[0], 'Spying on a cat');
+  game.answer(ids[1], 'spying on a cat!');
+  game.answer(ids[2], 'Counting birds');
+  const ballot = game.teamState(ids[2]).ballot;
+  assert.equal(ballot.length, 3);
+  const cat = ballot.find(b => /cat/.test(b.content)).id;
+  assert.equal(game.castVote(ids[1], cat), false, 'your own bluff, even if the other team wrote it first');
+  assert.equal(game.teamState(ids[1]).ballot.find(b => b.id === cat).mine, true);
+  game.castVote(ids[2], cat);
+  game.castVote(ids[0], ballot.find(b => b.content === 'Counting birds').id);
+  game.castVote(ids[1], ballot.find(b => b.content === 'Counting birds').id);
+  assert.deepEqual(scores(game), [1, 1, 2]);
+  const card = game.screenState().ballot.find(b => b.id === cat);
+  assert.equal(card.by.name, 'A');
+  assert.deepEqual(card.also.map(x => x.name), ['B']);
+});
+
+test('bluff with many teams: every phone gets its own short list with the truth, dealt evenly, never its own bluff', () => {
+  const names = Array.from({ length: 20 }, (_, i) => 'T' + i);
+  const clock = { now: () => 0, setTimeout: () => 0, clearTimeout() {} };
+  const game = new Game({ clock });
+  game.load({ title: 'T', rounds: [{ type: 'bluffBank', questions: [{ question: 'Q?', answer: 'The real one' }] }] });
+  const { TEAM_COLORS } = require('../src/teams');
+  const ids = names.map((n, i) => { const id = `team${i}bbbb`; assert.ok(game.join(id, n, TEAM_COLORS[i], 's' + i).ok); return id; });
+  game.next();
+  game.next();
+  ids.forEach((id, i) => game.answer(id, `Bluff number ${i}`));
+  assert.equal(game.phase, 'vote');
+  assert.equal(game.screenState().vote.personal, true);
+  assert.equal(game.screenState().ballot.length, 21);
+  const seen = new Map();
+  for (const id of ids) {
+    const mine = game.teamState(id).ballot;
+    assert.equal(mine.length, 6);
+    assert.equal(mine.filter(b => b.content === 'The real one').length, 1);
+    assert.equal(mine.filter(b => b.mine).length, 0);
+    for (const b of mine) seen.set(b.id, (seen.get(b.id) || 0) + 1);
+  }
+  const counts = [...seen.entries()].filter(([id]) => game.screenState().ballot[id].content !== 'The real one').map(([, n]) => n);
+  assert.equal(counts.length, 20, 'every bluff is on some phone');
+  assert.ok(Math.max(...counts) - Math.min(...counts) <= 1, 'dealt evenly');
+  // A vote outside your own list does not count.
+  const list = new Set(game.teamState(ids[0]).ballot.map(b => b.id));
+  const other = game.screenState().ballot.findIndex((b, i) => !list.has(i) && b.content !== 'Bluff number 0');
+  assert.equal(game.castVote(ids[0], other), false);
+  assert.equal(game.castVote(ids[0], [...list][0]), true);
+});
+
 test("who's who: match answers to teams by colour", () => {
   const { game, ids, go } = play({ type: 'whosWho', questions: [{ question: 'Our hidden talent' }] }, { teams: ['A', 'B', 'C'] });
   go();
@@ -362,6 +518,73 @@ test("who's who: match answers to teams by colour", () => {
   game.castVote(ids[1], st.ballot.map(() => 'amber'));
   game.castVote(ids[2], st.ballot.map(() => 'nope'));
   assert.deepEqual(scores(game), [2, 1, 0]);
+});
+
+// 40 teams: every phone votes on its own short list, dealt so every entry lands on about as many phones.
+function playMany(round, n) {
+  const { TEAM_COLORS } = require('../src/teams');
+  const clock = fakeClock();
+  const game = new Game({ clock });
+  game.load({ title: 'T', rounds: [round] });
+  const ids = Array.from({ length: n }, (_, i) => { const id = `team${String(i).padStart(2, '0')}aaaa`; game.join(id, 'T' + i, TEAM_COLORS[i % TEAM_COLORS.length], 's' + i); return id; });
+  game.next();
+  game.next();
+  return { game, ids };
+}
+
+test('40 teams, best entry: own short list of 6, never your own, fair spread, votes only from your list', () => {
+  const { game, ids } = playMany({ type: 'captionThis', questions: [{ image: '/media/x.webp', question: 'Caption?' }] }, 40);
+  ids.forEach((id, i) => game.answer(id, 'Caption ' + i));
+  assert.equal(game.phase, 'vote');
+  const seen = new Map();
+  for (const id of ids) {
+    const list = game.teamState(id).ballot;
+    assert.equal(list.length, 6);
+    assert.ok(list.every(b => !b.mine && Number.isInteger(b.id)));
+    assert.equal(new Set(list.map(b => b.id)).size, 6);
+    for (const b of list) seen.set(b.id, (seen.get(b.id) || 0) + 1);
+  }
+  assert.equal(seen.size, 40, 'every entry is on some phones');
+  assert.ok(Math.max(...seen.values()) - Math.min(...seen.values()) <= 1, 'about as many phones each');
+  assert.equal(game.screenState().ballot.length, 40, 'the big screen still knows all entries');
+  const st = game.teamState(ids[0]);
+  const off = game.screenState().ballot.findIndex((b, i) => !st.ballot.some(x => x.id === i) && game.ballot[i].teamId !== ids[0]);
+  assert.equal(game.castVote(ids[0], off), false, 'not on your list');
+  ids.forEach(id => assert.equal(game.castVote(id, game.teamState(id).ballot[0].id), true));
+  assert.equal(game.phase, 'reveal');
+  assert.equal([...game.teams.values()].reduce((a, t) => a + t.score, 0), 40);
+  assert.equal(game.teamState(ids[0]).ballot.length, 40, 'the reveal shows everything again');
+});
+
+test("40 teams, who's who: 3 answers per phone, each with 4 teams to pick from, the author among them", () => {
+  const { game, ids } = playMany({ type: 'whosWho', questions: [{ question: 'Our hidden talent' }] }, 40);
+  ids.forEach((id, i) => game.answer(id, 'Talent ' + i));
+  const st = game.teamState(ids[5]);
+  assert.equal(st.teamsToMatch, null);
+  assert.equal(st.ballot.length, 3);
+  const me = game.teams.get(ids[5]);
+  for (const b of st.ballot) {
+    assert.equal(b.suspects.length, 4);
+    assert.ok(b.suspects.some(x => x.name === game.teams.get(game.ballot[b.id].teamId).name), 'the author is a choice');
+    assert.ok(!b.suspects.some(x => x.name === me.name), 'never yourself');
+  }
+  // Two right, one wrong.
+  const nameOf = id => game.teams.get(id).name;
+  const pick = st.ballot.map((b, k) => b.suspects.find(x => (x.name === nameOf(game.ballot[b.id].teamId)) === (k < 2)).key);
+  assert.equal(game.castVote(ids[5], pick.slice(0, 2)), false, 'one colour per listed answer');
+  assert.equal(game.castVote(ids[5], pick), true);
+  game.finishVote();
+  assert.equal(me.score, 2);
+  const right = game.screenState().ballot.filter(b => b.votes.some(v => v.name === me.name));
+  assert.equal(right.length, 2, 'the reveal knows who recognised whom');
+});
+
+test('up to 8 entries everyone keeps the full ballot', () => {
+  const { game, ids } = playMany({ type: 'drawGuess', questions: [{ question: 'Draw a cat' }] }, 8);
+  ids.forEach((id, i) => game.answer(id, `/media/0123456789abcdef01${String(i).padStart(2, '0')}.webp`));
+  assert.equal(game.phase, 'vote');
+  assert.equal(game.teamState(ids[0]).ballot.length, 8);
+  assert.equal(game.teams.get(ids[0]).shortlist, null);
 });
 
 test('act it out: one team acts, the others guess, the actors score when someone gets it', () => {
@@ -447,6 +670,20 @@ test('jackpot: bet first, then answer; wrong loses the bet', () => {
   game.answer(ids[0], 'hops');
   game.answer(ids[1], 'malt');
   assert.deepEqual([...game.teams.values()].map(t => t.score), [20, -4]);
+});
+
+test('jackpot: the quizmaster can overrule a typo, so a bet is never lost on spelling', () => {
+  const { game, ids, go } = play({ type: 'jackpot', questions: [{ category: 'Beer', question: 'Q', answer: 'Hops', points: 5 }] });
+  game.adjustScore(ids[0], 10);
+  go();
+  game.setWager(ids[0], 8);
+  go();
+  game.answer(ids[0], 'the hop plant');
+  game.answer(ids[1], 'malt');
+  assert.equal(game.teams.get(ids[0]).score, 2);
+  assert.equal(game.hostState().canJudge, true);
+  game.judge(ids[0], true);
+  assert.equal(game.teams.get(ids[0]).score, 18);
 });
 
 test('twists: double, underdog, blackout, lockdown', () => {
@@ -755,7 +992,7 @@ test('head to head: the top two play, the others predict the winner', () => {
   assert.equal(game.phase, 'reveal');
   assert.equal(game.teams.get(ids[2]).lastPoints, 2);
   assert.equal(game.teams.get(ids[1]).lastPoints, 0);
-  assert.equal(game.teams.get(ids[0]).lastPoints, 2, 'predicted the winner');
+  assert.equal(game.teams.get(ids[0]).lastPoints, 1, 'predicted the winner: half the points, rounded up');
 });
 
 test('time bank: one team at a time on its own clock; right adds seconds, zero is out', () => {
@@ -782,6 +1019,21 @@ test('time bank: one team at a time on its own clock; right adds seconds, zero i
   assert.equal(game.teams.get(ids[0]).lastPoints, 0);
 });
 
+test('time bank: at most 8 teams play, and every playing team gets as many turns', () => {
+  const qs = n => Array.from({ length: n }, (_, i) => ({ question: 'Q' + i, answer: 'A', time: 10, points: 1 }));
+  const names = Array.from({ length: 10 }, (_, i) => 'T' + i);
+  const big = play({ type: 'clockBank', questions: qs(20) }, { teams: names });
+  big.ids.forEach((id, i) => { big.game.teams.get(id).score = i; });
+  big.game.startRound(0);
+  assert.equal(big.game.finalists.length, 8, 'the top 8 play');
+  assert.ok(!big.game.finalists.includes(big.ids[0]) && !big.game.finalists.includes(big.ids[1]), 'the last two watch');
+  const few = play({ type: 'clockBank', questions: qs(4) }, { teams: ['A', 'B', 'C'] });
+  for (let k = 0; k < 3; k++) { few.go(); few.game.judgeBuzz(true); }
+  few.go();
+  assert.equal(few.game.phase, 'scoreboard', 'a fourth question would give one team an extra turn');
+  assert.deepEqual(scores(few.game), [1, 1, 1]);
+});
+
 test('clock duel: right passes the turn, the first clock at zero loses', () => {
   const qs = Array.from({ length: 20 }, (_, i) => ({ question: 'Q' + i, answer: 'A', points: 5 }));
   const { game, clock, ids, go } = play({ type: 'clockDuel', questions: qs }, { teams: ['A', 'B', 'C'] });
@@ -789,11 +1041,16 @@ test('clock duel: right passes the turn, the first clock at zero loses', () => {
   game.teams.get(ids[1]).score = 8;
   game.startRound(0);
   go();
+  assert.equal(game.phase, 'wager', 'the others first predict the winner');
+  assert.equal(game.setWager(ids[0], 0), false, 'finalists do not predict');
+  assert.ok(game.setWager(ids[2], 1)); // C backs B
+  go();
   assert.equal(game.turnTeam, ids[1], 'second place starts');
   assert.equal(game.common().clocks.length, 2);
   clock.advance(4000);
   game.judgeBuzz(true);
   go();
+  assert.equal(game.phase, 'question', 'only one prediction, before the first question');
   assert.equal(game.turnTeam, ids[0]);
   clock.advance(10000);
   game.judgeBuzz(false);
@@ -803,6 +1060,7 @@ test('clock duel: right passes the turn, the first clock at zero loses', () => {
   assert.equal(game.phase, 'reveal');
   assert.equal(game.duelWinner, ids[1]);
   assert.equal(game.teams.get(ids[1]).score, 13);
+  assert.equal(game.teams.get(ids[2]).lastPoints, 3, 'C predicted the winner: half the points, rounded up');
   go();
   assert.equal(game.phase, 'scoreboard', 'the duel ends the round');
 });
@@ -935,12 +1193,36 @@ test('word web: teams find groups of four and name the link, a point for each', 
   const by = Object.fromEntries(st.answers.map(a => [a.name, a]));
   assert.equal(by.A.points, 6);
   assert.equal(by.A.correct, true);
-  assert.deepEqual(by.A.found, { g: 3, l: 3 });
+  assert.deepEqual(by.A.found, { g: 3, l: 3, links: [true, true, true] });
   assert.equal(by.B.points, 2);
   assert.equal(by.B.correct, false);
-  assert.deepEqual(by.B.found, { g: 1, l: 1 });
+  assert.deepEqual(by.B.found, { g: 1, l: 1, links: [true, false, false] });
   assert.equal(st.reveal.answerText, 'Rivers · Planets · Chocolate bars');
   assert.equal(st.reveal.groups.length, 3);
+  // The quizmaster approves a link said in other words ("stars" for planets), and can take it back.
+  assert.ok(g.judgeLink('aaaaaaaa2', 1, true));
+  assert.equal(g.screenState().answers.find(a => a.name === 'B').points, 3);
+  g.judgeLink('aaaaaaaa2', 1, false);
+  assert.equal(g.screenState().answers.find(a => a.name === 'B').points, 2);
+  assert.equal(g.judgeLink('aaaaaaaa2', 9, true), false);
+});
+
+test('answers are checked the way a quizmaster would', () => {
+  const ok = (given, answer, accept) => rounds.textMatches(given, { answer, accept });
+  assert.ok(ok('Messi', 'Lionel Messi'), 'last name only');
+  assert.ok(ok('Lionel Messi', 'Messi'), 'full name for a last name');
+  assert.ok(ok('Eiffel toren', 'Eiffeltoren'), 'a space more or less');
+  assert.ok(ok('de Eiffeltoren in Parijs', 'Eiffeltoren'), 'a few words around the answer');
+  assert.ok(!ok('Paris or London', 'Paris'), 'hedging does not count');
+  assert.ok(!ok('Paris, London', 'Paris'));
+  assert.ok(!ok('Lyon', 'Lima'));
+  const link = (given, l) => rounds.linkMatches(given, l);
+  assert.ok(link('Rassen honden', 'Hondenrassen'));
+  assert.ok(link('Kleding', 'Kledingstukken'));
+  assert.ok(link('kledingstukken', 'Kleding'));
+  assert.ok(link('Rivers in Europe', 'European rivers'));
+  assert.ok(!link('Dieren', 'Hondenrassen'), 'too broad');
+  assert.ok(!link('Outfit', 'Kleding'), 'another word entirely: the quizmaster decides');
 });
 
 test('word web: the AI shape gives groups', () => {

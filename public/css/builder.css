@@ -317,3 +317,17 @@ body.builder { font-size: 15px; }
 .web-edit-head { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
 .web-edit-link { flex: 1; font-weight: 800; }
 .web-edit-words { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+/* Demo: Pro round types with a lock, and the small Pro dialog. */
+.type-card.locked { opacity: .72; filter: saturate(.6); }
+.type-card.locked:hover { opacity: 1; filter: none; }
+.pro-tag-mini { font-size: .72em; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--brass-light); }
+.pro-ask-body { padding: 18px 22px 22px; display: grid; gap: 10px; justify-items: start; }
+.pro-ask-full { margin: .4em 0 0; color: var(--cream); }
+.round-card .rc-lock { display: block; }
+.pro-locked-note { margin: .35em 0 0; font-size: .9em; font-weight: 700; color: var(--brass-light); }
+.pro-locked-note .link-btn { font: inherit; color: inherit; text-decoration: underline; background: none; border: 0; padding: 0; cursor: pointer; }
+.pro-ask-what { margin: 0; font-size: 1.15em; font-weight: 800; color: var(--cream); }
+.pro-ask-price { margin: 4px 0 6px; font-weight: 800; color: var(--brass-light); }
+.pro-ask .brass-btn { text-decoration: none; }
+.ghost-btn.locked::after { content: '🔒'; margin-left: .4em; font-size: .85em; }

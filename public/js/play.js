@@ -118,6 +118,8 @@
     if (brand.logo) $('#join-venue-logo').src = brand.logo;
     $('#join-venue-name').textContent = brand.venue ? t('screen.tonightAt', { venue: brand.venue }) : '';
   }
+  // The audience is a Pro extra: the demo shows no audience button.
+  socket.on('license', l => { const b = document.getElementById('aud-open'); if (b) b.hidden = !!l && !l.pro; });
   socket.on('brand', b => { brand = b; if (I18n.dict['app.name']) renderBrand(); });
   socket.on('mode', m => { mode = m; if (state) renderStage(state); });
   socket.on('kicked', () => {
@@ -208,7 +210,10 @@
         return;
       case 'roundIntro':
         if (s.round.tiebreak) return wait(t(s.isFinalist ? 'play.tiebreakYou' : 'play.watchTiebreak'), '!');
-        wait(t('play.getReady', { title: s.round.title || t(`round.${s.round.type}`) }));
+        wait(s.round.type === 'clockBank' && s.finalists && !s.isFinalist ? t('play.watchClock', { n: s.finalists.length }) : t('play.getReady', { title: s.round.title || t(`round.${s.round.type}`) }));
+        // The rules of the round in one sentence, for the tables far from the big screen.
+        $('#wait-quip').textContent = t(`round.${s.round.type}.how`);
+        $('#wait-quip').classList.add('rules');
         return renderJoker(s);
       case 'wager':
         if (s.wagerMode === 'pick' && !s.canWager) return wait(t('play.leaderPicks', { name: s.pick && s.pick.by ? s.pick.by.name : '' }), '?');
@@ -484,6 +489,14 @@
       $('#type-unit').textContent = s.question.unit || '';
       setTimeout(() => input.focus(), 50);
     }
+    // Bluff: the team typed the real answer. Say so (they know it now) and let them make up another one.
+    const warn = $('#type-warn');
+    if (s.truthTyped && warn.hidden) {
+      warn.textContent = t('play.truthTyped');
+      $('#type-input').select();
+      if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+    }
+    warn.hidden = !s.truthTyped;
     stopTimer = countdown(s.remaining, s.question.time * 1000, left => {
       $('#t-time').textContent = Math.ceil(left / 1000);
     });
@@ -492,8 +505,8 @@
     e.preventDefault();
     const v = $('#type-input').value.trim();
     if (!v) return;
-    const number = state.question && state.question.kind === 'number';
-    socket.emit('answer', number ? Number(v.replace(/\s/g, '').replace(',', '.')) : v);
+    // A number goes as typed: the host reads "1.500" as 1500 and "1,5" as 1.5, like people write it.
+    socket.emit('answer', v);
     $('#type-input').blur();
     if (navigator.vibrate) navigator.vibrate(25);
   });
@@ -768,26 +781,29 @@
     const box = $('#ballot');
     box.className = 'ballot ' + mode;
     if (mode === 'match') {
+      // Many teams: a few answers, each with a few teams to choose from (b.suspects); else every team.
       box.replaceChildren(...s.ballot.map((b, i) => (b.mine ? null : h('div', { class: 'match-row' },
         h('p', { class: 'match-text' }, b.content),
-        h('div', { class: 'match-teams' }, s.teamsToMatch.map(tm => h('button', {
-          type: 'button', class: 'match-team' + (matchPick[i] === tm.color ? ' on' : ''), style: teamVar(tm.color),
-          onclick: () => { matchPick[i] = tm.color; renderVote(state); },
+        h('div', { class: 'match-teams' }, (b.suspects || s.teamsToMatch || []).map(tm => h('button', {
+          type: 'button', class: 'match-team' + (matchPick[i] === (tm.key ?? tm.color) ? ' on' : ''), style: teamVar(tm.color),
+          onclick: () => { matchPick[i] = tm.key ?? tm.color; renderVote(state); },
         }, tm.name)))))).filter(Boolean));
       $('#match-send').hidden = false;
-      $('#match-send').disabled = s.ballot.some((b, i) => !b.mine && !matchPick[i]);
+      $('#match-send').disabled = s.ballot.some((b, i) => !b.mine && (matchPick[i] === null || matchPick[i] === undefined));
     } else {
       $('#match-send').hidden = true;
       box.replaceChildren(...s.ballot.map((b, i) => h('button', {
         type: 'button', class: 'ballot-item' + (b.mine ? ' mine' : '') + (b.image ? ' pic' : ''), disabled: b.mine, style: `--k: ${i}`,
-        onclick: () => { socket.emit('vote', i); if (navigator.vibrate) navigator.vibrate(25); },
+        onclick: () => { socket.emit('vote', b.id ?? i); if (navigator.vibrate) navigator.vibrate(25); },
       }, h('span', { class: 'letter' }, QB.cardLetter(i)), b.image ? h('img', { src: b.content, alt: '' }) : h('span', { class: 'text' }, b.content),
       b.mine ? h('span', { class: 'mine-tag' }, t('play.yours')) : null)));
     }
     stopTimer = countdown(s.remaining, s.vote.time * 1000, left => { $('#v-time').textContent = Math.ceil(left / 1000); });
   }
   $('#match-send').addEventListener('click', () => {
-    socket.emit('vote', matchPick.map(c => c || ''));
+    // A short list sends only its own answers, in order; the full ballot sends one colour per entry.
+    const short = state.ballot.some(b => b.suspects);
+    socket.emit('vote', short ? matchPick.filter((c, i) => !state.ballot[i].mine) : matchPick.map(c => c || ''));
     if (navigator.vibrate) navigator.vibrate(25);
   });
 
@@ -883,6 +899,7 @@
     } else b.textContent = mark;
     $('#wait-text').textContent = text;
     $('#wait-quip').textContent = '';
+    $('#wait-quip').classList.remove('rules');
     $('#standings').hidden = true;
     $('#made-with').hidden = true;
     $('#end-extras').hidden = true;
@@ -1114,7 +1131,7 @@
     view.style.cssText = s.turn ? teamVar(s.turn.color) : '';
     $('#turn-label').textContent = s.myTurn ? t('play.yourTurn') : s.turn ? t('play.theirTurn', { name: s.turn.name }) : '';
     $('#turn-clock').hidden = !mine;
-    $('#turn-sub').textContent = mine && mine.ms <= 0 ? t('play.clockOut') : '';
+    $('#turn-sub').textContent = mine && mine.ms <= 0 ? t('play.clockOut') : !mine && s.finalists ? t('play.watchClock', { n: s.finalists.length }) : '';
     if (!mine) return;
     const fmt = ms => (ms / 1000).toFixed(ms < 10000 ? 1 : 0);
     $('#turn-num').textContent = fmt(mine.ms);
@@ -1137,15 +1154,19 @@
     const btn = $('#buzz-btn');
     const mine = s.buzzMine;
     btn.disabled = !!s.buzz || s.buzzOut;
+    // The moment the button lights up for this phone: the reaction time is measured from here (fair over wifi).
+    if (!btn.disabled && (fresh || !buzzOpenAt)) buzzOpenAt = performance.now();
+    if (btn.disabled) buzzOpenAt = 0;
     btn.classList.toggle('mine', mine);
     $('#buzz-text').textContent = mine ? t('play.buzzMine') : s.buzz ? t('play.buzzOther', { name: s.buzz.name }) : s.buzzOut ? t('play.buzzOut') : '';
     if (mine && fresh && navigator.vibrate) navigator.vibrate([60, 40, 60]);
     if (s.paused) { $('#z-time').textContent = Math.ceil(s.remaining / 1000); return; }
     stopTimer = countdown(s.remaining, s.question.time * 1000, left => { $('#z-time').textContent = Math.ceil(left / 1000); });
   }
+  let buzzOpenAt = 0;
   $('#buzz-btn').addEventListener('click', e => {
     e.currentTarget.classList.add('pressed');
-    socket.emit('answer', true);
+    socket.emit('answer', { buzz: true, rt: buzzOpenAt ? Math.round(performance.now() - buzzOpenAt) : null });
     if (navigator.vibrate) navigator.vibrate(40);
     setTimeout(() => $('#buzz-btn').classList.remove('pressed'), 300);
   });
@@ -1194,6 +1215,7 @@
     $('#result-text').textContent = right ? t(['number', 'point'].includes(s.question.kind) ? 'play.closest' : 'play.correct') : answered ? t('play.wrong') : t('play.noAnswer');
     const k = s.question.kind;
     if (k === 'list') $('#result-text').textContent = t('play.found', { n: s.found || 0 });
+    if ((k === 'order' || k === 'pairs') && !right && s.found && s.found.n) $('#result-text').textContent = t('play.partRight', { n: s.found.n, total: s.found.total });
     if (s.vote) $('#result-text').textContent = s.lastPoints > 0 ? t('play.votesWon', { n: s.lastPoints }) : t('play.noVotes');
     if (k === 'turn' && !s.myTurn && !s.lastPoints) $('#result-text').textContent = s.turn ? t('play.theirTurn', { name: s.turn.name }) : '';
     if (s.isPicker && !answered) $('#result-text').textContent = t('play.youPicked');
