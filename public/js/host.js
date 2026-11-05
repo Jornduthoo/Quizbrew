@@ -465,7 +465,7 @@
           if (s.canJudge) preview.append(h('p', { class: 'hint' }, t('host.judgeHint')));
         }
       }
-      preview.append(h('p', { class: 'hint' }, t('screen.answeredCount', { n: s.answered, total: s.teams.filter(x => !x.paper).length })));
+      preview.append(h('p', { class: 'hint' }, t('screen.answeredCount', { n: s.answered, total: s.teams.filter(x => !x.paper && !x.out).length })));
     } else if (s.phase === 'scoreboard') {
       kicker.textContent = t('host.phase.scoreboard');
       title.textContent = t('screen.standingsAfter', { n: s.round.index + 1 });

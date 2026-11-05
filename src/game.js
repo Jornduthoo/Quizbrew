@@ -377,6 +377,13 @@ class Game {
       t.wager = null;
       t.fifty = null;
     }
+    // Last one standing, push your luck, sudden death: when every team is out or banked, the round is over
+    // (the questions that are left would only run down their clock with nobody able to answer).
+    if ((this.type.sitsOut || this.hasTwist('suddenDeath')) && index > 0 && this.teams.size && [...this.teams.values()].every(t => this.sitsOut(t))) {
+      this.roundOver = true;
+      this.clearTimer();
+      return this.showScoreboard();
+    }
     this.clearTimer();
     if (this.type.wager) {
       this.phase = 'wager';
@@ -1059,15 +1066,9 @@ class Game {
     info.fact = typeof this.question.fact === 'string' && this.question.fact.trim() ? this.question.fact.trim().slice(0, 200) : null;
     if (this.type.crowd) {
       // The answer of the room: the most common one.
-      const groups = new Map();
-      for (const t of this.teams.values()) if (t.answer) {
-        const k = rounds.normalize(t.answer);
-        const g = groups.get(k) || { text: t.answer, n: 0 };
-        g.n++;
-        groups.set(k, g);
-      }
-      const top = [...groups.values()].sort((a, b) => b.n - a.n)[0];
-      info.answerText = top && top.n >= 2 ? top.text : '—';
+      const { sizes, texts } = rounds.crowdGroups([...this.teams.values()].map(t => t.answer));
+      const top = sizes.indexOf(Math.max(0, ...sizes));
+      info.answerText = top >= 0 && sizes[top] >= 2 ? texts[top] : '—';
     }
     if (this.type.multi) info.found = this.type.found([...this.teams.values()].flatMap(t => t.answer || []), this.question);
     return info;

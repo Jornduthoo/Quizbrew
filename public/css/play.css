@@ -183,6 +183,7 @@ body.phone::before { z-index: -1; }
 .bad-result .say { animation: shake .6s ease .4s; }
 .quip { margin: 2px 0 0; max-width: 20em; font-family: var(--display); letter-spacing: var(--display-track); text-transform: var(--display-case); font-size: 1.05em; color: var(--brass-light); text-shadow: 0 2px 6px rgb(0 0 0 / .7); animation: rise .5s ease both .25s; }
 .quip:empty { display: none; }
+.quip.rules { font-family: inherit; text-transform: none; letter-spacing: 0; font-size: 1em; font-weight: 600; line-height: 1.35; color: var(--cream); max-width: 22em; margin-top: 10px; }
 
 /* Join a team that is already in: one chip per team in its own colour. */
 .join-team .hint { margin: -6px 0 0; color: var(--muted); font-size: .95em; }
