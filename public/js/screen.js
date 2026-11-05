@@ -477,6 +477,7 @@
     const rules = [t('screen.questionsInRound', { n: s.round.questions })];
     if (s.round.scoring && s.round.scoring !== 'points') rules.push(t(`scoring.${s.round.scoring}`));
     s.round.twists.forEach(tw => rules.push(t(`twist.${tw}`)));
+    if (s.round.type === 'clockBank' && s.finalists) rules.push(t('screen.topPlay', { n: s.finalists.length }));
     $('#round-meta').textContent = s.round.tiebreak ? t('screen.tiebreakRule') : rules.join(' · ');
     renderSponsor(s);
     // Restart the CSS animations for this round.
@@ -646,12 +647,12 @@
       if (kind === 'number') list.sort((a, b) => (a.answer === null) - (b.answer === null) || Math.abs(a.answer - s.reveal.number) - Math.abs(b.answer - s.reveal.number));
       else list.sort((a, b) => b.correct - a.correct);
       if (kind === 'list') list.sort((a, b) => (b.found || 0) - (a.found || 0));
-      if (kind === 'groups') list.sort((a, b) => (b.points || 0) - (a.points || 0));
+      if (kind === 'groups' || kind === 'order' || kind === 'pairs') list.sort((a, b) => b.correct - a.correct || (b.points || 0) - (a.points || 0));
       if (kind === 'point') list.sort((a, b) => (a.answer === null) - (b.answer === null) || (a.answer && b.answer ? dist(a.answer, s.reveal.spot) - dist(b.answer, s.reveal.spot) : 0));
       const shown = a => {
         if (a.answer === null) return '—';
         if (kind === 'point') return t('screen.distance', { n: Math.round(dist(a.answer, s.reveal.spot) * 100) });
-        if (kind === 'order' || kind === 'pairs') return a.correct ? '✓' : '✗';
+        if (kind === 'order' || kind === 'pairs') return a.correct ? '✓' : a.found && a.found.n ? `${a.found.n}/${a.found.total}` : '✗';
         if (kind === 'list') return t('screen.foundN', { n: a.found || 0 });
         if (kind === 'groups') return t('screen.webFound', { g: (a.found && a.found.g) || 0, l: (a.found && a.found.l) || 0 });
         if (kind === 'level') return `${t(`play.level${a.answer.l}`)} ${a.correct ? '✓' : '✗'}`;

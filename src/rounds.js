@@ -40,6 +40,8 @@
 //   ladder - the earlier you answer while the picture or clues unfold, the more points
 
 const SCORINGS = ['points', 'speed', 'race', 'risk', 'time', 'ladder'];
+const POT_MAX = 8; // push your luck: the pot doubles up to this many times the points
+const STREAK_MAX = 3; // hot streak: the multiplier stops at 3x
 const STEAL_MAX = 3; // steal: the leader loses at most this many times the points per question
 const TWISTS = ['double', 'lockdown', 'blackout', 'underdog', 'mysteryCategory', 'suddenDeath', 'shrinkingOptions', 'lifeline', 'silentRound'];
 const FAMILIES = ['classic', 'visual', 'audio', 'speed', 'strategy', 'party', 'puzzle', 'special', 'clock'];
@@ -70,15 +72,50 @@ function distance(a, b) {
 }
 
 // A typed answer counts when it matches the answer or one of the accepted spellings, with a small typo allowed.
+// It is forgiving the way a quizmaster is: "Eiffel toren" = "Eiffeltoren", "Messi" = "Lionel Messi",
+// "Lionel Messi" = "Messi", "the Eiffel Tower in Paris" = "Eiffel Tower". Hedging ("Paris or London") never counts.
+const typos = n => (n.length >= 9 ? 2 : n.length >= 5 ? 1 : 0);
+const near = (a, b) => a === b || distance(a, b) <= typos(a);
+const HEDGE = /[,/|]|\b(or|of|ou|oder|o)\b/i;
 function textMatches(given, q) {
   const g = normalize(given);
   if (!g) return false;
+  const hedged = HEDGE.test(String(given)) || /\s(or|of|ou|oder|o)\s/.test(` ${g} `);
+  const gw = g.split(' ');
   return [q.answer, ...(q.accept || [])].some(ok => {
     const n = normalize(ok);
     if (!n) return false;
-    if (n === g) return true;
-    const allowed = n.length >= 9 ? 2 : n.length >= 5 ? 1 : 0;
-    return distance(n, g) <= allowed;
+    if (near(n, g) || near(n.replace(/ /g, ''), g.replace(/ /g, ''))) return true;
+    if (hedged) return false;
+    const nw = n.split(' ');
+    // Only the last name: one word of 4+ letters that is the last word of a name of two or more words.
+    if (gw.length === 1 && nw.length >= 2 && nw[nw.length - 1].length >= 4 && near(nw[nw.length - 1], g)) return true;
+    // A few words around the whole answer (at most two extra words, the answer itself 4+ letters).
+    if (n.replace(/ /g, '').length >= 4 && gw.length > nw.length && gw.length <= nw.length + 2) {
+      for (let i = 0; i + nw.length <= gw.length; i++) if (near(n, gw.slice(i, i + nw.length).join(' '))) return true;
+    }
+    return false;
+  });
+}
+
+// Word web links are themes, so they are judged loosely: "Rassen honden" = "Hondenrassen", "Kleding" = "Kledingstukken".
+// Every word the team typed (4+ letters, plural endings off) must be in the link, together covering at least half of it;
+// or every word of the link must be in what the team typed.
+const STOP = new Set(['and', 'en', 'et', 'und', 'with', 'met', 'avec', 'mit', 'con', 'van', 'des', 'der', 'die', 'das', 'del', 'los', 'las', 'things', 'dingen']);
+const stem = w => (w.length > 4 ? w.replace(/(en|es|s|e)$/, '') : w);
+const keyWords = s => normalize(s).split(' ').filter(w => w.length >= 4 && !STOP.has(w)).map(stem);
+const inside = (w, text) => text.includes(w) || (w.length >= 5 && [...Array(Math.max(0, text.length - w.length + 2)).keys()].some(i => distance(w, text.slice(i, i + w.length)) <= 1));
+function linkMatches(given, link, accept = []) {
+  if (textMatches(given, { answer: link, accept })) return true;
+  const g = normalize(given).replace(/ /g, '');
+  if (!g || HEDGE.test(String(given))) return false;
+  return [link, ...accept].some(ok => {
+    const l = normalize(ok).replace(/ /g, '');
+    const gk = keyWords(given);
+    const lk = keyWords(ok);
+    if (!l || !lk.length) return false;
+    if (gk.length && gk.every(w => inside(w, l)) && gk.join('').length * 2 >= l.length - 2) return true;
+    return lk.every(w => inside(w, g));
   });
 }
 
@@ -354,7 +391,7 @@ function listFound(given, q) {
   const items = list(q.items).map(it => it.split('/').map(x => x.trim()).filter(Boolean));
   const hit = new Set();
   for (const g of given || []) {
-    const i = items.findIndex((alts, k) => !hit.has(k) && textMatches(g, { answer: alts[0], accept: alts.slice(1) }));
+    const i = items.findIndex((alts, k) => !hit.has(k) && (textMatches(g, { answer: alts[0], accept: alts.slice(1) })));
     if (i >= 0) hit.add(i);
   }
   return [...hit];
@@ -607,6 +644,8 @@ const TYPES = [
       return raw.map(i => shown[i]);
     },
     isCorrect: a => a.every((v, i) => v === i),
+    // Partly right: the share of items in the right place (see partialPoints).
+    partial: a => a.filter((v, i) => v === i).length / a.length,
     publicQ: q => ({ items: permutation(q.items.length, q.items.join('|')).map(i => q.items[i]) }),
     revealQ: q => ({ order: q.items, answerText: q.items.join(' → ') }),
     aiShape: '{"question": "Put these in order from oldest to newest", "items": ["first", "second", "third", "fourth"]}  (items listed in the RIGHT order; say in the question what the order is)',
@@ -628,6 +667,7 @@ const TYPES = [
       return raw.map(i => shown[i]);
     },
     isCorrect: a => a.every((v, i) => v === i),
+    partial: a => a.filter((v, i) => v === i).length / a.length,
     publicQ: q => ({ left: q.pairs.map(p => p[0]), right: permutation(q.pairs.length, q.pairs.map(p => p[1]).join('|')).map(i => q.pairs[i][1]) }),
     revealQ: q => ({ pairs: q.pairs, answerText: q.pairs.map(p => `${p[0]} = ${p[1]}`).join(' · ') }),
     aiShape: '{"question": "Match the country to its capital", "pairs": [["left", "right"], ["left", "right"], ["left", "right"], ["left", "right"]]}',
@@ -662,7 +702,7 @@ const TYPES = [
     fields: ['question', 'answer', 'image', 'time', 'points'],
     scorings: ['points', 'risk'],
     validate(q, fail) { need.text(q, fail); },
-    parse: raw => (raw === true ? true : undefined),
+    parse: raw => (raw === true || (raw && raw.buzz === true) ? true : undefined),
     publicQ: () => ({}),
     revealQ: q => ({ answerText: str(q.answer) }),
     // The quizmaster judged the team that buzzed: 'right' or 'wrong' (with risk, wrong costs the points).
@@ -694,7 +734,8 @@ const TYPES = [
       if (e.mem.banked) return { points: 0, correct: false };
       if (e.bank) return { points: e.mem.pot, correct: true, mem: { ...e.mem, pot: 0, banked: true } };
       const right = e.answer === q.correct;
-      const pot = right ? (e.mem.pot ? e.mem.pot * 2 : base) : 0;
+      // The pot stops growing at 8x the points, so one round can not outweigh the whole evening.
+      const pot = right ? (e.mem.pot ? Math.min(e.mem.pot * 2, base * POT_MAX) : base) : 0;
       if (ctx.lastQuestion && pot) return { points: pot, correct: true, mem: { ...e.mem, pot: 0, banked: true } };
       return { points: 0, correct: right, mem: { ...e.mem, pot } };
     }),
@@ -766,11 +807,11 @@ const TYPES = [
     isCorrect: (a, q) => (Array.isArray(q.answers) && q.answers.length ? a === q.correct : textMatches(a, q)),
     publicQ: q => (Array.isArray(q.answers) && q.answers.length ? { answers: q.answers } : {}),
     revealQ: q => (Array.isArray(q.answers) && q.answers.length ? choiceType.revealQ(q) : { answerText: q.answer }),
-    // Right answers in a row count up: 1x, 2x, 3x the points. A miss starts again at 1x.
+    // Right answers in a row count up: 1x, 2x, then 3x the points for every next one. A miss starts again at 1x.
     score: (entries, q, base, ctx) => entries.map(e => {
       if (!ctx.isRight(e)) return { points: 0, correct: false, mem: { ...e.mem, streak: 0 } };
       const streak = (e.mem.streak || 0) + 1;
-      return { points: base * streak, correct: true, mem: { ...e.mem, streak } };
+      return { points: base * Math.min(streak, STREAK_MAX), correct: true, mem: { ...e.mem, streak } };
     }),
     aiShape: textType.aiShape,
     fromAI: it => ({ question: str(it.question), ...choiceOrTextAI(it) }),
@@ -943,24 +984,29 @@ const TYPES = [
       return { groups: raw.groups.map(g => g.map(i => shown[i]).sort((a, b) => a - b)), links };
     },
     // A point for every group found, and a point for every link named (the group may have one word wrong).
-    score(entries, q, base) {
+    score(entries, q, base, ctx) {
       const groups = webGroups(q);
       return entries.map(e => {
         if (!e.answer) return { points: 0, correct: false, found: { g: 0, l: 0 } };
         const gotGroup = new Set();
         const gotLink = new Set();
+        const links = [];
         e.answer.groups.forEach((g, i) => {
           const counts = groups.map((_, r) => g.filter(w => Math.floor(w / 4) === r).length);
           const r = counts.indexOf(Math.max(...counts));
           if (counts[r] === 4) gotGroup.add(r);
-          if (counts[r] >= 3 && textMatches(e.answer.links[i], { answer: groups[r].link, accept: groups[r].accept })) gotLink.add(r);
+          // The quizmaster can approve or refuse a link by hand (ctx.linkOk: teamId:group -> true/false).
+          const said = ctx && ctx.linkOk ? ctx.linkOk(e.id, i) : undefined;
+          const ok = said !== undefined ? said && counts[r] >= 2 : counts[r] >= 3 && linkMatches(e.answer.links[i], groups[r].link, groups[r].accept);
+          links.push(ok);
+          if (ok) gotLink.add(r);
         });
-        return { points: (gotGroup.size + gotLink.size) * base, correct: gotGroup.size === groups.length, found: { g: gotGroup.size, l: gotLink.size } };
+        return { points: (gotGroup.size + gotLink.size) * base, correct: gotGroup.size === groups.length, found: { g: gotGroup.size, l: gotLink.size, links } };
       });
     },
     publicQ: q => ({ words: webOrder(q).map(i => webGroups(q)[Math.floor(i / 4)].words[i % 4]), groupCount: webGroups(q).length }),
     revealQ: q => ({ groups: webGroups(q).map(g => ({ link: g.link, words: g.words })), answerText: webGroups(q).map(g => g.link).join(' · ') }),
-    aiShape: '{"question": "Find the 3 groups of 4 and what links them", "groups": [{"link": "what the 4 words share", "words": ["word", "word", "word", "word"]}, {"link": "...", "words": ["...", "...", "...", "..."]}, {"link": "...", "words": ["...", "...", "...", "..."]}]}  (exactly 3 groups of 4 single words; put in words that seem to fit another group too, that makes it fun)',
+    aiShape: '{"question": "Find the 3 groups of 4 and what links them", "groups": [{"link": "what the 4 words share, in 1 to 3 words", "accept": ["other ways to say the link", "..."], "words": ["word", "word", "word", "word"]}, {"link": "...", "accept": ["..."], "words": ["...", "...", "...", "..."]}, {"link": "...", "accept": ["..."], "words": ["...", "...", "...", "..."]}]}  (exactly 3 groups of 4 single words; put in words that seem to fit another group too, that makes it fun; give 3 to 5 accept phrasings per link that a team could type, for example for the link dog breeds: dogs, breeds of dogs, kinds of dogs)',
     fromAI: it => {
       let raw = it.groups;
       // {"Fish": ["cod", ...], ...} is a group per link too.
@@ -1049,8 +1095,9 @@ const TYPES = [
       const winner = right.sort((a, b) => a.answeredAt - b.answeredAt)[0];
       return entries.map(e => {
         if (f.includes(e.id)) return winner && winner.id === e.id ? { points: base, correct: true } : { points: 0, correct: false };
+        // Predicting is a 50/50 guess: half the points (rounded up), so a team can not guess its way past the finalists.
         const ok = !!winner && Number.isInteger(e.pick) && f[e.pick] === winner.id;
-        return { points: ok ? base : 0, correct: ok };
+        return { points: ok ? Math.ceil(base / 2) : 0, correct: ok };
       });
     },
   },
@@ -1069,7 +1116,7 @@ const TYPES = [
     fromAI: it => ({ question: str(it.question), answer: answerOf(it) }),
   },
   {
-    id: 'clockDuel', family: 'clock', kind: 'turn', turns: 'duel', clock: 45, finale: true,
+    id: 'clockDuel', family: 'clock', kind: 'turn', turns: 'duel', clock: 45, finale: true, wager: 'predict', predictOnce: true,
     defaults: { time: 10, points: 5 },
     fields: ['question', 'answer', 'points'],
     scorings: [],
@@ -1078,9 +1125,15 @@ const TYPES = [
     publicQ: () => ({}),
     revealQ: q => ({ answerText: q.answer }),
     // The top two take turns; your clock runs until you answer right. Whoever still has time when the other runs out wins the points.
+    // The other teams predicted the winner before the first question (mem.pick): right = half the points, rounded up.
     score: (entries, q, base, ctx) => {
       const winner = ctx.duelWinner;
-      return entries.map(e => (winner && e.id === winner ? { points: base, correct: true } : { points: 0, correct: e.id === ctx.turn && e.answer === 'right' }));
+      const f = ctx.finalists || [];
+      return entries.map(e => {
+        if (winner && e.id === winner) return { points: base, correct: true };
+        if (winner && !f.includes(e.id) && Number.isInteger(e.mem.pick) && f[e.mem.pick] === winner) return { points: Math.ceil(base / 2), correct: true };
+        return { points: 0, correct: e.id === ctx.turn && e.answer === 'right' };
+      });
     },
     aiShape: '{"question": "...", "answer": "short answer the quizmaster reads"}  (many quick questions with one clear answer; a duel uses a lot of them)',
     fromAI: it => ({ question: str(it.question), answer: answerOf(it) }),
@@ -1152,4 +1205,4 @@ function catalog() {
   };
 }
 
-module.exports = { crowdGroups, typeFrom, num, yesNo, choicesOf, correctOf, pairsOf, listLoose, textOf, twistFits, CHOICE_TWISTS, isTurn, listFound, permutation, pointDistance, TYPES, SCORINGS, TWISTS, FAMILIES, get, kindOf, stepsOf, withDefaults, catalog, normalize, textMatches, scramble, list, str };
+module.exports = { linkMatches, crowdGroups, typeFrom, num, yesNo, choicesOf, correctOf, pairsOf, listLoose, textOf, twistFits, CHOICE_TWISTS, isTurn, listFound, permutation, pointDistance, TYPES, SCORINGS, TWISTS, FAMILIES, get, kindOf, stepsOf, withDefaults, catalog, normalize, textMatches, scramble, list, str };

@@ -468,3 +468,7 @@ body.remote .alerts { top: 12px; left: 12px; right: 12px; width: auto; }
 }
 .pro-code .brass-btn { justify-self: start; }
 .pro-remove { justify-self: start; border: 0; background: none; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; padding: 0; }
+/* Word web: the links a team typed, tap to approve or refuse. */
+.link-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.link-chip { font: inherit; font-size: .85em; padding: 2px 8px; border-radius: 999px; border: 1px solid rgb(255 255 255 / .25); background: rgb(0 0 0 / .25); color: inherit; cursor: pointer; }
+.link-chip.on { border-color: var(--good, #5fd38a); color: var(--good, #5fd38a); }

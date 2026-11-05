@@ -237,6 +237,21 @@ test('buzzer: first buzz stops the clock, wrong lets the others buzz', () => {
   assert.deepEqual(scores(game), [-1, 1, 0]);
 });
 
+test('buzzer: the fastest finger wins, not the fastest wifi', () => {
+  const { game, ids, go, clock } = play({ type: 'buzzer', questions: [{ question: 'Q', answer: 'A', time: 30 }] }, { teams: ['A', 'B', 'C'] });
+  go();
+  clock.advance(2000);
+  assert.ok(game.answer(ids[0], { buzz: true, rt: 1900 }));
+  clock.advance(150);
+  assert.ok(game.answer(ids[1], { buzz: true, rt: 1700 }), 'pressed sooner, arrived later over a slow wifi');
+  assert.equal(game.screenState().buzz.name, 'B');
+  clock.advance(200);
+  assert.equal(game.answer(ids[2], { buzz: true, rt: 10 }), false, 'nobody can claim to be quicker than the network allows');
+  clock.advance(300);
+  assert.equal(game.answer(ids[0], { buzz: true, rt: 100 }), false, 'too late to take the floor back');
+  assert.equal(game.remaining(), 28000, 'the clock stopped at the first buzz');
+});
+
 test('last team standing: a miss and you are out for the round', () => {
   const { game, ids, go } = play({ type: 'lastStanding', questions: [ch('Q1'), ch('Q2'), ch('Q3')] }, { teams: ['A', 'B'] });
   go();
@@ -977,7 +992,7 @@ test('head to head: the top two play, the others predict the winner', () => {
   assert.equal(game.phase, 'reveal');
   assert.equal(game.teams.get(ids[2]).lastPoints, 2);
   assert.equal(game.teams.get(ids[1]).lastPoints, 0);
-  assert.equal(game.teams.get(ids[0]).lastPoints, 2, 'predicted the winner');
+  assert.equal(game.teams.get(ids[0]).lastPoints, 1, 'predicted the winner: half the points, rounded up');
 });
 
 test('time bank: one team at a time on its own clock; right adds seconds, zero is out', () => {
@@ -1004,6 +1019,21 @@ test('time bank: one team at a time on its own clock; right adds seconds, zero i
   assert.equal(game.teams.get(ids[0]).lastPoints, 0);
 });
 
+test('time bank: at most 8 teams play, and every playing team gets as many turns', () => {
+  const qs = n => Array.from({ length: n }, (_, i) => ({ question: 'Q' + i, answer: 'A', time: 10, points: 1 }));
+  const names = Array.from({ length: 10 }, (_, i) => 'T' + i);
+  const big = play({ type: 'clockBank', questions: qs(20) }, { teams: names });
+  big.ids.forEach((id, i) => { big.game.teams.get(id).score = i; });
+  big.game.startRound(0);
+  assert.equal(big.game.finalists.length, 8, 'the top 8 play');
+  assert.ok(!big.game.finalists.includes(big.ids[0]) && !big.game.finalists.includes(big.ids[1]), 'the last two watch');
+  const few = play({ type: 'clockBank', questions: qs(4) }, { teams: ['A', 'B', 'C'] });
+  for (let k = 0; k < 3; k++) { few.go(); few.game.judgeBuzz(true); }
+  few.go();
+  assert.equal(few.game.phase, 'scoreboard', 'a fourth question would give one team an extra turn');
+  assert.deepEqual(scores(few.game), [1, 1, 1]);
+});
+
 test('clock duel: right passes the turn, the first clock at zero loses', () => {
   const qs = Array.from({ length: 20 }, (_, i) => ({ question: 'Q' + i, answer: 'A', points: 5 }));
   const { game, clock, ids, go } = play({ type: 'clockDuel', questions: qs }, { teams: ['A', 'B', 'C'] });
@@ -1011,11 +1041,16 @@ test('clock duel: right passes the turn, the first clock at zero loses', () => {
   game.teams.get(ids[1]).score = 8;
   game.startRound(0);
   go();
+  assert.equal(game.phase, 'wager', 'the others first predict the winner');
+  assert.equal(game.setWager(ids[0], 0), false, 'finalists do not predict');
+  assert.ok(game.setWager(ids[2], 1)); // C backs B
+  go();
   assert.equal(game.turnTeam, ids[1], 'second place starts');
   assert.equal(game.common().clocks.length, 2);
   clock.advance(4000);
   game.judgeBuzz(true);
   go();
+  assert.equal(game.phase, 'question', 'only one prediction, before the first question');
   assert.equal(game.turnTeam, ids[0]);
   clock.advance(10000);
   game.judgeBuzz(false);
@@ -1025,6 +1060,7 @@ test('clock duel: right passes the turn, the first clock at zero loses', () => {
   assert.equal(game.phase, 'reveal');
   assert.equal(game.duelWinner, ids[1]);
   assert.equal(game.teams.get(ids[1]).score, 13);
+  assert.equal(game.teams.get(ids[2]).lastPoints, 3, 'C predicted the winner: half the points, rounded up');
   go();
   assert.equal(game.phase, 'scoreboard', 'the duel ends the round');
 });
@@ -1157,12 +1193,36 @@ test('word web: teams find groups of four and name the link, a point for each', 
   const by = Object.fromEntries(st.answers.map(a => [a.name, a]));
   assert.equal(by.A.points, 6);
   assert.equal(by.A.correct, true);
-  assert.deepEqual(by.A.found, { g: 3, l: 3 });
+  assert.deepEqual(by.A.found, { g: 3, l: 3, links: [true, true, true] });
   assert.equal(by.B.points, 2);
   assert.equal(by.B.correct, false);
-  assert.deepEqual(by.B.found, { g: 1, l: 1 });
+  assert.deepEqual(by.B.found, { g: 1, l: 1, links: [true, false, false] });
   assert.equal(st.reveal.answerText, 'Rivers · Planets · Chocolate bars');
   assert.equal(st.reveal.groups.length, 3);
+  // The quizmaster approves a link said in other words ("stars" for planets), and can take it back.
+  assert.ok(g.judgeLink('aaaaaaaa2', 1, true));
+  assert.equal(g.screenState().answers.find(a => a.name === 'B').points, 3);
+  g.judgeLink('aaaaaaaa2', 1, false);
+  assert.equal(g.screenState().answers.find(a => a.name === 'B').points, 2);
+  assert.equal(g.judgeLink('aaaaaaaa2', 9, true), false);
+});
+
+test('answers are checked the way a quizmaster would', () => {
+  const ok = (given, answer, accept) => rounds.textMatches(given, { answer, accept });
+  assert.ok(ok('Messi', 'Lionel Messi'), 'last name only');
+  assert.ok(ok('Lionel Messi', 'Messi'), 'full name for a last name');
+  assert.ok(ok('Eiffel toren', 'Eiffeltoren'), 'a space more or less');
+  assert.ok(ok('de Eiffeltoren in Parijs', 'Eiffeltoren'), 'a few words around the answer');
+  assert.ok(!ok('Paris or London', 'Paris'), 'hedging does not count');
+  assert.ok(!ok('Paris, London', 'Paris'));
+  assert.ok(!ok('Lyon', 'Lima'));
+  const link = (given, l) => rounds.linkMatches(given, l);
+  assert.ok(link('Rassen honden', 'Hondenrassen'));
+  assert.ok(link('Kleding', 'Kledingstukken'));
+  assert.ok(link('kledingstukken', 'Kleding'));
+  assert.ok(link('Rivers in Europe', 'European rivers'));
+  assert.ok(!link('Dieren', 'Hondenrassen'), 'too broad');
+  assert.ok(!link('Outfit', 'Kleding'), 'another word entirely: the quizmaster decides');
 });
 
 test('word web: the AI shape gives groups', () => {
