@@ -126,3 +126,39 @@ test('make-code refuses to run without the private key', () => {
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /No private key/);
 });
+
+test('the demo imports JSON and CSV files: Pro rounds stay in the quiz, locked, and are left out at play time', async t => {
+  const settings = memorySettings();
+  const library = require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-lic-')));
+  const qb = createServer({ port: 0, settings, library, lanAddresses: () => ['192.168.1.50'], license: License.create(settings, { publicKey }) });
+  const port = await qb.listen();
+  const url = `http://127.0.0.1:${port}`;
+  const sockets = [];
+  t.after(async () => { sockets.forEach(s => s.close()); await qb.close(); });
+  const call = (method, p, body) => fetch(url + '/api/host' + p, { method, headers: { 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) }).then(async r => ({ status: r.status, body: await r.json() }));
+  assert.equal((await call('GET', '/license')).body.pro, false);
+
+  // A quiz with free and Pro rounds, as somebody else exported it.
+  const tour = require('../src/quizzes').load('round-tour.json');
+  assert.ok(tour.rounds.some(r => !License.FREE.types.includes(r.type)) && tour.rounds.some(r => License.FREE.types.includes(r.type)));
+  const json = await fetch(`${url}/api/host/export?sample=round-tour.json`).then(r => r.text());
+  const csvText = await fetch(`${url}/api/host/export?sample=round-tour.json&format=csv`).then(r => r.text());
+  const a = await call('POST', '/import', { name: 'Round Tour.quizbrew.json', text: json });
+  assert.equal(a.status, 200, JSON.stringify(a.body));
+  assert.deepEqual(a.body.quiz.rounds.map(r => r.type), tour.rounds.map(r => r.type));
+  const b = await call('POST', '/import', { name: 'Round Tour.csv', text: csvText });
+  assert.equal(b.status, 200, JSON.stringify(b.body));
+  assert.deepEqual(b.body.quiz.rounds.map(r => r.type), tour.rounds.map(r => r.type));
+
+  // Playing it in the demo leaves the Pro rounds out and says how many.
+  const host = connect(url, { query: { role: 'host' }, transports: ['websocket'], forceNew: true });
+  sockets.push(host);
+  await new Promise(r => host.on('connect', r));
+  const loaded = await new Promise(r => host.emit('load', { library: a.body.path }, r));
+  assert.equal(loaded.ok, true, JSON.stringify(loaded));
+  assert.equal(loaded.skipped.length, tour.rounds.filter(r => !License.FREE.types.includes(r.type)).length);
+
+  // Imports count as the demo's own quizzes: the fourth asks for Pro.
+  assert.equal((await call('POST', '/import', { name: 'c.json', text: json })).status, 200);
+  assert.equal((await call('POST', '/import', { name: 'd.json', text: json })).body.error, 'pro.locked.quizzes');
+});

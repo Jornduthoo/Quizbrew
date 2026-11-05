@@ -25,6 +25,10 @@
   const scoringFree = sc => isPro() || lic.free.scorings.includes(sc);
   function proAsk(feature) {
     $('#pro-ask-what').textContent = t(`pro.locked.${feature}`);
+    // The demo is full: say so plainly, and how to make room.
+    $('#pro-ask-full').hidden = feature !== 'quizzes';
+    $('#pro-ask-hint').hidden = feature === 'quizzes';
+    $('#pro-ask-full').textContent = feature === 'quizzes' ? t('pro.quizzesFull', { max: lic.free.quizzes || 3 }) : '';
     $('#pro-ask-price').textContent = lic.price ? t('pro.price', { price: lic.price }) : '';
     $('#pro-ask-go').href = '/host#pro-' + feature;
     $('#pro-ask').showModal();
@@ -187,7 +191,10 @@
     try {
       const res = await api('POST', '/import', { name: file.name, text: await file.text(), folder: folderTarget });
       await refreshLibrary();
-      openQuiz({ path: res.path });
+      await openQuiz({ path: res.path });
+      // The demo keeps the Pro rounds of an imported quiz, locked: they play once Pro is unlocked.
+      const locked = (res.quiz && res.quiz.rounds || []).filter(r => !typeFree(r.type)).length;
+      if (locked) alert(t('pro.importLocked', { n: locked }));
     } catch (err) { alert(t('builder.importFailed') + (err.detail ? `\n${err.detail}` : '')); }
   });
 
@@ -342,6 +349,7 @@
       },
       h('span', { class: 'rc-num' }, i + 1),
       icon(r.type),
+      typeFree(r.type) ? null : h('span', { class: 'pro-tag-mini rc-lock', title: t('pro.roundLockedHint') }, '🔒 ' + t('pro.lockedRound')),
       h('span', { class: 'rc-title' }, r.title || typeName(r.type)),
       h('span', { class: 'rc-meta' }, `${typeName(r.type)} · ${t('builder.questionsN', { n: r.questions.length })}`));
       return card;
@@ -404,7 +412,8 @@
 
     fill(box,
       h('header', { class: 're-head' },
-        h('div', { class: 're-type' }, icon(r.type), h('div', {}, h('strong', {}, typeName(r.type)), h('p', { class: 'hint small' }, t(`round.${r.type}.desc`)))),
+        h('div', { class: 're-type' }, icon(r.type), h('div', {}, h('strong', {}, typeName(r.type)), h('p', { class: 'hint small' }, t(`round.${r.type}.desc`)),
+          typeFree(r.type) ? null : h('p', { class: 'pro-locked-note' }, '🔒 ', t('pro.roundLockedHint'), ' ', h('button', { class: 'link-btn', onclick: () => proAsk('types') }, t('pro.getPro'))))),
         h('div', { class: 're-actions' },
           h('button', { class: 'ghost-btn small ai-btn', onclick: () => openAi({ whole: false }) }, t('builder.aiRound')),
           h('button', { class: 'mini', title: t('builder.moveLeft'), disabled: roundIndex === 0, onclick: () => moveRound(roundIndex, roundIndex - 1) }, '◀'),
