@@ -548,6 +548,7 @@ body[data-phase="reveal"] .q-fact:not([hidden]) ~ .answered-dots, body[data-phas
 .screen .ballot-grid.wait { grid-template-columns: minmax(0, 60vw); justify-content: center; align-content: center; }
 .screen .vote-wait { align-items: center; text-align: center; gap: 2vh; padding: 4vh 3vw; }
 .screen .vote-wait img { max-height: 40vh; }
+.screen .vote-wait .bc-text { font-size: 2em; }
 .screen .vote-wait .vw-count { font-size: 4.5em; font-weight: 800; line-height: 1; color: var(--theme, var(--neon-amber)); text-shadow: 0 0 .4em var(--theme, var(--neon-amber)); font-variant-numeric: tabular-nums; }
 .screen .ballot-card .letter.rank { font-size: 1.15em; }
 .screen .ballot-card .bc-count { font-weight: 800; font-size: 1.1em; color: var(--brass-light); }
