@@ -48,3 +48,17 @@ test('website: round types match the app (run node website/tools/build.js after 
   const en = require('../lang/en.json');
   assert.ok(R.every(f => f.rounds.every(r => Object.values(en).includes(r.en))));
 });
+
+test('website: quiz night guide pages exist in all 5 languages and are up to date (run node website/tools/build.js)', () => {
+  const { PAGES, T, page } = require('../website/tools/guides');
+  const textKeys = o => Object.keys(o).sort();
+  assert.deepEqual(Object.keys(PAGES).sort(), ['de', 'en', 'es', 'fr', 'nl']);
+  for (const lang of Object.keys(PAGES)) {
+    assert.deepEqual(textKeys(T[lang]), textKeys(T.en), `guide ${lang}: same texts as English`);
+    assert.equal(T[lang].steps.length, T.en.steps.length, `guide ${lang}: same steps`);
+    const file = path.join(dir, PAGES[lang]);
+    assert.ok(fs.existsSync(file), `missing website/${PAGES[lang]}`);
+    assert.equal(fs.readFileSync(file, 'utf8'), page(lang), `website/${PAGES[lang]} is out of date`);
+    assert.ok(fs.readFileSync(path.join(dir, 'sitemap.xml'), 'utf8').includes(PAGES[lang]), `${PAGES[lang]} not in sitemap.xml`);
+  }
+});

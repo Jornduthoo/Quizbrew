@@ -24,3 +24,6 @@ const index = path.join(__dirname, '..', 'index.html');
 const stamp = new Date().toISOString().replace(/\D/g, '').slice(0, 12);
 fs.writeFileSync(index, fs.readFileSync(index, 'utf8').replace(/\?v=\d+/g, `?v=${stamp}`));
 console.log(index, 'version ' + stamp);
+
+// The quiz night guide pages use the same stamp.
+require('./guides').writeAll();

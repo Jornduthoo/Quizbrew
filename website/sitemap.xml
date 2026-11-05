@@ -5,5 +5,10 @@
   <url><loc>https://quizbrew.app/?lang=fr</loc></url>
   <url><loc>https://quizbrew.app/?lang=de</loc></url>
   <url><loc>https://quizbrew.app/?lang=es</loc></url>
+  <url><loc>https://quizbrew.app/quiz-night.html</loc></url>
+  <url><loc>https://quizbrew.app/quizavond.html</loc></url>
+  <url><loc>https://quizbrew.app/soiree-quiz.html</loc></url>
+  <url><loc>https://quizbrew.app/quizabend.html</loc></url>
+  <url><loc>https://quizbrew.app/noche-de-quiz.html</loc></url>
   <url><loc>https://quizbrew.app/privacy.html</loc></url>
 </urlset>
