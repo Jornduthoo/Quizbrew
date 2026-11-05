@@ -25,7 +25,7 @@ const BLUFFS = ['A pigeon', 'The mayor', 'A very small horse', 'Nobody, it was a
 
 test('bluff round: house bluffs, a short list per phone, cards that turn one by one', { skip: !chromium && 'Playwright is not installed', timeout: 300000 }, async t => {
   const settingsData = { language: 'en', sfx: false, look: 'pub' };
-  const qb = createServer({ port: 0, settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } }, library: require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-'))), lanAddresses: () => ['192.168.1.50'] });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: { get: k => settingsData[k], set: (k, v) => { settingsData[k] = v; } }, library: require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-'))), lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
   const url = `http://127.0.0.1:${port}`;
   const sockets = [];
