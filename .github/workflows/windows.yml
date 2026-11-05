@@ -1,0 +1,136 @@
+# Builds the Windows installer (Quizbrew-Setup.exe) and the Microsoft Store package (Quizbrew.msix),
+# then installs both on a clean Windows machine and checks that Quizbrew answers on port 3001.
+# Run it by hand (Actions > Windows build > Run workflow) with "release" ticked to publish a GitHub release:
+# quizbrew.app links to releases/latest/download/Quizbrew-Setup.exe.
+name: Windows build
+
+on:
+  pull_request:
+    paths: ['desktop/**', '.github/workflows/windows.yml', 'package.json', 'package-lock.json', 'server.js', 'src/app.js', 'src/settings.js', 'src/library.js']
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Publish a GitHub release with the installer and the MSIX'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --no-audit --no-fund
+      - run: npm install --no-save --no-audit --no-fund resedit@2.0.3 postject@1.0.0-alpha.6
+      - run: node --test test/desktop.test.js
+
+      - name: Build Quizbrew.exe
+        run: node desktop/build.js
+      - id: version
+        shell: pwsh
+        run: |
+          $v = (Get-Content dist\version.txt -Raw).Trim()
+          "version=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "Version $v"
+
+      - name: Test Quizbrew.exe on its own
+        shell: pwsh
+        run: |
+          . desktop\test\smoke.ps1
+          $env:QUIZBREW_NO_BROWSER = '1'
+          $env:QUIZBREW_DATA = Join-Path $env:RUNNER_TEMP 'qb-data'
+          $p = Start-Process dist\windows\Quizbrew\Quizbrew.exe -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP\exe.log"
+          try { Wait-Quizbrew 3001 } finally { Get-Content "$env:RUNNER_TEMP\exe.log"; Stop-Process -Id $p.Id -Force }
+
+      - name: Make the installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          & $iscc "/DAppVersion=${{ steps.version.outputs.version }}" desktop\installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-Item dist\Quizbrew-Setup.exe | Format-List Name, Length
+
+      - name: Install, start, remove
+        shell: pwsh
+        run: |
+          . desktop\test\smoke.ps1
+          Start-Process dist\Quizbrew-Setup.exe -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/LOG=install.log' -Wait
+          $exe = "$env:ProgramFiles\Quizbrew\Quizbrew.exe"
+          if (-not (Test-Path $exe)) { Get-Content install.log; throw 'Quizbrew.exe was not installed' }
+          if (-not (Get-NetFirewallRule -DisplayName 'Quizbrew' -ErrorAction SilentlyContinue)) { throw 'No firewall rule' }
+          $env:QUIZBREW_NO_BROWSER = '1'
+          Remove-Item Env:QUIZBREW_DATA -ErrorAction SilentlyContinue
+          $p = Start-Process $exe -PassThru
+          try {
+            Wait-Quizbrew 3001
+            # Saving a setting must land in %LOCALAPPDATA%\Quizbrew, never in Program Files.
+            Invoke-WebRequest 'http://127.0.0.1:3001/api/host/library/folder' -Method Post -ContentType 'application/json' -Body '{"path":"CI test"}' -UseBasicParsing | Out-Null
+            if (-not (Test-Path "$env:LOCALAPPDATA\Quizbrew\library\CI test")) { throw 'The library is not in %LOCALAPPDATA%\Quizbrew' }
+            if (Test-Path "$env:ProgramFiles\Quizbrew\app\data") { throw 'Quizbrew wrote into Program Files' }
+          } finally { Stop-Process -Id $p.Id -Force }
+          Start-Process "$env:ProgramFiles\Quizbrew\unins000.exe" -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait
+          Start-Sleep 3
+          if (Test-Path $exe) { throw 'Quizbrew.exe is still there after removal' }
+          if (Get-NetFirewallRule -DisplayName 'Quizbrew' -ErrorAction SilentlyContinue) { throw 'Firewall rule is still there after removal' }
+
+      - name: Make the Store package
+        shell: pwsh
+        run: desktop\msix\build-msix.ps1
+
+      - name: Install the Store package (test-signed), start, remove
+        shell: pwsh
+        run: |
+          . desktop\test\smoke.ps1
+          $store = Get-Content desktop\msix\store.json -Raw | ConvertFrom-Json
+          $cert = New-SelfSignedCertificate -Type Custom -Subject $store.publisher -KeyUsage DigitalSignature -FriendlyName 'Quizbrew test' -CertStoreLocation 'Cert:\CurrentUser\My' -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3', '2.5.29.19={text}')
+          $pw = ConvertTo-SecureString -String 'test' -Force -AsPlainText
+          Export-PfxCertificate -Cert $cert -FilePath test.pfx -Password $pw | Out-Null
+          Import-PfxCertificate -FilePath test.pfx -CertStoreLocation Cert:\LocalMachine\TrustedPeople -Password $pw | Out-Null
+          Copy-Item dist\Quizbrew.msix test.msix
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName -Descending | Select-Object -First 1
+          & $signtool.FullName sign /fd SHA256 /f test.pfx /p test test.msix
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Add-AppxPackage test.msix
+          $pkg = Get-AppxPackage -Name $store.identityName
+          if (-not $pkg) { throw 'The Store package did not install' }
+          Start-Process "shell:AppsFolder\$($pkg.PackageFamilyName)!Quizbrew"
+          try { Wait-Quizbrew 3001 } finally {
+            Get-Process Quizbrew -ErrorAction SilentlyContinue | Stop-Process -Force
+            Remove-AppxPackage $pkg.PackageFullName
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quizbrew-windows-${{ steps.version.outputs.version }}
+          path: |
+            dist/Quizbrew-Setup.exe
+            dist/Quizbrew.msix
+          retention-days: 30
+
+  release:
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: quizbrew-windows-${{ needs.build.outputs.version }}
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.build.outputs.version }}
+          name: Quizbrew ${{ needs.build.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          files: |
+            Quizbrew-Setup.exe
+            Quizbrew.msix

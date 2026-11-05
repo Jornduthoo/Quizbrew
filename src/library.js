@@ -9,7 +9,7 @@ const MEDIA_TYPES = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'p
 const ALIASES = { 'audio/x-m4a': 'm4a', 'audio/x-wav': 'wav', 'audio/wave': 'wav', 'audio/mp3': 'mp3', 'audio/webm': 'webm' };
 const MAX_MEDIA = 40 * 1024 * 1024; // short video clips fit
 
-function create(dataDir = path.join(__dirname, '..', 'data')) {
+function create(dataDir = process.env.QUIZBREW_DATA || path.join(__dirname, '..', 'data')) {
   const root = path.join(dataDir, 'library');
   const mediaDir = path.join(dataDir, 'media');
 

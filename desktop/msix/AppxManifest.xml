@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Microsoft Store package. desktop/msix/build-msix.ps1 fills in the {{...}} values from store.json
+     (the name and publisher Partner Center gives Quizbrew) and the version from package.json.
+     Quizbrew.exe runs as a normal desktop app (runFullTrust). The firewall rule lets the phones
+     reach the quiz server on ports 3001-3010, the same ports desktop/launcher.js uses. -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:desktop2="http://schemas.microsoft.com/appx/manifest/desktop/windows10/2"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap desktop2 rescap">
+
+  <Identity Name="{{IDENTITY_NAME}}" Publisher="{{PUBLISHER}}" Version="{{VERSION}}" ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>Quizbrew</DisplayName>
+    <PublisherDisplayName>{{PUBLISHER_DISPLAY_NAME}}</PublisherDisplayName>
+    <Logo>assets\StoreLogo.png</Logo>
+    <Description>Quiz nights on your own network: one laptop hosts, teams play on their phones.</Description>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+    <Resource Language="nl-nl" />
+    <Resource Language="fr-fr" />
+    <Resource Language="de-de" />
+    <Resource Language="es-es" />
+  </Resources>
+
+  <Applications>
+    <Application Id="Quizbrew" Executable="Quizbrew.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="Quizbrew"
+        Description="Quiz nights on your own network: one laptop hosts, teams play on their phones."
+        BackgroundColor="transparent"
+        Square150x150Logo="assets\Square150x150Logo.png"
+        Square44x44Logo="assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="assets\Wide310x150Logo.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <desktop2:Extension Category="windows.firewallRules">
+          <desktop2:FirewallRules Executable="Quizbrew.exe">
+            <desktop2:Rule Direction="in" IPProtocol="TCP" Profile="all" LocalPortMin="3001" LocalPortMax="3010" />
+          </desktop2:FirewallRules>
+        </desktop2:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <Capability Name="internetClientServer" />
+    <Capability Name="privateNetworkClientServer" />
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>
