@@ -32,6 +32,7 @@ class Game {
     this.emit = emit;
     this.clock = clock;
     this.onChange = onChange;
+    this.maxTeams = MAX_TEAMS; // the demo allows fewer
     this.resumable = null; // a saved game from before a restart: { title, round, teams }
     this.teams = new Map(); // teamId -> team (see join)
     this.language = 'en'; // the language of the evening (for the built-in tie-break questions)
@@ -120,7 +121,7 @@ class Game {
     const teams = [...this.teams.values()];
     if (teams.some(t => t.name.toLowerCase() === clean.toLowerCase())) return { error: 'error.nameTaken' };
     if (!TEAM_COLORS.includes(color)) return { error: 'error.colorInvalid' };
-    if (teams.length >= MAX_TEAMS) return { error: 'error.full' };
+    if (teams.length >= this.teamLimit()) return { error: this.teamLimit() < MAX_TEAMS ? 'error.demoFull' : 'error.full' };
     // Every colour has its own team, until all of them are taken: then colours are shared.
     if (teams.some(t => t.color === color) && this.freeColors().length) return { error: 'error.colorTaken' };
     this.teams.set(teamId, {
@@ -140,7 +141,7 @@ class Game {
     if (!clean) return { error: 'error.nameEmpty' };
     const teams = [...this.teams.values()];
     if (teams.some(t => t.name.toLowerCase() === clean.toLowerCase())) return { error: 'error.nameTaken' };
-    if (teams.length >= MAX_TEAMS) return { error: 'error.full' };
+    if (teams.length >= this.teamLimit()) return { error: this.teamLimit() < MAX_TEAMS ? 'error.demoFull' : 'error.full' };
     const color = TEAM_COLORS.find(c => !teams.some(t => t.color === c)) || TEAM_COLORS[teams.length % TEAM_COLORS.length];
     let id;
     do id = `paper-${Math.random().toString(36).slice(2, 10)}`; while (this.teams.has(id));
@@ -1107,6 +1108,9 @@ class Game {
     return state;
   }
 
+  // How many teams may join: 40, or 4 in the demo.
+  teamLimit() { return Math.max(1, Math.min(MAX_TEAMS, Number(this.maxTeams) || MAX_TEAMS)); }
+
   hostState() {
     const q = this.question;
     const live = q && (this.phase === 'question' || this.phase === 'wager');
@@ -1114,6 +1118,7 @@ class Game {
       ...this.screenState(),
       ranking: this.ranking(),
       teamIds: [...this.teams.keys()],
+      maxTeams: this.teamLimit(),
       answerKey: live ? this.type.revealQ(q) : null,
       liveAnswers: this.phase === 'question' && ['text', 'number', 'point', 'list'].includes(this.kind)
         ? [...this.teams.values()].filter(t => t.answer !== null).map(t => ({ name: t.name, color: t.color, answer: t.answer }))

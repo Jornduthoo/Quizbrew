@@ -118,6 +118,8 @@
     if (brand.logo) $('#join-venue-logo').src = brand.logo;
     $('#join-venue-name').textContent = brand.venue ? t('screen.tonightAt', { venue: brand.venue }) : '';
   }
+  // The audience is a Pro extra: the demo shows no audience button.
+  socket.on('license', l => { const b = document.getElementById('aud-open'); if (b) b.hidden = !!l && !l.pro; });
   socket.on('brand', b => { brand = b; if (I18n.dict['app.name']) renderBrand(); });
   socket.on('mode', m => { mode = m; if (state) renderStage(state); });
   socket.on('kicked', () => {

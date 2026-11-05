@@ -117,7 +117,7 @@ test('the builder searches and fetches pictures through the laptop', async t => 
   const library = require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-pic-')));
   const settings = (() => { const v = {}; return { get: k => v[k], set: (k, x) => { v[k] = x; } }; })();
   const webFetch = fakeFetch([['commons.wikimedia.org', () => json(commonsAnswer)], ['good.example', () => picture(Buffer.from('JPEGDATA'), 'image/jpeg')]]);
-  const qb = createServer({ port: 0, settings, library, lanAddresses: () => ['192.168.1.50'], webFetch });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings, library, lanAddresses: () => ['192.168.1.50'], webFetch });
   const port = await qb.listen();
   t.after(() => qb.close());
   const base = `http://127.0.0.1:${port}/api/host`;
