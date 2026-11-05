@@ -6,7 +6,9 @@
 const os = require('os');
 const path = require('path');
 const http = require('http');
+const fs = require('fs');
 const { spawn } = require('child_process');
+const Store = require('./store');
 
 // Port 3000 is often taken (LANcelot, dev servers), so the installed app starts at 3001.
 // The Store package opens exactly these ports in the firewall (desktop/msix/AppxManifest.xml).
@@ -80,6 +82,15 @@ async function start({ env = process.env, open = true, log = console.log, ports 
   const { lanAddresses } = require(path.join(appDir, 'src', 'network'));
 
   const settings = Settings.create(env.QUIZBREW_DATA);
+  // The Microsoft Store version: bought in the Store = Pro (desktop/store.js). store-config.json holds the Store ID.
+  let license = null;
+  if (env.QUIZBREW_STORE === '1' || Store.packaged()) {
+    let config = {};
+    try { config = JSON.parse(fs.readFileSync(path.join(__dirname, 'store-config.json'), 'utf8')); } catch { /* no Store ID yet */ }
+    const store = Store.create({ dataDir: env.QUIZBREW_DATA, storeId: config.storeId || '' });
+    store.start();
+    license = require(path.join(appDir, 'src', 'license')).create(settings, { store });
+  }
   const t = i18n.dictionary(language(settings, i18n));
   if (!ports) {
     const fixed = Number(env.PORT);
@@ -94,7 +105,7 @@ async function start({ env = process.env, open = true, log = console.log, ports 
     }
   }
 
-  const qb = createServer({ port: ports[0], settings });
+  const qb = createServer({ port: ports[0], settings, ...(license ? { license } : {}) });
   const port = await listenFree(qb.server, ports);
   if (!port) {
     log(`\n  ${fill(t['desktop.noPort'], { from: ports[0], to: ports[ports.length - 1] })}\n`);

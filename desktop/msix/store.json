@@ -1,5 +1,7 @@
 {
-  "identityName": "Quizbrew.Quizbrew",
-  "publisher": "CN=Quizbrew",
-  "publisherDisplayName": "Quizbrew"
+  "identityName": "Jorn.QuizBrew",
+  "publisher": "CN=DC7B1AA4-00BE-4CE3-B851-048D44DCE9AC",
+  "publisherDisplayName": "Jorn",
+  "displayName": "QuizBrew",
+  "storeId": "9NDTP192BGQ3"
 }

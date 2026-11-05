@@ -17,7 +17,7 @@ const DIST = path.join(ROOT, 'dist');
 const OUT = path.join(DIST, 'windows', 'Quizbrew');
 const APP = path.join(OUT, 'app');
 const CACHE = path.join(DIST, 'cache');
-const SHIP = ['server.js', 'package.json', 'package-lock.json', 'src', 'public', 'lang', 'quizzes', 'desktop/launcher.js'];
+const SHIP = ['server.js', 'package.json', 'package-lock.json', 'src', 'public', 'lang', 'quizzes', 'desktop/launcher.js', 'desktop/store.js', 'desktop/store-license.ps1'];
 const FUSE = 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2';
 
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
@@ -60,6 +60,9 @@ function copyApp() {
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
   execFileSync(npm, ['ci', '--omit=dev', '--no-audit', '--no-fund', '--ignore-scripts'], { cwd: APP, stdio: 'inherit', shell: process.platform === 'win32' });
   fs.rmSync(path.join(APP, 'package-lock.json'), { force: true });
+  // The Store ID for the "Get Pro" link (only used when Quizbrew runs from the Store package).
+  const store = JSON.parse(fs.readFileSync(path.join(__dirname, 'msix', 'store.json'), 'utf8'));
+  fs.writeFileSync(path.join(APP, 'desktop', 'store-config.json'), JSON.stringify({ storeId: store.storeId || '' }));
 }
 
 // Icon, name and version in the exe (what Windows shows in Explorer, the taskbar and Task Manager).

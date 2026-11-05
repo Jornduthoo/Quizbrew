@@ -23,7 +23,7 @@ foreach ($png in 'Square44x44Logo', 'Square150x150Logo', 'Wide310x150Logo', 'Sto
 }
 
 $manifest = Get-Content (Join-Path $PSScriptRoot 'AppxManifest.xml') -Raw
-$manifest = $manifest.Replace('{{IDENTITY_NAME}}', $store.identityName).Replace('{{PUBLISHER}}', $store.publisher).Replace('{{PUBLISHER_DISPLAY_NAME}}', $store.publisherDisplayName).Replace('{{VERSION}}', $version)
+$manifest = $manifest.Replace('{{IDENTITY_NAME}}', $store.identityName).Replace('{{PUBLISHER}}', $store.publisher).Replace('{{PUBLISHER_DISPLAY_NAME}}', $store.publisherDisplayName).Replace('{{VERSION}}', $version).Replace('{{DISPLAY_NAME}}', $(if ($store.displayName) { $store.displayName } else { 'Quizbrew' }))
 if ($manifest -match '\{\{[A-Z_]+\}\}') { throw "AppxManifest.xml still has $($Matches[0])" }
 [IO.File]::WriteAllText((Join-Path $layout 'AppxManifest.xml'), $manifest, (New-Object Text.UTF8Encoding $false))
 

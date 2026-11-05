@@ -13,7 +13,7 @@
   <Identity Name="{{IDENTITY_NAME}}" Publisher="{{PUBLISHER}}" Version="{{VERSION}}" ProcessorArchitecture="x64" />
 
   <Properties>
-    <DisplayName>Quizbrew</DisplayName>
+    <DisplayName>{{DISPLAY_NAME}}</DisplayName>
     <PublisherDisplayName>{{PUBLISHER_DISPLAY_NAME}}</PublisherDisplayName>
     <Logo>assets\StoreLogo.png</Logo>
     <Description>Quiz nights on your own network: one laptop hosts, teams play on their phones.</Description>
@@ -34,7 +34,7 @@
   <Applications>
     <Application Id="Quizbrew" Executable="Quizbrew.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="Quizbrew"
+        DisplayName="{{DISPLAY_NAME}}"
         Description="Quiz nights on your own network: one laptop hosts, teams play on their phones."
         BackgroundColor="transparent"
         Square150x150Logo="assets\Square150x150Logo.png"
