@@ -100,11 +100,14 @@ test('bluff round: house bluffs, a short list per phone, cards that turn one by 
     const personal = count + 1 > 9;
     const mine = teams[1].last.ballot;
     if (personal) {
+      // A busy test machine may need a moment to bring 40 phones to the vote.
+      for (const { page } of pages) await page.waitForFunction(() => !document.querySelector('#vote-phones').hidden, null, { timeout: 20000 }).catch(() => {});
       if (mine.length !== 6) failures.push(`${count} teams: the phone has ${mine.length} answers, not 6`);
       for (const { page, size } of pages) {
         const cards = await page.evaluate(() => document.querySelectorAll('#ballot-grid .ballot-card').length);
         const panel = await page.evaluate(() => !document.querySelector('#vote-phones').hidden);
-        if (cards || !panel) failures.push(`${count} teams @ ${size.name}: the big screen shows ${cards} cards while the phones choose`);
+        const view = await page.evaluate(() => (document.querySelector('.view:not([hidden])') || {}).id);
+        if (cards || !panel) failures.push(`${count} teams @ ${size.name}: the big screen shows ${cards} cards while the phones choose (view ${view}, game ${state.phase})`);
       }
     } else if (count === 3 && mine.length !== 7) failures.push(`3 teams: house bluffs do not fill the ballot (${mine.length} cards)`);
     await shoot(`bluff-${count}-vote`);
