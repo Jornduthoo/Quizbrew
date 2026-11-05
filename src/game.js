@@ -14,7 +14,6 @@ const MAX_NAME = 20;
 const HOUSE_FILL = 7;
 const SHORTLIST_FROM = 9;
 const SHORTLIST_BLUFFS = 5;
-const owns = (b, teamId) => b.teamId === teamId || (!!b.teams && b.teams.includes(teamId));
 const MAX_UNDO = 40;
 const EXTRA_TIME = 10000; // the quizmaster's +10 s
 // A break: the quizmaster pauses between questions; the screen shows a countdown and the standings.
@@ -28,6 +27,12 @@ const freshMem = () => ({ streak: 0, pot: 0, out: false, banked: false });
 
 // While the phone can answer, leaving the quiz page is reported to the quizmaster.
 const ANSWER_PHASES = new Set(['question', 'wager', 'vote']);
+// Vote rounds with more than 8 entries: every phone gets its own short list (6 to pick the best from, 3 answers to match).
+const SHORTLIST_BEST = 6;
+const SHORTLIST_MATCH = 3;
+const MATCH_SUSPECTS = 4; // per answer to match: the author and 3 other teams
+// A ballot entry belongs to a team (bluffs can have several authors that wrote the same thing).
+const owns = (b, teamId) => b.teamId === teamId || (Array.isArray(b.teams) && b.teams.includes(teamId));
 
 class Game {
   // emit(target, event, payload): target is 'host', 'screen' or a team socket id.
@@ -375,6 +380,7 @@ class Game {
       t.vote = null;
       t.shortlist = null;
       t.truthTyped = false;
+      t.suspects = null;
       t.answer = null;
       t.answeredAt = 0;
       t.correct = false;
@@ -782,33 +788,53 @@ class Game {
     if (!enough) return false;
     const order = rounds.permutation(made.length, made.map(m => m.content).join('|') + this.questionIndex);
     this.ballot = order.map((i, k) => ({ id: k, ...made[i] }));
-    if (this.type.vote === 'truth') this.shortlists();
     this.phase = 'vote';
     this.voteStartedAt = this.clock.now();
+    if (this.type.vote === 'truth') this.shortlists(SHORTLIST_FROM, SHORTLIST_BLUFFS);
+    else if (this.type.vote === 'best') this.shortlists(8, SHORTLIST_BEST);
+    else if (this.type.vote === 'match') this.shortlists(8, SHORTLIST_MATCH);
     this.timer = this.clock.setTimeout(() => this.finishVote(), this.voteTime() * 1000);
     this.broadcast();
     return true;
   }
 
-  // Many cards: nobody reads 40 entries in 30 seconds. Every team gets its own short list (for a bluff: the truth plus a few
-  // bluffs of others), dealt in turn so every entry lands on about the same number of phones (the same chance for all).
-  // t.shortlist holds ballot ids; the phone only sees those and votes with the ballot id.
-  shortlists(from = SHORTLIST_FROM, size = SHORTLIST_BLUFFS) {
-    for (const t of this.teams.values()) t.shortlist = null;
+  // Many teams: a phone cannot list 40 drawings or captions. Above `from` entries every team gets its own short
+  // list of `size` entries (never its own), dealt round robin from the shuffled ballot so every entry lands on
+  // about as many phones. Who's who also gets a few teams to pick from per answer: the author and decoys.
+  // Bluff: the truth is on every phone, on top of `size` bluffs.
+  shortlists(from, size) {
+    const teams = [...this.teams.entries()];
+    for (const [, t] of teams) { t.shortlist = null; t.suspects = null; }
     if (this.ballot.length <= from) return;
-    const always = this.ballot.filter(b => b.truth).map(b => b.id);
-    const deck = this.ballot.filter(b => !b.truth);
-    const seen = deck.map(() => 0);
-    let start = 0;
-    for (const [id, t] of this.teams) {
-      // The entries on the fewest phones so far first; between equals, take turns around the deck.
-      const order = deck.map((b, k) => k).filter(k => !owns(deck[k], id))
-        .sort((a, b) => seen[a] - seen[b] || ((a - start + deck.length) % deck.length) - ((b - start + deck.length) % deck.length));
-      const pick = order.slice(0, size);
-      pick.forEach(k => { seen[k]++; });
-      start = (start + size) % deck.length;
-      t.shortlist = [...pick.map(k => deck[k].id), ...always].sort((a, b) => a - b);
+    const order = rounds.permutation(teams.length, 'deal' + this.questionIndex + '|' + this.roundIndex);
+    const n = this.ballot.length;
+    const shown = this.ballot.map(() => 0);
+    let at = 0;
+    for (const i of order) {
+      const [teamId, t] = teams[i];
+      // The entries on the fewest phones so far first; equal ones in turn from where the last team stopped.
+      const pick = this.ballot.filter(b => !owns(b, teamId) && !b.truth)
+        .sort((x, y) => shown[x.id] - shown[y.id] || (x.id - at + n) % n - (y.id - at + n) % n)
+        .slice(0, size).map(b => b.id);
+      for (const id of pick) shown[id]++;
+      at = (at + size) % n;
+      t.shortlist = [...pick, ...this.ballot.filter(b => b.truth).map(b => b.id)].sort((a, b) => a - b);
+      if (this.type.vote === 'match') t.suspects = this.suspectsFor(teamId, t.shortlist);
     }
+  }
+
+  // Who's who with many teams: per answer the real author and up to 3 other teams (never yourself), shuffled.
+  suspectsFor(teamId, ids) {
+    const others = [...this.teams.keys()].filter(id => id !== teamId);
+    const out = {};
+    for (const id of ids) {
+      const author = this.ballot[id].teamId;
+      const pool = others.filter(x => x !== author);
+      const decoys = rounds.permutation(pool.length, teamId + '|' + id).slice(0, MATCH_SUSPECTS - 1).map(k => pool[k]);
+      const all = [author, ...decoys];
+      out[id] = rounds.permutation(all.length, id + '|' + teamId).map(k => all[k]);
+    }
+    return out;
   }
 
   voteTime() {
@@ -821,9 +847,18 @@ class Game {
     if (!t || this.phase !== 'vote' || t.vote !== null) return false;
     const ballot = this.ballot;
     if (this.type.vote === 'match') {
-      if (!Array.isArray(raw) || raw.length !== ballot.length) return false;
       const byColor = new Map([...this.teams.entries()].map(([id, x]) => [x.color, id]));
-      t.vote = raw.map((c, i) => (ballot[i].teamId === teamId ? null : byColor.get(c) || null));
+      if (t.shortlist) {
+        // A short list: per listed answer (in list order) the place of the chosen team among its suspects.
+        // Not by colour: above 24 teams colours are shared.
+        if (!Array.isArray(raw) || raw.length !== t.shortlist.length) return false;
+        const vote = ballot.map(() => null);
+        t.shortlist.forEach((id, k) => { vote[id] = Number.isInteger(raw[k]) ? t.suspects[id][raw[k]] || null : null; });
+        t.vote = vote;
+      } else {
+        if (!Array.isArray(raw) || raw.length !== ballot.length) return false;
+        t.vote = raw.map((c, i) => (ballot[i].teamId === teamId ? null : byColor.get(c) || null));
+      }
     } else {
       if (!Number.isInteger(raw) || !ballot[raw] || owns(ballot[raw], teamId)) return false;
       if (t.shortlist && !t.shortlist.includes(raw)) return false;
@@ -848,18 +883,26 @@ class Game {
   publicBallot(teamId) {
     if (!this.ballot) return null;
     const reveal = this.phase === 'reveal';
-    const t = teamId !== undefined && teamId !== null ? this.teams.get(teamId) : null;
-    const shown = t && t.shortlist && !reveal ? this.ballot.filter(b => t.shortlist.includes(b.id)) : this.ballot;
-    return shown.map(b => {
+    const t = teamId !== undefined ? this.teams.get(teamId) : null;
+    // While voting, a phone with a short list only gets its own entries.
+    const list = t && t.shortlist && this.phase === 'vote' ? this.ballot.filter(b => t.shortlist.includes(b.id)) : this.ballot;
+    const match = this.type && this.type.vote === 'match';
+    return list.map(b => {
       const out = { id: b.id, content: b.content, image: /^\/media\//.test(b.content) };
       if (teamId !== undefined) out.mine = !!teamId && owns(b, teamId);
+      if (t && t.suspects && t.suspects[b.id] && this.phase === 'vote') {
+        out.suspects = t.suspects[b.id].map((id, key) => ({ key, x: this.teams.get(id) })).filter(s => s.x).map(({ key, x }) => ({ key, name: x.name, color: x.color }));
+      }
       if (reveal) {
+        // A bluff two teams wrote names both; a house bluff and the truth name nobody.
         const authors = (b.teams || (b.teamId ? [b.teamId] : [])).map(id => this.teams.get(id)).filter(Boolean);
         out.truth = !!b.truth;
         out.house = !!b.house;
         out.by = authors.length ? { name: authors[0].name, color: authors[0].color } : null;
         if (authors.length > 1) out.also = authors.slice(1).map(a => ({ name: a.name, color: a.color }));
-        out.votes = [...this.teams.values()].filter(x => x.vote === b.id).map(x => ({ name: x.name, color: x.color }));
+        // Who's who: the teams that guessed the author right.
+        const voted = match ? x => Array.isArray(x.vote) && b.teamId && x.vote[b.id] === b.teamId : x => x.vote === b.id;
+        out.votes = [...this.teams.values()].filter(voted).map(x => ({ name: x.name, color: x.color }));
       }
       return out;
     });
@@ -1252,7 +1295,7 @@ class Game {
       lifelineUsed: t.lifelineRound === this.roundIndex,
       secret: this.actor === teamId && this.phase === 'question' ? this.question.answer : null,
       // Who's who: the teams you can choose from (by colour, never by id).
-      teamsToMatch: this.phase === 'vote' && this.type.vote === 'match' ? [...this.teams.entries()].filter(([id]) => id !== teamId).map(([, x]) => ({ name: x.name, color: x.color })) : null,
+      teamsToMatch: this.phase === 'vote' && this.type.vote === 'match' && !t.shortlist ? [...this.teams.entries()].filter(([id]) => id !== teamId).map(([, x]) => ({ name: x.name, color: x.color })) : null,
     };
   }
 
