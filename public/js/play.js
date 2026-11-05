@@ -210,7 +210,7 @@
         return;
       case 'roundIntro':
         if (s.round.tiebreak) return wait(t(s.isFinalist ? 'play.tiebreakYou' : 'play.watchTiebreak'), '!');
-        wait(t('play.getReady', { title: s.round.title || t(`round.${s.round.type}`) }));
+        wait(s.round.type === 'clockBank' && s.finalists && !s.isFinalist ? t('play.watchClock', { n: s.finalists.length }) : t('play.getReady', { title: s.round.title || t(`round.${s.round.type}`) }));
         // The rules of the round in one sentence, for the tables far from the big screen.
         $('#wait-quip').textContent = t(`round.${s.round.type}.how`);
         $('#wait-quip').classList.add('rules');
@@ -1131,7 +1131,7 @@
     view.style.cssText = s.turn ? teamVar(s.turn.color) : '';
     $('#turn-label').textContent = s.myTurn ? t('play.yourTurn') : s.turn ? t('play.theirTurn', { name: s.turn.name }) : '';
     $('#turn-clock').hidden = !mine;
-    $('#turn-sub').textContent = mine && mine.ms <= 0 ? t('play.clockOut') : '';
+    $('#turn-sub').textContent = mine && mine.ms <= 0 ? t('play.clockOut') : !mine && s.finalists ? t('play.watchClock', { n: s.finalists.length }) : '';
     if (!mine) return;
     const fmt = ms => (ms / 1000).toFixed(ms < 10000 ? 1 : 0);
     $('#turn-num').textContent = fmt(mine.ms);
@@ -1154,15 +1154,19 @@
     const btn = $('#buzz-btn');
     const mine = s.buzzMine;
     btn.disabled = !!s.buzz || s.buzzOut;
+    // The moment the button lights up for this phone: the reaction time is measured from here (fair over wifi).
+    if (!btn.disabled && (fresh || !buzzOpenAt)) buzzOpenAt = performance.now();
+    if (btn.disabled) buzzOpenAt = 0;
     btn.classList.toggle('mine', mine);
     $('#buzz-text').textContent = mine ? t('play.buzzMine') : s.buzz ? t('play.buzzOther', { name: s.buzz.name }) : s.buzzOut ? t('play.buzzOut') : '';
     if (mine && fresh && navigator.vibrate) navigator.vibrate([60, 40, 60]);
     if (s.paused) { $('#z-time').textContent = Math.ceil(s.remaining / 1000); return; }
     stopTimer = countdown(s.remaining, s.question.time * 1000, left => { $('#z-time').textContent = Math.ceil(left / 1000); });
   }
+  let buzzOpenAt = 0;
   $('#buzz-btn').addEventListener('click', e => {
     e.currentTarget.classList.add('pressed');
-    socket.emit('answer', true);
+    socket.emit('answer', { buzz: true, rt: buzzOpenAt ? Math.round(performance.now() - buzzOpenAt) : null });
     if (navigator.vibrate) navigator.vibrate(40);
     setTimeout(() => $('#buzz-btn').classList.remove('pressed'), 300);
   });
@@ -1211,6 +1215,7 @@
     $('#result-text').textContent = right ? t(['number', 'point'].includes(s.question.kind) ? 'play.closest' : 'play.correct') : answered ? t('play.wrong') : t('play.noAnswer');
     const k = s.question.kind;
     if (k === 'list') $('#result-text').textContent = t('play.found', { n: s.found || 0 });
+    if ((k === 'order' || k === 'pairs') && !right && s.found && s.found.n) $('#result-text').textContent = t('play.partRight', { n: s.found.n, total: s.found.total });
     if (s.vote) $('#result-text').textContent = s.lastPoints > 0 ? t('play.votesWon', { n: s.lastPoints }) : t('play.noVotes');
     if (k === 'turn' && !s.myTurn && !s.lastPoints) $('#result-text').textContent = s.turn ? t('play.theirTurn', { name: s.turn.name }) : '';
     if (s.isPicker && !answered) $('#result-text').textContent = t('play.youPicked');

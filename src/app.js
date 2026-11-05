@@ -537,6 +537,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
         }
       });
       on('judge', ({ teamId, correct } = {}) => game.judge(String(teamId), !!correct));
+      on('judgeLink', ({ teamId, group, correct } = {}) => game.judgeLink(String(teamId), group, !!correct));
       on('buzzJudge', right => game.judgeBuzz(!!right));
       // Play the sound of the question again (or stop it) on the big screen.
       on('media', action => { if (['replay', 'stop'].includes(action)) io.to('screen').emit('media', action); });

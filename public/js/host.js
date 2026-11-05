@@ -457,12 +457,14 @@
         const rows = s.phase === 'reveal' ? s.answers : s.liveAnswers;
         if (rows && rows.length) {
           preview.append(h('ul', { class: 'judge-list' }, rows.map(a => h('li', { class: 'judge-row' + (s.phase === 'reveal' ? (a.correct ? ' right' : ' wrong') : ''), style: teamVar(a.color) },
-            h('span', { class: 'team-dot' }), h('span', { class: 'name' }, a.name), h('span', { class: 'given' }, given(a.answer, kind, key)),
+            h('span', { class: 'team-dot' }), h('span', { class: 'name' }, a.name),
+            s.phase === 'reveal' && kind === 'groups' && a.answer ? linkChips(a) : h('span', { class: 'given' }, given(a.answer, kind, key)),
             s.phase === 'reveal' ? h('span', { class: 'pts' }, (a.points > 0 ? '+' : '') + a.points) : null,
             s.canJudge && a.answer !== null ? h('span', { class: 'judge' },
               h('button', { class: 'mini ok' + (a.correct ? ' on' : ''), title: t('host.markRight'), onclick: () => socket.emit('judge', { teamId: a.id, correct: true }) }, '✓'),
               h('button', { class: 'mini no' + (!a.correct ? ' on' : ''), title: t('host.markWrong'), onclick: () => socket.emit('judge', { teamId: a.id, correct: false }) }, '✗')) : null))));
           if (s.canJudge) preview.append(h('p', { class: 'hint' }, t('host.judgeHint')));
+          if (s.phase === 'reveal' && kind === 'groups') preview.append(h('p', { class: 'hint' }, t('host.linkHint')));
         }
       }
       preview.append(h('p', { class: 'hint' }, t('screen.answeredCount', { n: s.answered, total: s.teams.filter(x => !x.paper && !x.out).length })));
@@ -484,6 +486,15 @@
   }
 
   // What a team gave, readable for the quizmaster.
+  // Word web after the reveal: every link a team typed, green when it counts; a tap approves or refuses it.
+  function linkChips(a) {
+    const ok = (a.found && a.found.links) || [];
+    return h('span', { class: 'given link-chips' }, a.answer.links.map((text, i) => (text ? h('button', {
+      type: 'button', class: 'link-chip' + (ok[i] ? ' on' : ''), title: t(ok[i] ? 'host.linkRefuse' : 'host.linkApprove'),
+      onclick: () => socket.emit('judgeLink', { teamId: a.id, group: i, correct: !ok[i] }),
+    }, (ok[i] ? '✓ ' : '') + text) : null)));
+  }
+
   function given(a, kind, key) {
     if (a === null || a === undefined) return '—';
     if (kind === 'order') return key && key.order ? a.map(i => key.order[i]).join(' → ') : '✓';

@@ -20,7 +20,11 @@ const EXTRA_TIME = 10000; // the quizmaster's +10 s
 const BREAK_PHASES = ['lobby', 'roundIntro', 'reveal', 'scoreboard'];
 const BREAK_STEP = 5 * 60000;
 const RESTORE_MIN = 10000; // a question that comes back (undo, after a crash) gets at least 10 seconds
-const SHRINK_STEP = 5000; // shrinking options twist: one wrong answer disappears every 5 seconds
+const SHRINK_STEP = 5000;
+const BUZZ_WINDOW = 400; // ms after the first buzz in which a faster press (measured on the phone) can still win
+const BUZZ_LAG = 500; // the most network delay a phone's reaction time may make up for
+const BUZZ_MIN = 80; // no human presses faster than this
+const CLOCK_PLAYERS = 8; // time bank: the most teams that play (the others watch) // shrinking options twist: one wrong answer disappears every 5 seconds
 
 // What a round remembers about a team between questions (streak, pot, out of the round ...).
 const freshMem = () => ({ streak: 0, pot: 0, out: false, banked: false });
@@ -59,6 +63,7 @@ class Game {
     this.questionIndex = -1;
     this.questionStartedAt = 0;
     this.overrides = new Map();
+    this.linkOverrides = new Map(); // word web: 'teamId:group' -> the quizmaster approved (true) or refused (false) the link
     this.underdogs = new Set();
     this.leaders = [];
     this.buzz = null;
@@ -296,8 +301,17 @@ class Game {
     if (type.finale) this.finalists = this.ranking().slice(0, 2).map(r => r.id);
     // Tie-break: only the tied teams answer.
     if (this.round.tiebreak) this.finalists = this.round.tiebreak.teams.filter(id => this.teams.has(id));
+    // Time bank: at most 8 teams play (the top of the standings), and never more than there are questions,
+    // so every playing team gets as many turns as the others.
+    if (type.turns === 'bank') {
+      const max = Math.min(CLOCK_PLAYERS, this.round.questions.length);
+      if (this.teams.size > max) {
+        const top = new Set(this.ranking().slice(0, max).map(r => r.id));
+        this.finalists = [...this.teams.keys()].filter(id => top.has(id));
+      }
+    }
     if (type.turns) {
-      const players = type.turns === 'duel' ? this.finalists : [...this.teams.keys()];
+      const players = type.turns === 'duel' || this.finalists ? this.finalists : [...this.teams.keys()];
       for (const id of players) this.clocks.set(id, type.clock * 1000);
       // In a duel the team in second place starts.
       this.nextTurn = players[players.length - 1] || null;
@@ -359,6 +373,7 @@ class Game {
     this.questionIndex = index;
     this.resolved = null;
     this.overrides = new Map();
+    this.linkOverrides = new Map();
     this.buzz = null;
     this.ballot = null;
     // Act it out: the teams take turns, in the order they joined.
@@ -367,9 +382,17 @@ class Game {
     // Your pick: the leading team chooses the category for the others.
     this.picker = this.type.wager === 'pick' && ids.length ? this.ranking()[0].id : null;
     if (this.type.turns) {
+      const before = this.turnTeam;
       this.turnTeam = this.whoseTurn();
       this.duelWinner = null;
       if (!this.turnTeam) { this.roundOver = true; return this.showScoreboard(); }
+      // Time bank: a new turn round only starts when every team still in can have its turn in it.
+      if (this.type.turns === 'bank') {
+        const ids = [...this.teams.keys()];
+        const newCycle = !before || ids.indexOf(this.turnTeam) <= ids.indexOf(before);
+        const alive = [...this.clocks.entries()].filter(([id, ms]) => ms > 0 && this.teams.has(id)).length;
+        if (newCycle && index > 0 && this.round.questions.length - index < alive) { this.roundOver = true; return this.showScoreboard(); }
+      }
     }
     const top = Math.max(...[...this.teams.values()].map(t => t.score));
     this.leaders = top > 0 ? [...this.teams.entries()].filter(([, t]) => t.score === top).map(([id]) => id) : [];
@@ -398,7 +421,8 @@ class Game {
       return this.showScoreboard();
     }
     this.clearTimer();
-    if (this.type.wager) {
+    // Clock duel: the others predict the winner once, before the first question.
+    if (this.type.wager && !(this.type.predictOnce && index > 0)) {
       this.phase = 'wager';
       return this.broadcast();
     }
@@ -461,12 +485,14 @@ class Game {
   startQuestion() {
     const mode = this.type.wager;
     if (mode === true || mode === 'level') for (const t of this.teams.values()) if (t.wager === null) t.wager = 0;
+    if (this.type.predictOnce && this.questionIndex === 0) for (const t of this.teams.values()) t.mem = { ...t.mem, pick: t.wager };
     if (mode === 'pick') {
       const p = this.teams.get(this.picker);
       this.resolved = this.type.resolve(this.round.questions[this.questionIndex], p ? p.wager : 0);
     }
     this.phase = 'question';
     this.questionStartedAt = this.clock.now();
+    this.buzzOpenAt = this.questionStartedAt;
     this.clearTimer();
     if (this.type.turns) {
       // Only the clock of the team whose turn it is runs.
@@ -576,7 +602,7 @@ class Game {
     const t = this.teams.get(teamId);
     if (!t || this.phase !== 'question' || t.blocked || t.bank || this.sitsOut(t) || teamId === this.actor) return false;
     if (t.answer !== null && !this.type.multi) return false;
-    if (this.kind === 'buzz') return this.buzzIn(teamId, t);
+    if (this.kind === 'buzz') return this.buzzIn(teamId, t, raw);
     const value = this.type.parse(raw, this.question, t);
     if (value === undefined) {
       // Bluff: a team that typed the real answer hears so on its phone and makes up another one.
@@ -594,11 +620,25 @@ class Game {
   }
 
   // Buzzer: the first team stops the clock and answers out loud; the quizmaster says right or wrong.
-  buzzIn(teamId, t) {
-    if (this.buzz || t.buzzOut) return false;
-    this.buzz = { teamId, at: this.clock.now() - this.questionStartedAt, left: this.remaining() };
+  // Fair over wifi: the phone measures its own reaction time (from the moment its button lit up). A buzz that
+  // arrives a moment later (BUZZ_WINDOW) but was pressed faster still takes the floor. A phone can not claim to be
+  // quicker than the network allows (BUZZ_LAG) nor faster than a human (BUZZ_MIN).
+  buzzIn(teamId, t, raw) {
+    if (t.buzzOut) return false;
+    const now = this.clock.now();
+    const server = now - (this.buzzOpenAt || this.questionStartedAt);
+    const claimed = raw && typeof raw === 'object' && Number.isFinite(raw.rt) ? raw.rt : server;
+    const rt = Math.max(BUZZ_MIN, claimed, server - BUZZ_LAG);
+    if (this.buzz) {
+      if (this.buzz.teamId === teamId || now - this.buzz.serverAt > BUZZ_WINDOW || rt >= this.buzz.rt) return false;
+      const was = this.teams.get(this.buzz.teamId);
+      if (was) was.answeredAt = 0;
+      this.buzz = { ...this.buzz, teamId, rt };
+    } else {
+      this.buzz = { teamId, at: now - this.questionStartedAt, left: this.remaining(), serverAt: now, rt };
+      this.clearTimer();
+    }
     t.answeredAt = this.buzz.at;
-    this.clearTimer();
     this.broadcast();
     return true;
   }
@@ -616,6 +656,7 @@ class Game {
     // Wrong: the clock runs on and the other teams may buzz.
     if ([...this.teams.values()].every(x => x.buzzOut || !x.connected) || left <= 0) { this.reveal(); return true; }
     this.questionStartedAt = this.clock.now() - (this.question.time * 1000 - left);
+    this.buzzOpenAt = this.clock.now();
     this.timer = this.clock.setTimeout(() => this.reveal(), left);
     this.broadcast();
     return true;
@@ -682,6 +723,7 @@ class Game {
       results = type.score(entries, q, base, {
         isRight, leaders: this.leaders, scoring: this.round.scoring, ballot: this.ballot, vote: type.vote, actor: this.actor,
         finalists: this.finalists, turn: this.turnTeam, duelWinner: this.duelWinner,
+        linkOk: (id, i) => this.linkOverrides.get(`${id}:${i}`),
         lastQuestion: this.questionIndex + 1 >= this.round.questions.length,
       });
     } else {
@@ -694,7 +736,16 @@ class Game {
       results = entries.map((e, i) => {
         const answered = e.answer !== null;
         const left = Math.max(0, 1 - e.answeredAt / timeMs);
-        if (!correct[i]) return { correct: false, points: this.round.scoring === 'risk' && answered ? -base : 0 };
+        if (!correct[i]) {
+          // Order and pairs: partly right earns a share of the points (5 of 6 right is not the same as nothing),
+          // never with risk or race, and never when the quizmaster said wrong.
+          if (answered && type.partial && !this.overrides.has(e.id) && ['points', 'speed', 'time', 'ladder'].includes(this.round.scoring || 'points')) {
+            const share = type.partial(e.answer, q);
+            const found = { n: Math.round(share * e.answer.length), total: e.answer.length };
+            return { correct: false, points: Math.floor(base * share), found };
+          }
+          return { correct: false, points: this.round.scoring === 'risk' && answered ? -base : 0 };
+        }
         switch (this.round.scoring) {
           case 'speed': return { correct: true, points: base + Math.round(base * left) };
           case 'race': return { correct: true, points: e.answeredAt === fastest ? base : 0 };
@@ -920,6 +971,19 @@ class Game {
     return true;
   }
 
+  // Word web: the quizmaster approves or refuses a link a team typed (a theme said in other words).
+  judgeLink(teamId, group, correct) {
+    const t = this.teams.get(teamId);
+    const i = Math.trunc(Number(group));
+    if (!t || this.phase !== 'reveal' || this.kind !== 'groups' || !t.answer || !(i >= 0 && i < t.answer.groups.length)) return false;
+    const before = t.lastPoints;
+    this.linkOverrides.set(`${teamId}:${i}`, !!correct);
+    this.applyPoints();
+    if (t.lastPoints !== before) this.emit('screen', 'alert', { kind: 'judge', name: t.name, color: t.color, correct: t.lastPoints > before });
+    this.broadcast();
+    return true;
+  }
+
   // After the reveal the quizmaster may still count an answer as right or wrong.
   canJudge() {
     if (this.type.vote || this.type.turns) return false;
@@ -949,7 +1013,7 @@ class Game {
     return {
       phase: this.phase, roundIndex: this.roundIndex, questionIndex: this.questionIndex,
       remaining: this.remaining(),
-      overrides: [...this.overrides], underdogs: [...this.underdogs], leaders: this.leaders,
+      overrides: [...this.overrides], linkOverrides: [...this.linkOverrides], underdogs: [...this.underdogs], leaders: this.leaders,
       buzz: this.buzz, ballot: this.ballot, actor: this.actor,
       finalists: this.finalists, picker: this.picker, resolved: this.resolved, clocks: [...this.clocks],
       turnTeam: this.turnTeam, nextTurn: this.nextTurn, duelWinner: this.duelWinner, roundOver: this.roundOver,
@@ -965,7 +1029,7 @@ class Game {
     this.clearTimer();
     Object.assign(this, {
       phase: s.phase, roundIndex: s.roundIndex, questionIndex: s.questionIndex,
-      overrides: new Map(s.overrides), underdogs: new Set(s.underdogs), leaders: s.leaders,
+      overrides: new Map(s.overrides), linkOverrides: new Map(s.linkOverrides || []), underdogs: new Set(s.underdogs), leaders: s.leaders,
       buzz: s.buzz, ballot: s.ballot, actor: s.actor,
       finalists: s.finalists, picker: s.picker, resolved: s.resolved, clocks: new Map(s.clocks),
       turnTeam: s.turnTeam, nextTurn: s.nextTurn, duelWinner: s.duelWinner, roundOver: s.roundOver,
@@ -985,6 +1049,7 @@ class Game {
         this.timer = this.clock.setTimeout(() => this.turnTimeout(), this.clocks.get(this.turnTeam));
       } else {
         const full = this.question.time * 1000;
+        this.buzzOpenAt = now;
         this.questionStartedAt = now - Math.max(0, full - left);
         if (this.buzz) this.buzz.left = Math.max(this.buzz.left, RESTORE_MIN);
         else this.timer = this.clock.setTimeout(() => this.reveal(), Math.min(left, full));
