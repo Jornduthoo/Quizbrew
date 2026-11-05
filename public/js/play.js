@@ -209,6 +209,9 @@
       case 'roundIntro':
         if (s.round.tiebreak) return wait(t(s.isFinalist ? 'play.tiebreakYou' : 'play.watchTiebreak'), '!');
         wait(t('play.getReady', { title: s.round.title || t(`round.${s.round.type}`) }));
+        // The rules of the round in one sentence, for the tables far from the big screen.
+        $('#wait-quip').textContent = t(`round.${s.round.type}.how`);
+        $('#wait-quip').classList.add('rules');
         return renderJoker(s);
       case 'wager':
         if (s.wagerMode === 'pick' && !s.canWager) return wait(t('play.leaderPicks', { name: s.pick && s.pick.by ? s.pick.by.name : '' }), '?');
@@ -492,8 +495,8 @@
     e.preventDefault();
     const v = $('#type-input').value.trim();
     if (!v) return;
-    const number = state.question && state.question.kind === 'number';
-    socket.emit('answer', number ? Number(v.replace(/\s/g, '').replace(',', '.')) : v);
+    // A number goes as typed: the host reads "1.500" as 1500 and "1,5" as 1.5, like people write it.
+    socket.emit('answer', v);
     $('#type-input').blur();
     if (navigator.vibrate) navigator.vibrate(25);
   });
@@ -883,6 +886,7 @@
     } else b.textContent = mark;
     $('#wait-text').textContent = text;
     $('#wait-quip').textContent = '';
+    $('#wait-quip').classList.remove('rules');
     $('#standings').hidden = true;
     $('#made-with').hidden = true;
     $('#end-extras').hidden = true;
