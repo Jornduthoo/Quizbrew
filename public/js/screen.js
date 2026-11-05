@@ -217,6 +217,7 @@
 
   // The venue and its sponsors (set by the quizmaster under "Venue & sponsors").
   let brand = { venue: '', logo: '', sponsors: [] };
+  socket.on('license', l => { document.getElementById('demo-tag').hidden = !l || !!l.pro; });
   socket.on('brand', b => { brand = b || brand; if (I18n.dict['app.name']) renderBrand(); });
   function sponsorItem(sp) {
     return h('li', { class: 'sp-item' }, sp.logo ? h('img', { src: sp.logo, alt: sp.name }) : null, sp.logo && sp.name ? null : h('span', {}, sp.name));
@@ -471,6 +472,7 @@
     split($('#round-title'), s.round.title || t(`round.${s.round.type}`));
     QB.fit($('#round-title'), { lines: 2, min: 0.45 });
     $('#ri-type').textContent = t(`round.${s.round.type}`);
+    $('#ri-how').textContent = s.round.tiebreak ? '' : t(`round.${s.round.type}.how`);
     // How this round scores, and its twists, so every team knows the rules before it starts.
     const rules = [t('screen.questionsInRound', { n: s.round.questions })];
     if (s.round.scoring && s.round.scoring !== 'points') rules.push(t(`scoring.${s.round.scoring}`));
@@ -493,7 +495,7 @@
     document.body.classList.toggle('silent', s.round.twists.includes('silentRound'));
     $('#q-count').textContent = t('screen.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
     $('#q-twists').replaceChildren(...QB.twistChips(s));
-    $('#q-answered').textContent = t('screen.answeredCount', { n: s.answered, total: s.teams.filter(x => !x.paper).length });
+    $('#q-answered').textContent = t('screen.answeredCount', { n: s.answered, total: s.teams.filter(x => !x.paper && !x.out).length });
     const wasRevealed = document.body.classList.contains('revealed');
     document.body.classList.toggle('revealed', reveal);
     document.body.dataset.kind = kind;

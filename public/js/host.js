@@ -11,10 +11,14 @@
   socket.on('language', async lang => {
     await I18n.load(lang);
     $('#lang').value = lang;
-    renderLooks();
     renderModes();
+    renderLocks();
+    if (licFull) renderProState();
     if (state) render(state);
     loadQuizzes();
+    // The run sheet and the builder send the demo here: /host#pro or /host#pro-<feature>.
+    const ask = /^#pro(?:-(\w+))?$/.exec(location.hash);
+    if (ask && !remote) { history.replaceState(null, '', '/host'); openPro(ask[1]); }
   });
   socket.on('state', s => { state = s; if (I18n.dict['app.name']) render(s); });
 
@@ -70,10 +74,13 @@
   let looks = [];
   function renderLooks() {
     const cur = document.documentElement.dataset.look;
-    $('#look').replaceChildren(...looks.map(l => h('option', { value: l }, t('look.' + l))));
+    $('#look').replaceChildren(...looks.map(l => h('option', { value: l }, (lookLocked(l) ? '🔒 ' : '') + t('look.' + l))));
     $('#look').value = cur;
   }
-  $('#look').addEventListener('change', e => socket.emit('look', e.target.value));
+  $('#look').addEventListener('change', e => {
+    if (lookLocked(e.target.value)) { e.target.value = document.documentElement.dataset.look; return openPro('looks'); }
+    socket.emit('look', e.target.value);
+  });
   // Big screen, or phones only: then this laptop shows (and sounds) what the phones show.
   let modes = [];
   let mode = 'screen';
@@ -181,6 +188,8 @@
   const manage = async (url, body) => {
     const res = await fetch('/api/host' + url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await res.json().catch(() => ({}));
+    // The demo keeps 3 quizzes of its own: show the Pro dialog, and nothing else.
+    if (!res.ok && /^pro\.locked\./.test(data.error || '')) { openPro(data.error.slice(11)); return new Promise(() => {}); }
     if (!res.ok) throw new Error(data.error || 'error.generic');
     return data;
   };
@@ -248,7 +257,7 @@
       const more = remote ? null : h('button', {
         class: 'ghost-btn more-btn', type: 'button', title: t('manage.more'), 'aria-label': t('manage.more'),
         onclick: e => menu(e.currentTarget, edit ? [
-          { label: t('host.print'), href: printUrl, target: '_blank' },
+          printItem(printUrl),
           { label: t('manage.duplicate'), run: () => act(() => manage('/library/duplicate', { path: edit, copyWord: t('manage.copyWord') })) },
           { label: t('manage.rename'), run: () => {
             const title = prompt(t('builder.newName'), q.title || '');
@@ -259,7 +268,7 @@
             if (confirm(t('manage.confirmDelete', { title: q.title || q.name }))) act(() => manageDelete(edit));
           } },
         ] : [
-          { label: t('host.print'), href: printUrl, target: '_blank' },
+          printItem(printUrl),
           { label: t('manage.export'), href: exportUrl },
           { label: t('builder.delete'), danger: true, run: () => {
             if (confirm(t('manage.confirmHideSample', { title: q.title || q.name }))) act(() => manage('/library/hide-sample', { sample: ref }));
@@ -275,7 +284,10 @@
             t('host.quizMeta', { rounds: q.rounds, questions: q.questions }),
             ratings[q.title] && ratings[q.title].count ? h('span', { class: 'quiz-rating' }, ` · ★ ${Number(ratings[q.title].avg).toFixed(1)}`) : null)),
         h('div', { class: 'card-actions' },
-          h('button', { class: 'brass-btn', onclick: () => socket.emit('load', ref, res => { if (res && res.error) alert(t('error.quizInvalid') + '\n' + (res.detail || '')); }) }, t('host.open')),
+          h('button', { class: 'brass-btn', onclick: () => socket.emit('load', ref, res => {
+            if (res && res.error) return alert(res.error === 'pro.noFreeRounds' ? t(res.error) : t('error.quizInvalid') + '\n' + (res.detail || ''));
+            if (res && res.skipped && res.skipped.length) toast(t('pro.skipped', { n: res.skipped.length }), '🔒');
+          }) }, t('host.open')),
           remote ? null : edit ? h('a', { class: 'ghost-btn', href: '/builder?open=' + encodeURIComponent(edit) }, t('host.edit'))
             : h('button', { class: 'ghost-btn', type: 'button', onclick: async () => {
               try { const copy = await manage('/library/duplicate', { sample: ref }); location.href = '/builder?open=' + encodeURIComponent(copy.path); } catch { alert(t('error.generic')); }
@@ -453,7 +465,7 @@
           if (s.canJudge) preview.append(h('p', { class: 'hint' }, t('host.judgeHint')));
         }
       }
-      preview.append(h('p', { class: 'hint' }, t('screen.answeredCount', { n: s.answered, total: s.teams.filter(x => !x.paper).length })));
+      preview.append(h('p', { class: 'hint' }, t('screen.answeredCount', { n: s.answered, total: s.teams.filter(x => !x.paper && !x.out).length })));
     } else if (s.phase === 'scoreboard') {
       kicker.textContent = t('host.phase.scoreboard');
       title.textContent = t('screen.standingsAfter', { n: s.round.index + 1 });
@@ -492,7 +504,8 @@
     if (scoreTeam) drawScore();
     const paper = Object.fromEntries((s.paperTeams || []).map(p => [p.id, p]));
     $('#paper-hint').hidden = !(s.paperTeams || []).length;
-    $('#team-total').textContent = s.teams.length;
+    $('#team-total').textContent = s.maxTeams && s.maxTeams < 40 ? t('pro.teamsUsed', { n: s.teams.length, max: s.maxTeams }) : s.teams.length;
+    $('#team-total').classList.toggle('demo', !!(s.maxTeams && s.maxTeams < 40));
     $('#no-teams').hidden = s.teams.length > 0;
     const byName = Object.fromEntries(s.teams.map(tm => [tm.name, tm]));
     $('#team-list').replaceChildren(...s.ranking.map(r => {
@@ -632,7 +645,102 @@
     });
   }
 
-  $('#autopilot').addEventListener('click', () => socket.emit('autopilot', !auto.on));
+  $('#autopilot').addEventListener('click', () => { if (!lic.pro) return; socket.emit('autopilot', !auto.on); });
+
+  // ---------- Demo or Pro ----------
+  // Everything Pro stays visible with a small lock; a click on it opens the Pro dialog instead.
+  let lic = { pro: true, freeLooks: [] };
+  let licFull = null;
+  function lookLocked(l) { return !lic.pro && !(lic.freeLooks || []).includes(l); }
+  function toast(text, icon) {
+    const stack = $('#alerts');
+    const el = h('div', { class: 'alert pro', role: 'status' }, h('span', { class: 'icon' }, icon || '★'), h('span', {}, text));
+    stack.prepend(el);
+    setTimeout(() => el.classList.add('out'), 6000);
+    setTimeout(() => el.remove(), 6600);
+  }
+  function printItem(href) {
+    return lic.pro ? { label: t('host.print'), href, target: '_blank' } : { label: '🔒 ' + t('host.print'), run: () => openPro('print') };
+  }
+  function renderLocks() {
+    document.querySelectorAll('[data-pro]').forEach(el => {
+      el.classList.toggle('locked', !lic.pro);
+      if (!lic.pro && !el.querySelector('.lock-badge')) el.append(h('span', { class: 'lock-badge', 'aria-hidden': 'true' }));
+      const badge = el.querySelector('.lock-badge');
+      if (badge) { badge.hidden = lic.pro; if (!badge.firstChild) badge.innerHTML = Menu.icon('lock').replace('class="ico"', 'class="lk"'); }
+    });
+    if ($('#pro-btn')) $('#pro-btn').hidden = remote || lic.pro;
+    renderLooks();
+  }
+  // A click on a locked button: the Pro dialog, never the feature.
+  document.addEventListener('click', e => {
+    const el = !lic.pro && e.target.closest('[data-pro]');
+    if (!el) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    openPro(el.dataset.pro);
+  }, true);
+  socket.on('license', l => {
+    const was = lic.pro;
+    lic = l || lic;
+    renderLocks();
+    if (was !== lic.pro) { loadQuizzes(); if (licFull) refreshPro(); }
+  });
+  async function refreshPro() {
+    try { licFull = await fetch('/api/host/license').then(r => r.json()); } catch { return; }
+    renderProState();
+  }
+  const day = ms => new Date(ms).toLocaleDateString(I18n.lang, { day: 'numeric', month: 'long', year: 'numeric' });
+  function proLine(v) {
+    if (v.pro) return v.kind === 'tester' && v.until ? t('pro.tester', { date: day(v.until) }) : t('pro.active', { name: v.name });
+    if (v.expired) return t('pro.expired', { date: day(v.until) });
+    return t('pro.demoLine');
+  }
+  function renderProState(highlight) {
+    const v = licFull;
+    if (!v || !$('#pro-modal')) return;
+    $('#settings-pro-state').textContent = v.pro ? (v.kind === 'tester' ? t('pro.tester', { date: day(v.until) }) : t('pro.badge')) : t('pro.demo');
+    $('#pro-state').textContent = proLine(v);
+    $('#pro-state').classList.toggle('good', v.pro);
+    $('#pro-sell').hidden = v.pro && v.kind !== 'tester';
+    $('#pro-form').hidden = v.pro && v.kind !== 'tester';
+    $('#pro-remove').hidden = !v.pro;
+    $('#pro-price').textContent = t('pro.price', { price: v.price });
+    $('#pro-buy').href = v.shop;
+    $('#pro-list').replaceChildren(...v.features.map(f => h('li', { class: f === highlight ? 'hi' : '' }, h('span', { class: 'pro-check', 'aria-hidden': 'true' }, '✓'), t(`pro.locked.${f}`))));
+  }
+  async function openPro(feature) {
+    if (remote || !$('#pro-modal')) return;
+    await refreshPro();
+    renderProState(feature);
+    $('#pro-error').textContent = '';
+    $('#pro-input').value = '';
+    $('#pro-modal').showModal();
+    const hi = $('#pro-list .hi');
+    if (hi) hi.scrollIntoView({ block: 'nearest' });
+  }
+  if ($('#pro-modal')) {
+    $('#pro-btn').addEventListener('click', () => openPro());
+    $('#settings-pro').addEventListener('click', () => { $('#settings-modal').close(); openPro(); });
+    $('#pro-modal [data-close]').addEventListener('click', () => $('#pro-modal').close());
+    $('#pro-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      $('#pro-error').textContent = '';
+      const res = await fetch('/api/host/license', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: $('#pro-input').value }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { $('#pro-error').textContent = t(data.error && /^pro\./.test(data.error) ? data.error : 'error.generic'); return; }
+      licFull = data;
+      renderProState();
+      $('#pro-modal').close();
+      toast(t('pro.thanks'), '🍻');
+    });
+    $('#pro-remove').addEventListener('click', async () => {
+      if (!confirm(t('pro.removeSure'))) return;
+      licFull = await fetch('/api/host/license', { method: 'DELETE' }).then(r => r.json());
+      renderProState();
+    });
+    refreshPro();
+  }
   $('#resume-go').addEventListener('click', () => socket.emit('resume', res => { if (res && res.error) alert(t(res.error)); }));
   $('#resume-no').addEventListener('click', () => { if (confirm(t('host.resumeNoSure'))) socket.emit('discard'); });
   $('#stop').addEventListener('click', () => {

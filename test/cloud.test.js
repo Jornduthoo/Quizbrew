@@ -131,7 +131,7 @@ test('the builder links a folder over the API and syncs right away', async t => 
   const { createServer } = require('../src/app');
   const library = Library.create(tmp());
   library.save(null, quiz('Over the API'));
-  const qb = createServer({ port: 0, settings: memorySettings(), library, lanAddresses: () => ['192.168.1.50'] });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: memorySettings(), library, lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
   t.after(() => qb.close());
   const call = (method, url, body) => fetch(`http://127.0.0.1:${port}/api/host${url}`, { method, headers: { 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) }).then(async r => ({ status: r.status, ...(await r.json()) }));

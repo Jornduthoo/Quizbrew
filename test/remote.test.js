@@ -10,7 +10,7 @@ const js = fs.readFileSync(path.join(pub, 'js', 'host.js'), 'utf8');
 const remote = fs.readFileSync(path.join(pub, 'remote.html'), 'utf8');
 
 // Laptop-only tools: host.js checks for these before using them.
-const LAPTOP_ONLY = /^(check-|raffle-|remote-|venue-|sponsor-|samples-restore|screen-copy)/;
+const LAPTOP_ONLY = /^(check-|raffle-|remote-|venue-|sponsor-|samples-restore|screen-copy|pro-|settings-pro)/;
 
 test('every element host.js needs exists on the remote page', () => {
   const ids = new Set([...js.matchAll(/\$\('#([a-z0-9-]+)/g)].map(m => m[1]));
@@ -53,7 +53,7 @@ test('a remote that comes back from sleep gets the running quiz and its teams ag
   const { createServer } = require('../src/app');
   const library = require('../src/library').create(fs.mkdtempSync(path.join(require('os').tmpdir(), 'qb-')));
   const v = {};
-  const qb = createServer({ port: 0, settings: { get: k => v[k], set: (k, x) => { v[k] = x; } }, library, lanAddresses: () => ['192.168.1.50'] });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: { get: k => v[k], set: (k, x) => { v[k] = x; } }, library, lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
   const url = `http://127.0.0.1:${port}`;
   const sockets = [];
@@ -85,7 +85,7 @@ test('a remote with an old link is sent away, so the page can say to scan again'
   const { createServer } = require('../src/app');
   const library = require('../src/library').create(fs.mkdtempSync(path.join(require('os').tmpdir(), 'qb-')));
   const v = {};
-  const qb = createServer({ port: 0, settings: { get: k => v[k], set: (k, x) => { v[k] = x; } }, library });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: { get: k => v[k], set: (k, x) => { v[k] = x; } }, library });
   const port = await qb.listen();
   t.after(() => qb.close());
   const old = connect(`http://${lan}:${port}`, { query: { role: 'host', key: 'a'.repeat(qb.remoteKey.length) }, transports: ['websocket'], forceNew: true, reconnection: false });

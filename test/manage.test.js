@@ -29,7 +29,7 @@ test('duplicate and rename keep the folder and never overwrite', () => {
 test('the host page manages quizzes over the API', async t => {
   const library = Library.create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-manage-')));
   const v = {};
-  const qb = createServer({ port: 0, settings: { get: k => v[k], set: (k, x) => { v[k] = x; } }, library, lanAddresses: () => ['192.168.1.50'] });
+  const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings: { get: k => v[k], set: (k, x) => { v[k] = x; } }, library, lanAddresses: () => ['192.168.1.50'] });
   const port = await qb.listen();
   t.after(() => qb.close());
   const post = (url, body) => fetch(`http://127.0.0.1:${port}/api/host${url}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
@@ -49,7 +49,7 @@ test('examples can be removed, stay removed after a restart, and come back from 
   const library = Library.create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-manage-')));
   const v = { language: 'nl' };
   const settings = { get: k => v[k], set: (k, x) => { v[k] = x; } };
-  const start = async () => { const qb = createServer({ port: 0, settings, library, lanAddresses: () => ['192.168.1.50'] }); const port = await qb.listen(); t.after(() => qb.close()); return port; };
+  const start = async () => { const qb = createServer({ port: 0, license: require('./fixtures/pro').proLicense(), settings, library, lanAddresses: () => ['192.168.1.50'] }); const port = await qb.listen(); t.after(() => qb.close()); return port; };
   let port = await start();
   const api = (p, url, body) => fetch(`http://127.0.0.1:${p}/api/host${url}`, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}).then(r => r.json());
   const files = async p => (await api(p, '/library')).samples.map(s => s.file);

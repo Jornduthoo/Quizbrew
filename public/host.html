@@ -14,10 +14,11 @@
     <img class="logo" src="/img/logo.webp" alt="Quizbrew">
     <span class="quiz-name" id="quiz-name"></span>
     <div class="top-actions">
+      <button class="pro-pill" id="pro-btn" type="button" data-ico="star" hidden><span data-i18n="pro.getPro"></span></button>
       <button class="ghost-btn join-btn" id="join-btn" type="button" data-ico="qr" data-i18n-attr="title:host.joinAddress"><span class="join-url" id="join-url"></span></button>
       <a class="ghost-btn" href="/screen" target="quizbrew-screen" data-ico="screen"><span class="lbl" data-i18n="host.openScreen"></span></a>
       <button class="ghost-btn" id="check-btn" type="button" data-ico="check"><span class="lbl" data-i18n="host.check"></span></button>
-      <button class="ghost-btn" id="raffle-btn" type="button" data-ico="raffle"><span class="lbl" data-i18n="host.raffle"></span></button>
+      <button class="ghost-btn" id="raffle-btn" type="button" data-ico="raffle" data-pro="raffle"><span class="lbl" data-i18n="host.raffle"></span></button>
       <button class="ghost-btn" id="remote-btn" type="button" data-ico="remote"><span class="lbl" data-i18n="host.remote"></span></button>
       <span class="top-sep" aria-hidden="true"></span>
       <a class="ghost-btn icon-btn" href="/network" target="quizbrew-network" data-ico="wifi" data-i18n-attr="title:network.title,aria-label:network.title"></a>
@@ -62,9 +63,13 @@
         <span class="set-name" data-i18n="host.mode"></span>
         <select id="mode"></select>
       </label>
+      <div class="set-row" id="settings-pro-row">
+        <span class="set-name"><span data-i18n="pro.licence"></span> <span class="hint" id="settings-pro-state"></span></span>
+        <button class="ghost-btn small" id="settings-pro" type="button" data-i18n="pro.title"></button>
+      </div>
       <div class="set-row" id="settings-venue-row">
         <span class="set-name" data-i18n="venue.title"></span>
-        <button class="ghost-btn small" id="settings-venue" type="button" data-i18n="menu.venueEdit"></button>
+        <button class="ghost-btn small" id="settings-venue" type="button" data-pro="venue" data-i18n="menu.venueEdit"></button>
       </div>
       <div class="set-row" id="samples-restore-row" hidden>
         <span class="set-name"><span data-i18n="manage.samplesTitle"></span> <span class="hint" id="samples-restore-count"></span></span>
@@ -174,7 +179,7 @@
         <span data-i18n="host.remoteTileHint"></span>
         <em data-i18n="host.tagRemote"></em>
       </button>
-      <button class="tile" type="button" id="venue-tile">
+      <button class="tile" type="button" id="venue-tile" data-pro="venue">
         <img src="/img/icons/special.webp" alt="">
         <strong data-i18n="venue.title"></strong>
         <span data-i18n="venue.tileHint"></span>
@@ -205,7 +210,7 @@
         <button class="ghost-btn" id="add-time" type="button" data-i18n="host.addTime" hidden></button>
         <button class="ghost-btn" id="back" type="button" data-i18n="host.back" hidden></button>
         <button class="ghost-btn" id="break" type="button" hidden></button>
-        <button class="ghost-btn autopilot-btn" id="autopilot" type="button" aria-pressed="false" data-i18n-attr="title:host.autopilotHint,aria-label:host.autopilot"><span class="auto-dot"></span><span data-i18n="host.autopilot"></span></button>
+        <button class="ghost-btn autopilot-btn" id="autopilot" data-pro="autopilot" type="button" aria-pressed="false" data-i18n-attr="title:host.autopilotHint,aria-label:host.autopilot"><span class="auto-dot"></span><span data-i18n="host.autopilot"></span></button>
         <span class="key-hint" data-i18n="host.keyHint"></span>
         <button class="ghost-btn danger" id="stop" data-i18n="host.stop"></button>
       </div>
@@ -222,7 +227,7 @@
         </form>
         <p class="error" id="paper-error" role="alert"></p>
         <p class="hint paper-hint" id="paper-hint" hidden data-i18n="host.paperHint"></p>
-        <a class="ghost-btn small" id="paper-sheet" href="/print?live=1&amp;mode=answers" target="_blank" data-i18n="host.paperSheet"></a>
+        <a class="ghost-btn small" id="paper-sheet" data-pro="print" href="/print?live=1&amp;mode=answers" target="_blank" data-i18n="host.paperSheet"></a>
       </div>
     </aside>
   </main>
@@ -265,6 +270,30 @@
         <button class="brass-btn" type="submit" data-i18n="venue.save"></button>
       </div>
     </form>
+  </dialog>
+
+  <!-- Quizbrew Pro: what it unlocks, the price, and a field for a code. Works offline. -->
+  <dialog class="modal pro-modal" id="pro-modal">
+    <header class="modal-head">
+      <h2 data-ico="star"><span data-i18n="pro.title"></span></h2>
+      <button class="mini close" type="button" data-close data-i18n-attr="aria-label:builder.close"></button>
+    </header>
+    <div class="pro-body">
+      <p class="pro-state" id="pro-state"></p>
+      <div class="pro-sell" id="pro-sell">
+        <p class="pro-tag neon" data-i18n="pro.tagline"></p>
+        <ul class="pro-list" id="pro-list"></ul>
+        <p class="pro-price" id="pro-price"></p>
+        <a class="brass-btn pro-buy" id="pro-buy" href="https://quizbrew.app" target="_blank" rel="noopener" data-i18n="pro.buy"></a>
+      </div>
+      <form class="pro-code" id="pro-form" autocomplete="off">
+        <label class="field"><span data-i18n="pro.haveCode"></span>
+          <textarea id="pro-input" rows="2" spellcheck="false" data-i18n-attr="placeholder:pro.codePh,aria-label:pro.haveCode"></textarea></label>
+        <button class="brass-btn" type="submit" data-i18n="pro.activate"></button>
+        <p class="error" id="pro-error" role="alert"></p>
+      </form>
+      <button class="link-btn pro-remove" id="pro-remove" type="button" data-i18n="pro.remove" hidden></button>
+    </div>
   </dialog>
 
   <div id="alerts" class="alerts" aria-live="assertive"></div>

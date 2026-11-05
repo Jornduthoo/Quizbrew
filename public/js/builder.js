@@ -10,11 +10,25 @@
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     const data = await res.json().catch(() => ({}));
+    // A Pro extra in the demo: show the Pro dialog and stop there (the call never settles, so no error follows it).
+    if (!res.ok && /^pro\.locked\./.test(data.error || '')) { proAsk(data.error.slice(11)); return new Promise(() => {}); }
     if (!res.ok) throw Object.assign(new Error(data.error || 'error.generic'), { detail: data.detail || '' });
     return data;
   };
 
   let catalog = null;
+  // Demo or Pro: the demo shows Pro round types, twists and scorings with a lock.
+  let lic = { pro: true, free: { types: [], twists: [], scorings: [] }, price: '' };
+  const isPro = () => lic.pro;
+  const typeFree = id => isPro() || lic.free.types.includes(id);
+  const twistFree = tw => isPro() || lic.free.twists.includes(tw);
+  const scoringFree = sc => isPro() || lic.free.scorings.includes(sc);
+  function proAsk(feature) {
+    $('#pro-ask-what').textContent = t(`pro.locked.${feature}`);
+    $('#pro-ask-price').textContent = lic.price ? t('pro.price', { price: lic.price }) : '';
+    $('#pro-ask-go').href = '/host#pro-' + feature;
+    $('#pro-ask').showModal();
+  }
   const CHOICE_ONLY = ['shrinkingOptions', 'lifeline'];
   let library = { tree: { folders: [], quizzes: [] }, samples: [] };
   let current = null; // { path, quiz }
@@ -43,6 +57,11 @@
     const lang = await QB.info().then(i => i.language).catch(() => 'en');
     await I18n.load(lang);
     catalog = await api('GET', '/catalog');
+    lic = await api('GET', '/license').catch(() => lic);
+    $('#pro-ai-cap').hidden = isPro();
+    // The Pro buttons get a small lock.
+    for (const id of ['#print-sheet', '#cloud-btn']) $(id).classList.toggle('locked', !isPro());
+    if (!isPro()) $('#ai-count').max = String(lic.free.aiQuestions);
     await refreshLibrary();
     const open = new URLSearchParams(location.search).get('open');
     if (open) openQuiz({ path: open });
@@ -379,8 +398,8 @@
     const type = typeOf(r.type);
     box.style.cssText = glow(r.type);
     const scoring = type.scorings.length ? h('label', { class: 'field inline' }, h('span', {}, t('builder.scoring')),
-      h('select', { onchange: e => { r.scoring = e.target.value; changed(); renderRound(); } },
-        type.scorings.map(s => h('option', { value: s, selected: r.scoring === s ? 'selected' : null }, t(`scoring.${s}`))))) : h('p', { class: 'hint small' }, t(`scoring.own.${r.type}`));
+      h('select', { onchange: e => { if (!scoringFree(e.target.value)) { e.target.value = r.scoring || type.defaults.scoring; return proAsk('types'); } r.scoring = e.target.value; changed(); renderRound(); } },
+        type.scorings.map(s => h('option', { value: s, selected: r.scoring === s ? 'selected' : null }, (scoringFree(s) ? '' : '🔒 ') + t(`scoring.${s}`))))) : h('p', { class: 'hint small' }, t(`scoring.own.${r.type}`));
     const scoringHint = type.scorings.length ? h('p', { class: 'hint small' }, t(`scoring.${r.scoring || type.defaults.scoring}.desc`)) : null;
 
     fill(box,
@@ -399,11 +418,12 @@
         h('div', { class: 'field' }, h('span', {}, t('builder.twists')),
           h('div', { class: 'chips' }, catalog.twists.filter(tw => (type.twists || catalog.twists).includes(tw) || (r.twists || []).includes(tw)).map(tw => h('label', { class: 'chip' + ((r.twists || []).includes(tw) ? ' on' : '') + ((type.twists || catalog.twists).includes(tw) ? '' : ' misfit'), title: t(`twist.${tw}.desc`) },
             h('input', { type: 'checkbox', checked: (r.twists || []).includes(tw) ? 'checked' : null, onchange: e => {
+              if (e.target.checked && !twistFree(tw)) { e.target.checked = false; return proAsk('types'); }
               r.twists = (r.twists || []).filter(x => x !== tw);
               if (e.target.checked) r.twists.push(tw);
               changed();
               renderRound();
-            } }), t(`twist.${tw}`)))),
+            } }), (twistFree(tw) ? '' : '🔒 ') + t(`twist.${tw}`)))),
           // Lifeline and shrinking options need answers to tap: say so when this round may not have them.
           (r.twists || []).some(tw => CHOICE_ONLY.includes(tw)) && (type.kind !== 'choice' || !(type.twists || []).includes('lifeline'))
             ? h('p', { class: 'hint small twist-warn' }, t((type.twists || []).includes('lifeline') ? 'builder.twistChoiceSome' : 'builder.twistChoiceNone')) : null),
@@ -735,6 +755,7 @@
     const res = await fetch('/api/host/ai/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
+      if (/^pro\.locked\./.test(d.error || '')) { proAsk(d.error.slice(11)); return new Promise(() => {}); }
       throw new Error(d.error || 'ai.failed');
     }
     const blob = await res.blob();
@@ -1055,7 +1076,7 @@
 
   $('#export-json').addEventListener('click', async () => { await flushSave(); location.href = '/api/host/export?path=' + encodeURIComponent(current.path); });
   $('#export-csv').addEventListener('click', async () => { await flushSave(); location.href = '/api/host/export?format=csv&path=' + encodeURIComponent(current.path); });
-  $('#print-sheet').addEventListener('click', async () => { await flushSave(); window.open('/print?open=' + encodeURIComponent(current.path), '_blank'); });
+  $('#print-sheet').addEventListener('click', async () => { if (!isPro()) return proAsk('print'); await flushSave(); window.open('/print?open=' + encodeURIComponent(current.path), '_blank'); });
   $('#delete-quiz').addEventListener('click', () => deleteItem(current.path, false));
 
   $('#play-btn').addEventListener('click', async () => {
@@ -1091,9 +1112,11 @@
     $('#picker-families').replaceChildren(...fams.map(f => h('button', { class: 'chip' + (f === pickerFamily ? ' on' : ''), onclick: () => { pickerFamily = f; renderPicker(); } }, t(`family.${f}`))));
     const q = $('#picker-search').value.trim().toLowerCase();
     const types = catalog.types.filter(x => (pickerFamily === 'all' || x.family === pickerFamily)
-      && (!q || (typeName(x.id) + ' ' + t(`round.${x.id}.desc`)).toLowerCase().includes(q)));
-    $('#picker-grid').replaceChildren(...types.map(x => h('button', { class: 'type-card', style: glow(x.id), onclick: () => { $('#picker').close(); addRound(x.id); } },
+      && (!q || (typeName(x.id) + ' ' + t(`round.${x.id}.desc`)).toLowerCase().includes(q)))
+      .sort((a, b) => typeFree(b.id) - typeFree(a.id)); // the demo shows its own round types first
+    $('#picker-grid').replaceChildren(...types.map(x => h('button', { class: 'type-card' + (typeFree(x.id) ? '' : ' locked'), style: glow(x.id), onclick: () => { $('#picker').close(); if (typeFree(x.id)) addRound(x.id); else proAsk('types'); } },
       icon(x.id),
+      typeFree(x.id) ? null : h('span', { class: 'pro-tag-mini' }, '🔒 ' + t('pro.lockedRound')),
       h('strong', {}, typeName(x.id)),
       h('span', { class: 'desc' }, t(`round.${x.id}.desc`)),
       h('span', { class: 'tags' }, h('span', { class: 'tag' }, t(`family.${x.family}`)), h('span', { class: 'tag' }, t(`kind.${x.kind}`))))));
@@ -1356,6 +1379,7 @@
   const useCloud = () => cloudCall($('#cloud-use'), '/cloud/choose', { folder: $('#cloud-path').value });
 
   $('#cloud-btn').addEventListener('click', async () => {
+    if (!isPro()) return proAsk('cloud');
     await loadCloud();
     if (!cloud) return;
     $('#cloud-path').value = cloud.folder || '';

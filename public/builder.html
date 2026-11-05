@@ -106,6 +106,7 @@
       <label><span data-i18n="ai.language"></span><select id="ai-language"></select></label>
       <label><span data-i18n="ai.difficulty"></span><input id="ai-difficulty" type="range" min="1" max="5" value="3"><output id="ai-difficulty-out"></output></label>
       <label class="for-round"><span data-i18n="ai.count"></span><input id="ai-count" type="number" min="1" max="30" value="8"></label>
+        <p class="hint small for-round pro-ai-cap" id="pro-ai-cap" data-i18n="pro.aiCap" hidden></p>
       <label class="for-whole"><span data-i18n="ai.roundCount"></span><input id="ai-rounds" type="number" min="1" max="12" value="6"></label>
       <label class="for-whole"><span data-i18n="ai.minutes"></span><input id="ai-minutes" type="number" min="15" max="240" step="15" value="90"></label>
     </form>
@@ -161,6 +162,20 @@
   </dialog>
 
   <!-- My quiz folder in OneDrive or Google Drive -->
+  <!-- A Pro extra in the demo: what it is, and the way to Pro. -->
+  <dialog class="modal small pro-ask" id="pro-ask">
+    <header class="modal-head">
+      <h2 data-i18n="pro.lockedTitle"></h2>
+      <button class="mini close" data-close data-i18n-attr="aria-label:builder.close"></button>
+    </header>
+    <div class="pro-ask-body">
+      <p class="pro-ask-what" id="pro-ask-what"></p>
+      <p class="hint" data-i18n="pro.lockedHint"></p>
+      <p class="pro-ask-price" id="pro-ask-price"></p>
+      <a class="brass-btn" id="pro-ask-go" href="/host#pro" data-i18n="pro.getPro"></a>
+    </div>
+  </dialog>
+
   <dialog class="modal small" id="cloud-modal">
     <header class="modal-head">
       <h2 data-i18n="cloud.title"></h2>

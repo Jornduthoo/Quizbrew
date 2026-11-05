@@ -421,3 +421,50 @@ body.remote .alerts { top: 12px; left: 12px; right: 12px; width: auto; }
 .score-own { display: flex; gap: 8px; }
 .score-own input { flex: 1; min-width: 0; padding: .7em .9em; border-radius: 12px; border: 1.5px solid rgb(var(--k-brass-l) / .3); background: rgba(0, 0, 0, .35); color: var(--cream); font: inherit; font-size: 1.1em; }
 .score-body .hint { margin: 0; }
+
+/* Demo or Pro: a brass pill in the top bar, small locks on the Pro extras, and the Pro dialog. */
+.pro-pill {
+  display: inline-flex; align-items: center; gap: .45em;
+  padding: .5em 1.1em; border: 0; border-radius: 999px; cursor: pointer;
+  font: inherit; font-weight: 800; letter-spacing: .04em; color: var(--wood-900);
+  background: linear-gradient(180deg, var(--brass-light), var(--brass) 60%, var(--brass-dark));
+  box-shadow: 0 0 0 1px rgb(var(--k-brass-l) / .7), 0 0 18px rgb(var(--k-amber) / .45);
+  transition: filter .2s ease, transform .2s ease;
+}
+.pro-pill:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.pro-pill .ico { width: 1.05em; height: 1.05em; fill: currentColor; }
+.locked { position: relative; }
+.locked:not(.tile) { opacity: .78; }
+.lock-badge {
+  display: inline-grid; place-items: center; width: 1.35em; height: 1.35em; margin-left: .45em; vertical-align: -.2em;
+  border-radius: 50%; color: var(--wood-900); background: var(--brass-light); box-shadow: 0 0 10px rgb(var(--k-amber) / .5);
+}
+.lock-badge .lk { width: .85em; height: .85em; stroke-width: 2.8; }
+.tile .lock-badge { position: absolute; top: 16px; right: 18px; margin: 0; width: 34px; height: 34px; font-size: 22px; }
+.tile.locked img { filter: saturate(.55) brightness(.8); }
+.ghost-btn.locked .lock-badge { margin-left: .2em; }
+.count.demo { font-size: .7em; color: var(--brass-light); letter-spacing: .03em; }
+.alert.pro { border-color: var(--brass); }
+
+.pro-modal { width: min(680px, calc(100vw - 32px)); }
+.pro-modal .modal-head h2 { display: flex; align-items: center; gap: .5em; }
+.pro-modal .modal-head h2 .ico { color: var(--brass-light); fill: currentColor; }
+.pro-body { padding: 16px 22px 22px; display: grid; gap: 16px; }
+.pro-state { margin: 0; font-weight: 750; color: var(--muted); }
+.pro-state.good { color: var(--neon-lime); }
+.pro-tag { margin: 0 0 6px; font-family: var(--display); font-size: 1.5em; letter-spacing: var(--display-track); color: var(--cream); text-shadow: 0 0 16px rgb(var(--k-amber) / .55); }
+.pro-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; font-size: .92em; }
+@media (max-width: 600px) { .pro-list { grid-template-columns: 1fr; } }
+.pro-list li { display: flex; gap: .7em; align-items: baseline; padding: 6px 10px; border-radius: 8px; transition: background .3s ease; }
+.pro-list li.hi { background: rgb(var(--k-amber) / .16); box-shadow: inset 0 0 0 1px rgb(var(--k-amber) / .55); }
+.pro-check { color: var(--brass-light); font-weight: 900; }
+.pro-price { margin: 12px 0 10px; font-weight: 800; color: var(--brass-light); font-size: 1.1em; }
+.pro-buy { display: inline-block; text-decoration: none; }
+.pro-code { display: grid; gap: 10px; padding-top: 14px; border-top: 1px solid rgb(var(--k-brass) / .25); }
+.pro-code .field { display: grid; gap: 6px; font-weight: 700; }
+.pro-code textarea {
+  width: 100%; resize: vertical; padding: .6em .8em; border-radius: 8px; font: 600 .95em/1.35 ui-monospace, Consolas, monospace; letter-spacing: .03em;
+  color: var(--cream); background: rgb(0 0 0 / .4); border: 1.5px solid rgb(var(--k-brass-l) / .45);
+}
+.pro-code .brass-btn { justify-self: start; }
+.pro-remove { justify-self: start; border: 0; background: none; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; padding: 0; }

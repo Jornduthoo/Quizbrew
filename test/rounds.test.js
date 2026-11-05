@@ -34,7 +34,7 @@ function play(round, { teams = ['A', 'B'], jokers = false } = {}) {
   game.load({ title: 'T', jokers, rounds: [round] });
   const ids = teams.map((name, i) => {
     const id = `team${i}aaaa`;
-    game.join(id, name, ['amber', 'pink', 'cyan'][i], 's' + i);
+    game.join(id, name, require('../src/teams').TEAM_COLORS[i], 's' + i);
     return id;
   });
   game.next(); // round intro
@@ -47,6 +47,7 @@ test('every round type, scoring mode, twist and family has a name in every langu
     for (const type of rounds.TYPES) {
       assert.ok(d[`round.${type.id}`], `${code}: round.${type.id}`);
       assert.ok(d[`round.${type.id}.desc`], `${code}: round.${type.id}.desc`);
+      assert.ok(d[`round.${type.id}.how`], `${code}: round.${type.id}.how (the rules for the players)`);
       if (!type.scorings.length) assert.ok(d[`scoring.own.${type.id}`], `${code}: scoring.own.${type.id}`);
     }
     for (const s of rounds.SCORINGS) assert.ok(d[`scoring.${s}`] && d[`scoring.${s}.desc`], `${code}: scoring.${s}`);
@@ -123,6 +124,20 @@ test('closest wins: closest team scores, spot on doubles', () => {
   r2.game.answer(r2.ids[0], 7);
   r2.game.answer(r2.ids[1], 8);
   assert.equal(r2.game.teams.get(r2.ids[0]).score, 6);
+});
+
+test('closest: numbers are read the way people type them', () => {
+  const { game, ids, go } = play({ type: 'closest', questions: [{ question: 'Q', answer: 1500 }] }, { teams: ['A', 'B', 'C'] });
+  go();
+  game.answer(ids[0], '1.500');
+  game.answer(ids[1], '1,4');
+  game.answer(ids[2], '1 450');
+  assert.deepEqual([...game.teams.values()].map(t => t.answer), [1500, 1.4, 1450]);
+  assert.deepEqual(scores(game), [4, 0, 0], 'spot on doubles');
+  const t = rounds.get('closest');
+  assert.equal(t.parse('1.375', { answer: 1.2 }), 1.375, 'a small answer reads a point as a decimal point');
+  assert.equal(t.parse('8.849', { answer: 8849 }), 8849);
+  assert.equal(t.parse('abc', { answer: 1 }), undefined);
 });
 
 test('picture round needs a picture and plays as buttons or typed', () => {
@@ -235,6 +250,28 @@ test('last team standing: a miss and you are out for the round', () => {
   assert.deepEqual(scores(game), [2, 0]);
 });
 
+test('last team standing: when every team is out, the round ends instead of running empty questions', () => {
+  const { game, ids, go } = play({ type: 'lastStanding', questions: [ch('Q1'), ch('Q2'), ch('Q3')] }, { teams: ['A', 'B'] });
+  go();
+  game.answer(ids[0], 1);
+  game.answer(ids[1], 2);
+  assert.equal(game.phase, 'reveal');
+  go();
+  assert.equal(game.phase, 'scoreboard', 'nobody left to play: straight to the scoreboard');
+  game.back();
+  assert.equal(game.phase, 'reveal', 'undo still works');
+});
+
+test('a played-in round is not cut short: with one team still in, the questions go on', () => {
+  const { game, ids, go } = play({ type: 'lastStanding', questions: [ch('Q1'), ch('Q2')] }, { teams: ['A', 'B'] });
+  go();
+  game.answer(ids[0], 0);
+  game.answer(ids[1], 2);
+  go();
+  assert.equal(game.phase, 'question');
+  assert.equal(game.screenState().teams.filter(t => !t.out).length, 1, 'the answered counter only counts teams still in');
+});
+
 test('push your luck: pots double, banking keeps them, a miss empties', () => {
   const { game, ids, go } = play({ type: 'pushYourLuck', questions: [ch('Q1'), ch('Q2'), ch('Q3'), ch('Q4')] }, { teams: ['A', 'B'] });
   go();
@@ -262,6 +299,17 @@ test('steal: right teams take points from the leader', () => {
   assert.deepEqual(scores(game), [1, 2, 2]);
   game.judge(ids[2], false);
   assert.deepEqual(scores(game), [3, 2, 0], 'the quizmaster can overrule and the steal follows');
+});
+
+test('steal: with many right teams the leader loses at most three times the points per question', () => {
+  const names = ['Lead', 'B', 'C', 'D', 'E', 'F', 'G'];
+  const { game, ids, go } = play({ type: 'steal', questions: [{ question: 'Q', answer: 'Lima', points: 2 }] }, { teams: names });
+  game.adjustScore(ids[0], 20);
+  go();
+  ids.forEach((id, i) => game.answer(id, i === 0 ? 'Paris' : 'Lima'));
+  assert.equal(game.phase, 'reveal');
+  assert.equal(game.teams.get(ids[0]).score, 20 - 3 * 2, 'six thieves, but only three times the points');
+  assert.ok(ids.slice(1).every(id => game.teams.get(id).score === 2), 'every thief still scores');
 });
 
 test('pick your level: every team plays its own question for 1, 2 or 3 times the points', () => {
@@ -310,6 +358,18 @@ test('crowd mind: the most common answer scores', () => {
   game.answer(ids[2], 'Kiwi');
   assert.deepEqual(scores(game), [2, 2, 0]);
   assert.equal(game.screenState().reveal.answerText, 'Apple');
+});
+
+test('crowd mind: a typo or a plural counts as the same answer', () => {
+  const { game, ids, go } = play({ type: 'crowdMind', questions: [{ question: 'Name a food' }] }, { teams: ['A', 'B', 'C', 'D', 'E'] });
+  go();
+  game.answer(ids[0], 'Pizza');
+  game.answer(ids[1], "pizza's");
+  game.answer(ids[2], 'Pizzas');
+  game.answer(ids[3], 'Fries');
+  game.answer(ids[4], 'Fris');
+  assert.deepEqual(scores(game), [2, 2, 2, 0, 0]);
+  assert.equal(game.screenState().reveal.answerText, 'Pizza');
 });
 
 test('caption this: entries go on a ballot, every vote is worth the points, no voting for yourself', () => {
@@ -528,6 +588,20 @@ test('jackpot: bet first, then answer; wrong loses the bet', () => {
   game.answer(ids[0], 'hops');
   game.answer(ids[1], 'malt');
   assert.deepEqual([...game.teams.values()].map(t => t.score), [20, -4]);
+});
+
+test('jackpot: the quizmaster can overrule a typo, so a bet is never lost on spelling', () => {
+  const { game, ids, go } = play({ type: 'jackpot', questions: [{ category: 'Beer', question: 'Q', answer: 'Hops', points: 5 }] });
+  game.adjustScore(ids[0], 10);
+  go();
+  game.setWager(ids[0], 8);
+  go();
+  game.answer(ids[0], 'the hop plant');
+  game.answer(ids[1], 'malt');
+  assert.equal(game.teams.get(ids[0]).score, 2);
+  assert.equal(game.hostState().canJudge, true);
+  game.judge(ids[0], true);
+  assert.equal(game.teams.get(ids[0]).score, 18);
 });
 
 test('twists: double, underdog, blackout, lockdown', () => {

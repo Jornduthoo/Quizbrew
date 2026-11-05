@@ -40,6 +40,7 @@
 //   ladder - the earlier you answer while the picture or clues unfold, the more points
 
 const SCORINGS = ['points', 'speed', 'race', 'risk', 'time', 'ladder'];
+const STEAL_MAX = 3; // steal: the leader loses at most this many times the points per question
 const TWISTS = ['double', 'lockdown', 'blackout', 'underdog', 'mysteryCategory', 'suddenDeath', 'shrinkingOptions', 'lifeline', 'silentRound'];
 const FAMILIES = ['classic', 'visual', 'audio', 'speed', 'strategy', 'party', 'puzzle', 'special', 'clock'];
 
@@ -327,6 +328,27 @@ function voteScore(entries, q, base, ctx) {
   return entries.map(e => ({ points: pts.get(e.id), correct: right.get(e.id) }));
 }
 
+// Crowd mind: answers that mean the same go together, even with a typo or as a plural ("Pizza", "pizza's", "piza").
+// Returns per answer the index of its group (-1 for no answer), the size of every group and the most typed spelling.
+const crowdKey = v => { const k = normalize(v).replace(/\s+/g, ''); return k.length > 3 ? k.replace(/(s|es|en)$/, '') : k; };
+function crowdGroups(answers) {
+  const reps = [];
+  const sizes = [];
+  const spellings = [];
+  const group = answers.map(a => {
+    const k = typeof a === 'string' ? crowdKey(a) : '';
+    if (!k) return -1;
+    let g = reps.findIndex(r => r === k || distance(r, k) <= (Math.min(r.length, k.length) >= 9 ? 2 : Math.min(r.length, k.length) >= 5 ? 1 : 0));
+    if (g < 0) { g = reps.length; reps.push(k); sizes.push(0); spellings.push(new Map()); }
+    sizes[g]++;
+    const text = a.trim();
+    spellings[g].set(text, (spellings[g].get(text) || 0) + 1);
+    return g;
+  });
+  const texts = spellings.map(m => [...m.entries()].sort((x, y) => y[1] - x[1])[0][0]);
+  return { group, sizes, texts };
+}
+
 // Lists: every typed line is added to the team's list until time is up; "/" separates other spellings of an item.
 function listFound(given, q) {
   const items = list(q.items).map(it => it.split('/').map(x => x.trim()).filter(Boolean));
@@ -397,8 +419,16 @@ const TYPES = [
     fields: ['question', 'number', 'image', 'time', 'points'],
     scorings: [],
     validate(q, fail) { need.text(q, fail); if (!Number.isFinite(q.answer)) fail('needs a number as answer'); },
-    parse: raw => {
-      const n = typeof raw === 'number' ? raw : Number(String(raw).replace(/\s/g, '').replace(',', '.'));
+    // The phone sends what the team typed; read it the way people write numbers: "1.500" and "1,500" are 1500, "1,5" is 1.5.
+    // "1.375" can be either; the reading nearest to the right size wins (a team typing 1.375 litres means 1.375, not 1375).
+    parse: (raw, q) => {
+      let n = typeof raw === 'number' ? raw : typeof raw === 'string' && raw.length <= 40 ? num(raw) : NaN;
+      const m = typeof raw === 'string' && /^\s*(-?\d{1,3})[.,](\d{3})\s*$/.exec(raw);
+      if (m && q && Number.isFinite(q.answer)) {
+        const dec = Number(`${m[1]}.${m[2]}`);
+        const off = v => Math.abs(Math.log10(Math.max(Math.abs(v), 1e-9)) - Math.log10(Math.max(Math.abs(q.answer), 1e-9)));
+        if (off(dec) < off(n)) n = dec;
+      }
       return Number.isFinite(n) ? n : undefined;
     },
     publicQ: q => ({ unit: str(q.unit) }),
@@ -456,16 +486,17 @@ const TYPES = [
     fromAI: it => ({ clues: list(it.clues).slice(0, 6), answer: answerOf(it), accept: list(it.accept), question: '' }),
   },
   {
-    id: 'jackpot', family: 'special', ...textType, wager: true,
+    id: 'jackpot', family: 'special', ...textType, wager: true, judge: true,
     defaults: { time: 30, points: 5 },
     fields: ['category', 'question', 'answer', 'image', 'time', 'points'],
     scorings: [],
     validate(q, fail) { need.text(q, fail); need.answer(q, fail); },
     publicQ: q => ({ category: str(q.category) }),
     // Right = + the wager, wrong or no answer = - the wager.
-    score(entries, q) {
+    // The quizmaster can overrule a typo after the reveal (judge), so a bet is never lost on spelling.
+    score(entries, q, base, ctx) {
       return entries.map(e => {
-        const right = e.answer !== undefined && e.answer !== null && textMatches(e.answer, q);
+        const right = ctx.isRight(e);
         return { points: right ? e.wager : -e.wager, correct: right };
       });
     },
@@ -676,9 +707,10 @@ const TYPES = [
     fields: ['question', 'answer', 'image', 'time', 'points'],
     scorings: [],
     // Every right team scores, and takes those points from the leader (the leader can not go below zero this way).
+    // With many teams the leader loses at most three times the points per question, so one question never wipes out a lead.
     score: (entries, q, base, ctx) => {
       const right = entries.map(e => ctx.isRight(e));
-      const thieves = entries.filter((e, i) => right[i] && !ctx.leaders.includes(e.id)).length;
+      const thieves = Math.min(STEAL_MAX, entries.filter((e, i) => right[i] && !ctx.leaders.includes(e.id)).length);
       return entries.map((e, i) => {
         let points = right[i] ? base : 0;
         if (ctx.leaders.includes(e.id) && thieves) points -= Math.min(base * thieves, Math.max(0, e.score));
@@ -762,11 +794,10 @@ const TYPES = [
     revealQ: () => ({ answerText: '' }),
     // Think like the room: the teams with the most common answer score (at least two teams must agree).
     score(entries, q, base) {
-      const groups = new Map();
-      for (const e of entries) if (e.answer) { const k = normalize(e.answer); groups.set(k, (groups.get(k) || 0) + 1); }
-      const top = Math.max(0, ...groups.values());
-      return entries.map(e => {
-        const ok = !!e.answer && top >= 2 && groups.get(normalize(e.answer)) === top;
+      const { group, sizes } = crowdGroups(entries.map(e => e.answer));
+      const top = Math.max(0, ...sizes);
+      return entries.map((e, i) => {
+        const ok = group[i] >= 0 && top >= 2 && sizes[group[i]] === top;
         return { points: ok ? base : 0, correct: ok };
       });
     },
@@ -1121,4 +1152,4 @@ function catalog() {
   };
 }
 
-module.exports = { typeFrom, num, yesNo, choicesOf, correctOf, pairsOf, listLoose, textOf, twistFits, CHOICE_TWISTS, isTurn, listFound, permutation, pointDistance, TYPES, SCORINGS, TWISTS, FAMILIES, get, kindOf, stepsOf, withDefaults, catalog, normalize, textMatches, scramble, list, str };
+module.exports = { crowdGroups, typeFrom, num, yesNo, choicesOf, correctOf, pairsOf, listLoose, textOf, twistFits, CHOICE_TWISTS, isTurn, listFound, permutation, pointDistance, TYPES, SCORINGS, TWISTS, FAMILIES, get, kindOf, stepsOf, withDefaults, catalog, normalize, textMatches, scramble, list, str };
