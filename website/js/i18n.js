@@ -81,6 +81,7 @@ window.QB_TEXT = {
     'faq.7.a': 'No. You pay once and Quizbrew is yours.',
     'foot.line': 'Quiz night on your own network.',
     'foot.contact': 'Questions? Mail',
+    'foot.privacy': 'Privacy',
     'lang.label': 'Language',
   },
 
@@ -164,6 +165,7 @@ window.QB_TEXT = {
     'faq.7.a': 'Nee. Je betaalt één keer en Quizbrew is van jou.',
     'foot.line': 'Quizavond op je eigen netwerk.',
     'foot.contact': 'Vragen? Mail',
+    'foot.privacy': 'Privacy',
     'lang.label': 'Taal',
   },
 
@@ -247,6 +249,7 @@ window.QB_TEXT = {
     'faq.7.a': 'Non. Tu paies une fois et Quizbrew est à toi.',
     'foot.line': 'La soirée quiz sur ton propre réseau.',
     'foot.contact': 'Des questions ? Écris à',
+    'foot.privacy': 'Confidentialité',
     'lang.label': 'Langue',
   },
 
@@ -330,6 +333,7 @@ window.QB_TEXT = {
     'faq.7.a': 'Nein. Du zahlst einmal, und Quizbrew gehört dir.',
     'foot.line': 'Quizabend in deinem eigenen Netzwerk.',
     'foot.contact': 'Fragen? Schreib an',
+    'foot.privacy': 'Datenschutz',
     'lang.label': 'Sprache',
   },
 
@@ -413,6 +417,7 @@ window.QB_TEXT = {
     'faq.7.a': 'No. Pagas una vez y Quizbrew es tuyo.',
     'foot.line': 'Noche de quiz en tu propia red.',
     'foot.contact': '¿Preguntas? Escribe a',
+    'foot.privacy': 'Privacidad',
     'lang.label': 'Idioma',
   },
 };

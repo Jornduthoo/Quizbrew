@@ -24,7 +24,7 @@ foreach ($png in 'Square44x44Logo', 'Square150x150Logo', 'Wide310x150Logo', 'Sto
 
 $manifest = Get-Content (Join-Path $PSScriptRoot 'AppxManifest.xml') -Raw
 $manifest = $manifest.Replace('{{IDENTITY_NAME}}', $store.identityName).Replace('{{PUBLISHER}}', $store.publisher).Replace('{{PUBLISHER_DISPLAY_NAME}}', $store.publisherDisplayName).Replace('{{VERSION}}', $version)
-if ($manifest -match '\{\{') { throw 'AppxManifest.xml still has a {{...}} value.' }
+if ($manifest -match '\{\{[A-Z_]+\}\}') { throw "AppxManifest.xml still has $($Matches[0])" }
 [IO.File]::WriteAllText((Join-Path $layout 'AppxManifest.xml'), $manifest, (New-Object Text.UTF8Encoding $false))
 
 $makeappx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\makeappx.exe" | Sort-Object FullName -Descending | Select-Object -First 1
