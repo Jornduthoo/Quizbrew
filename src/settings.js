@@ -1,8 +1,9 @@
-// Small settings file next to the app (data/settings.json). Only the host language for now.
+// Small settings file next to the app (data/settings.json). The installed Windows app keeps it in
+// %LOCALAPPDATA%\Quizbrew instead (QUIZBREW_DATA), because Program Files and the Store package are read-only.
 const fs = require('fs');
 const path = require('path');
 
-function create(dir = path.join(__dirname, '..', 'data')) {
+function create(dir = process.env.QUIZBREW_DATA || path.join(__dirname, '..', 'data')) {
   const file = path.join(dir, 'settings.json');
   let values = {};
   try { values = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* first start */ }

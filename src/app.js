@@ -709,7 +709,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
 
   return {
     app, io, server, game, remoteKey, cloud, license,
-    listen: () => new Promise(resolve => server.listen(port, () => resolve(server.address().port))),
+    listen: (p = port) => new Promise(resolve => server.listen(p, () => resolve(server.address().port))),
     close: () => new Promise(resolve => { clearInterval(cloudTimer); clearTimeout(cloudSoon); clearTimeout(saveSoon); game.reset(); io.close(); server.close(() => resolve()); }),
   };
 }

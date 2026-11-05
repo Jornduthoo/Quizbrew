@@ -1,5 +1,13 @@
 {
   "app.name": "Quizbrew",
+  "desktop.running": "Quizbrew draait.",
+  "desktop.host": "Quizmaster",
+  "desktop.screen": "Groot scherm",
+  "desktop.players": "Spelers",
+  "desktop.keepOpen": "Laat dit venster open tijdens de quiz. Sluit het om Quizbrew te stoppen.",
+  "desktop.noNetwork": "Geen netwerk gevonden. Verbind deze laptop met wifi of een hotspot, zodat gsm's kunnen meedoen.",
+  "desktop.already": "Quizbrew draait al. We openen het in je browser.",
+  "desktop.noPort": "Quizbrew kon niet starten: poorten {from} tot {to} zijn allemaal bezet. Sluit andere programma's en probeer opnieuw.",
   "brand.madeWith": "Gemaakt met",
   "brand.yourOwn": "Zelf een quizavond? In seconden gebrouwen.",
   "brand.site": "quizbrew.app",

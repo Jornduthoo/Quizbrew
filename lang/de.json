@@ -1,5 +1,13 @@
 {
   "app.name": "Quizbrew",
+  "desktop.running": "Quizbrew läuft.",
+  "desktop.host": "Quizmaster",
+  "desktop.screen": "Großer Bildschirm",
+  "desktop.players": "Spieler",
+  "desktop.keepOpen": "Lass dieses Fenster während des Quiz offen. Schließe es, um Quizbrew zu beenden.",
+  "desktop.noNetwork": "Kein Netzwerk gefunden. Verbinde diesen Laptop mit WLAN oder einem Hotspot, damit Handys mitspielen können.",
+  "desktop.already": "Quizbrew läuft schon. Es öffnet sich in deinem Browser.",
+  "desktop.noPort": "Quizbrew konnte nicht starten: Die Ports {from} bis {to} sind alle belegt. Schließe andere Programme und versuche es erneut.",
   "brand.madeWith": "Gemacht mit",
   "brand.yourOwn": "Dein eigener Quizabend? In Sekunden gebraut.",
   "brand.site": "quizbrew.app",

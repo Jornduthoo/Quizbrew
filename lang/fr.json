@@ -1,5 +1,13 @@
 {
   "app.name": "Quizbrew",
+  "desktop.running": "Quizbrew est lancé.",
+  "desktop.host": "Animateur",
+  "desktop.screen": "Grand écran",
+  "desktop.players": "Joueurs",
+  "desktop.keepOpen": "Laissez cette fenêtre ouverte pendant le quiz. Fermez-la pour arrêter Quizbrew.",
+  "desktop.noNetwork": "Aucun réseau trouvé. Connectez ce portable au wifi ou à un point d'accès pour que les téléphones puissent rejoindre.",
+  "desktop.already": "Quizbrew tourne déjà. Ouverture dans votre navigateur.",
+  "desktop.noPort": "Quizbrew n'a pas pu démarrer : les ports {from} à {to} sont tous occupés. Fermez d'autres programmes et réessayez.",
   "brand.madeWith": "Créé avec",
   "brand.yourOwn": "Votre propre soirée quiz ? Prête en quelques secondes.",
   "brand.site": "quizbrew.app",
