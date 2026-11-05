@@ -1,13 +1,14 @@
 // The installed Windows app (Quizbrew.exe, from the installer or the Microsoft Store) starts here.
 // Quizbrew.exe is Node itself with a tiny start script (desktop/sea-main.js) that loads this file from app\.
 // It keeps the quizzes and settings in %LOCALAPPDATA%\Quizbrew, finds a free port, opens the quizmaster
-// screen in the browser, and keeps a small window open: closing that window stops Quizbrew.
+// screen in the browser and runs without a window of its own (Quizbrew.exe is a Windows app, not a console app):
+// the quizmaster stops it with "Quit Quizbrew" in the settings. What it would have printed goes to quizbrew.log.
 // A second start while Quizbrew already runs only opens the browser again.
 const os = require('os');
 const path = require('path');
 const http = require('http');
 const fs = require('fs');
-const { spawn } = require('child_process');
+const { spawn, execFile } = require('child_process');
 const Store = require('./store');
 
 // Port 3000 is often taken (LANcelot, dev servers), so the installed app starts at 3001.
@@ -72,7 +73,15 @@ function language(settings, i18n) {
   return i18n.isSupported(sys) ? sys : i18n.DEFAULT;
 }
 
-async function start({ env = process.env, open = true, log = console.log, ports } = {}) {
+// A short message in a Windows dialog box (there is no console window to print it in).
+function messageBox(text) {
+  if (process.platform !== 'win32') return Promise.resolve();
+  const ps = `Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show($env:QB_MSG, 'Quizbrew') | Out-Null`;
+  return new Promise(resolve => execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps],
+    { windowsHide: true, env: { ...process.env, QB_MSG: text } }, () => resolve()));
+}
+
+async function start({ env = process.env, open = true, log = console.log, ports, onQuit = null, alert = null } = {}) {
   env.QUIZBREW_DATA = dataDir(env);
   process.env.QUIZBREW_DATA = env.QUIZBREW_DATA;
   const appDir = path.join(__dirname, '..');
@@ -105,11 +114,15 @@ async function start({ env = process.env, open = true, log = console.log, ports 
     }
   }
 
-  const qb = createServer({ port: ports[0], settings, ...(license ? { license } : {}) });
+  let qb = null;
+  const quit = onQuit && (() => onQuit(qb));
+  qb = createServer({ port: ports[0], settings, ...(license ? { license } : {}), ...(quit ? { onQuit: quit } : {}) });
   const port = await listenFree(qb.server, ports);
   if (!port) {
-    log(`\n  ${fill(t['desktop.noPort'], { from: ports[0], to: ports[ports.length - 1] })}\n`);
+    const msg = fill(t['desktop.noPort'], { from: ports[0], to: ports[ports.length - 1] });
+    log(`\n  ${msg}\n`);
     await qb.close().catch(() => {});
+    if (alert) await alert(msg);
     return { failed: true };
   }
 
@@ -123,17 +136,30 @@ async function start({ env = process.env, open = true, log = console.log, ports 
   return { port, close: () => qb.close() };
 }
 
+// Everything Quizbrew prints also goes to quizbrew.log in the data folder (there is no window to show it).
+function logTo(file) {
+  let out = null;
+  try { fs.mkdirSync(path.dirname(file), { recursive: true }); out = fs.openSync(file, 'w'); } catch { /* no log then */ }
+  return (...args) => {
+    const line = args.map(a => (a instanceof Error ? a.stack : String(a))).join(' ');
+    try { console.log(line); } catch { /* no console */ }
+    if (out !== null) try { fs.writeSync(out, line + '\n'); } catch { /* disk full */ }
+  };
+}
+
 function main() {
   process.title = 'Quizbrew';
-  process.on('uncaughtException', err => console.error('Unexpected error:', err));
-  process.on('unhandledRejection', err => console.error('Unexpected error:', err));
+  const log = logTo(path.join(dataDir(), 'quizbrew.log'));
+  process.on('uncaughtException', err => log('Unexpected error:', err));
+  process.on('unhandledRejection', err => log('Unexpected error:', err));
   // QUIZBREW_NO_BROWSER=1 starts without opening the browser (the Windows build test uses it).
-  return start({ open: !process.env.QUIZBREW_NO_BROWSER }).then(r => {
-    // A second start only opened the browser: close this window again after a moment.
-    if (r.already || r.failed) setTimeout(() => process.exit(r.failed ? 1 : 0), r.failed ? 15000 : 1500);
+  const onQuit = qb => { log('Quit from the quizmaster screen.'); qb.close().catch(() => {}).finally(() => process.exit(0)); setTimeout(() => process.exit(0), 3000).unref(); };
+  return start({ open: !process.env.QUIZBREW_NO_BROWSER, log, onQuit, alert: messageBox }).then(r => {
+    // A second start only opened the browser: stop this one again after a moment.
+    if (r.already || r.failed) setTimeout(() => process.exit(r.failed ? 1 : 0), 1500);
   });
 }
 
-module.exports = { start, main, dataDir, isQuizbrew, listenFree, FIRST_PORT, LAST_PORT };
+module.exports = { start, main, dataDir, isQuizbrew, listenFree, logTo, FIRST_PORT, LAST_PORT };
 
 if (require.main === module) main();

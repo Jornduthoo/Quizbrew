@@ -98,6 +98,22 @@ async function brand(exe) {
   return Buffer.from(pe.generate());
 }
 
+// Make the exe a Windows app instead of a console app, so no black window opens (the PE header's Subsystem
+// field: 3 = console, 2 = Windows GUI). Node itself does not mind: without a console, printing goes nowhere.
+const SUBSYSTEM_GUI = 2;
+function subsystemAt(exe) {
+  if (exe.readUInt16LE(0) !== 0x5a4d) throw new Error('not an exe');
+  const pe = exe.readUInt32LE(0x3c);
+  if (exe.readUInt32LE(pe) !== 0x4550) throw new Error('no PE header');
+  return pe + 24 + 68;
+}
+function windowsApp(exe) {
+  const out = Buffer.from(exe);
+  out.writeUInt16LE(SUBSYSTEM_GUI, subsystemAt(out));
+  return out;
+}
+const subsystem = exe => exe.readUInt16LE(subsystemAt(exe));
+
 async function seaBlob() {
   const work = path.join(DIST, 'sea');
   fs.mkdirSync(work, { recursive: true });
@@ -116,12 +132,12 @@ async function build() {
   fs.writeFileSync(target, await nodeExe());
   const { inject } = require('postject');
   await inject(target, 'NODE_SEA_BLOB', await seaBlob(), { sentinelFuse: FUSE, overwrite: true });
-  fs.writeFileSync(target, await brand(fs.readFileSync(target)));
+  fs.writeFileSync(target, windowsApp(await brand(fs.readFileSync(target))));
   fs.copyFileSync(path.join(__dirname, 'assets', 'icon.ico'), path.join(OUT, 'Quizbrew.ico'));
   fs.writeFileSync(path.join(DIST, 'version.txt'), winVersion().join('.'));
   console.log(`Done: ${OUT}`);
 }
 
-module.exports = { winVersion, SHIP };
+module.exports = { winVersion, SHIP, windowsApp, subsystem };
 
 if (require.main === module) build().catch(err => { console.error(err); process.exit(1); });

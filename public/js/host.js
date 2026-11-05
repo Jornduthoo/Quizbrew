@@ -243,6 +243,17 @@
   }
   if ($('#samples-restore')) $('#samples-restore').addEventListener('click', () => act(() => manage('/library/restore-samples', {})));
 
+  // The installed Windows app has no window of its own: it stops from here.
+  if ($('#settings-quit')) {
+    fetch('/api/host/app').then(r => r.json()).then(a => { $('#settings-quit-row').hidden = !(a && a.quit); }).catch(() => {});
+    $('#settings-quit').addEventListener('click', async () => {
+      if (!confirm(t('desktop.quitAsk'))) return;
+      try { await fetch('/api/host/quit', { method: 'POST' }); } catch { /* it may already be gone */ }
+      socket.disconnect();
+      document.body.replaceChildren(h('main', { class: 'quit-done' }, h('h1', {}, 'Quizbrew'), h('p', {}, t('desktop.closed'))));
+    });
+  }
+
   function renderQuizzes() {
     const { samples, library, ratings } = allQuizzes;
     const search = $('#quiz-search');

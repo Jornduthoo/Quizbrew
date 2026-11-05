@@ -8,7 +8,7 @@ const path = require('path');
 const net = require('net');
 
 const launcher = require('../desktop/launcher');
-const { winVersion, SHIP } = require('../desktop/build');
+const { winVersion, SHIP, windowsApp, subsystem } = require('../desktop/build');
 const Settings = require('../src/settings');
 const Library = require('../src/library');
 
@@ -63,10 +63,57 @@ test('the starter says so when every port is taken', async () => {
   await new Promise(r => blocker.once('listening', r));
   const lines = [];
   try {
-    const r = await launcher.start({ env: { QUIZBREW_DATA: tmp() }, open: false, log: l => lines.push(l), ports: [busy] });
+    const shown = [];
+    const r = await launcher.start({ env: { QUIZBREW_DATA: tmp() }, open: false, log: l => lines.push(l), ports: [busy], alert: async m => shown.push(m) });
     assert.deepEqual(r, { failed: true });
     assert.match(lines.join('\n'), new RegExp(String(busy)));
+    assert.equal(shown.length, 1, 'there is no console window, so a dialog box says it');
+    assert.match(shown[0], new RegExp(String(busy)));
   } finally { blocker.close(); }
+});
+
+test('the Windows app stops from the settings, and other servers have no quit button', async () => {
+  const port = await freePort();
+  let quitWith = null;
+  const r = await launcher.start({ env: { QUIZBREW_DATA: tmp() }, open: false, log: quiet, ports: [port], onQuit: qb => { quitWith = qb; } });
+  try {
+    const base = `http://127.0.0.1:${port}/api/host`;
+    assert.deepEqual(await (await fetch(`${base}/app`)).json(), { quit: true });
+    assert.deepEqual(await (await fetch(`${base}/quit`, { method: 'POST' })).json(), { ok: true });
+    await new Promise(res => setTimeout(res, 500));
+    assert.ok(quitWith && typeof quitWith.close === 'function', 'quit gets the server to close');
+  } finally { await r.close(); }
+
+  const { createServer } = require('../src/app');
+  const qb = createServer({ port: 0, settings: { get: () => undefined, set: () => {} }, library: Library.create(tmp()) });
+  const p2 = await qb.listen();
+  try {
+    assert.deepEqual(await (await fetch(`http://127.0.0.1:${p2}/api/host/app`)).json(), { quit: false });
+    assert.equal((await fetch(`http://127.0.0.1:${p2}/api/host/quit`, { method: 'POST' })).status >= 400, true);
+  } finally { await qb.close(); }
+});
+
+test('the log file keeps what the app would have printed', () => {
+  const file = path.join(tmp(), 'sub', 'quizbrew.log');
+  const log = launcher.logTo(file);
+  log('Quizbrew is running.', 3001);
+  log(new Error('boom'));
+  const text = fs.readFileSync(file, 'utf8');
+  assert.match(text, /Quizbrew is running\. 3001/);
+  assert.match(text, /Error: boom/);
+});
+
+test('Quizbrew.exe is made a Windows app, so no console window opens', () => {
+  const exe = Buffer.alloc(0x200);
+  exe.writeUInt16LE(0x5a4d, 0);
+  exe.writeUInt32LE(0x80, 0x3c);
+  exe.writeUInt32LE(0x4550, 0x80);
+  exe.writeUInt16LE(3, 0x80 + 24 + 68);
+  assert.equal(subsystem(exe), 3);
+  const out = windowsApp(exe);
+  assert.equal(subsystem(out), 2);
+  assert.equal(subsystem(exe), 3, 'the original is left alone');
+  assert.throws(() => windowsApp(Buffer.alloc(0x200)), /not an exe/);
 });
 
 test('Windows versions have four numbers', () => {

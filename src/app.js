@@ -64,7 +64,7 @@ function readQuizFile(text) {
   return { ...quiz, rounds: out };
 }
 
-function createServer({ port = 3000, settings = Settings.create(), library = Library.create(), lanAddresses = null, interfaces = null, hostFromAnywhere = false, cloudEvery = 60000, webFetch = globalThis.fetch, license = null } = {}) {
+function createServer({ port = 3000, settings = Settings.create(), library = Library.create(), lanAddresses = null, interfaces = null, hostFromAnywhere = false, cloudEvery = 60000, webFetch = globalThis.fetch, license = null, onQuit = null } = {}) {
   const app = express();
   const server = http.createServer(app);
   const io = new Server(server, { serveClient: true, pingInterval: 10000, pingTimeout: 8000, maxHttpBufferSize: 3e6 });
@@ -473,6 +473,13 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   api.post('/ai/prompt', handle(req => { const o = aiDemo(req.body); return { prompt: o.whole ? Ai.quizPrompt(o) : Ai.roundPrompt(o) }; }));
   api.post('/ai/parse', handle(req => aiDemoOut(req.body.whole ? { quiz: Ai.parseQuiz(req.body.text) } : { questions: Ai.parseRound(req.body.text, req.body.type) })));
   api.post('/ai/generate', handle(async req => { const o = aiDemo(req.body); return aiDemoOut(o.whole ? { quiz: await ai.generateQuiz(o) } : { questions: await ai.generateRound(o) }); }));
+  // The installed Windows app runs without a window: the quizmaster stops it from the settings.
+  api.get('/app', handle(() => ({ quit: !!onQuit })));
+  api.post('/quit', handle(() => {
+    if (!onQuit) throw new Error('error.generic');
+    setTimeout(onQuit, 300);
+    return { ok: true };
+  }));
   app.use('/api/host', api);
 
   app.get('/lang/:code.json', (req, res) => {

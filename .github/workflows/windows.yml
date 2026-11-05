@@ -47,8 +47,23 @@ jobs:
           . desktop\test\smoke.ps1
           $env:QUIZBREW_NO_BROWSER = '1'
           $env:QUIZBREW_DATA = Join-Path $env:RUNNER_TEMP 'qb-data'
-          $p = Start-Process dist\windows\Quizbrew\Quizbrew.exe -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP\exe.log"
-          try { Wait-Quizbrew 3001 } finally { Get-Content "$env:RUNNER_TEMP\exe.log"; Stop-Process -Id $p.Id -Force }
+          # A Windows app, not a console app: no black window opens.
+          $sub = node -e "console.log(require('./desktop/build').subsystem(require('fs').readFileSync('dist/windows/Quizbrew/Quizbrew.exe')))"
+          if ($sub -ne '2') { throw "Quizbrew.exe has subsystem $sub, not 2 (Windows app)" }
+          $p = Start-Process dist\windows\Quizbrew\Quizbrew.exe -PassThru
+          try {
+            Wait-Quizbrew 3001
+            $app = Invoke-RestMethod 'http://127.0.0.1:3001/api/host/app'
+            if (-not $app.quit) { throw 'The quizmaster screen has no quit button' }
+            # "Quit Quizbrew" in the settings stops it.
+            Invoke-RestMethod 'http://127.0.0.1:3001/api/host/quit' -Method Post | Out-Null
+            if (-not $p.WaitForExit(15000)) { throw 'Quizbrew did not stop after Quit' }
+            Write-Host "Stopped with exit code $($p.ExitCode)"
+          } finally {
+            Get-Content (Join-Path $env:QUIZBREW_DATA 'quizbrew.log') -ErrorAction SilentlyContinue
+            if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
+          }
+          if (-not (Test-Path (Join-Path $env:QUIZBREW_DATA 'quizbrew.log'))) { throw 'No quizbrew.log' }
 
       - name: Make the installer
         shell: pwsh
@@ -118,6 +133,10 @@ jobs:
             # Windows counts a sideloaded (test) install as a full licence, so it reads "bought" here;
             # the trial only exists for copies installed from the Store.
             if (-not $lic.storeState.bought) { throw 'Windows gave a licence answer but Quizbrew did not read it' }
+            Invoke-RestMethod 'http://127.0.0.1:3001/api/host/quit' -Method Post | Out-Null
+            $gone = $false
+            for ($i = 0; $i -lt 15; $i++) { if (-not (Get-Process Quizbrew -ErrorAction SilentlyContinue)) { $gone = $true; break }; Start-Sleep 1 }
+            if (-not $gone) { throw 'The Store version did not stop after Quit' }
           } finally {
             Get-Process Quizbrew -ErrorAction SilentlyContinue | Stop-Process -Force
             Remove-AppxPackage $pkg.PackageFullName
