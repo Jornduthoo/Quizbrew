@@ -319,9 +319,11 @@ function voteScore(entries, q, base, ctx) {
       continue;
     }
     const b = Number.isInteger(e.vote) ? ballot[e.vote] : null;
-    if (!b || b.teamId === e.id) continue;
-    if (ctx.vote === 'truth' && b.teamId === null) { pts.set(e.id, pts.get(e.id) + base); right.set(e.id, true); }
-    else if (b.teamId && pts.has(b.teamId)) { pts.set(b.teamId, pts.get(b.teamId) + base); right.set(b.teamId, true); }
+    const authors = b ? (b.teams || (b.teamId ? [b.teamId] : [])) : [];
+    if (!b || authors.includes(e.id)) continue;
+    if (ctx.vote === 'truth' && b.truth) { pts.set(e.id, pts.get(e.id) + base); right.set(e.id, true); }
+    // Fooled by a bluff: its writers score (the same bluff from two teams: both); a house bluff scores nobody.
+    for (const a of authors) if (pts.has(a)) { pts.set(a, pts.get(a) + base); right.set(a, true); }
   }
   return entries.map(e => ({ points: pts.get(e.id), correct: right.get(e.id) }));
 }
@@ -833,16 +835,16 @@ const TYPES = [
   {
     id: 'bluffBank', family: 'party', kind: 'text', vote: 'truth',
     defaults: { time: 45, points: 1 },
-    fields: ['question', 'answer', 'image', 'time', 'points'],
+    fields: ['question', 'answer', 'decoys', 'image', 'time', 'points'],
     scorings: [],
     validate(q, fail) { need.text(q, fail); need.answer(q, fail); },
-    // A bluff that is (almost) the real answer does not count.
+    // A bluff that is (almost) the real answer does not count. decoys: house bluffs that fill a small ballot up.
     parse: (raw, q) => (typeof raw === 'string' && raw.trim() && !textMatches(raw, q) ? raw.trim().slice(0, 80) : undefined),
     publicQ: () => ({}),
     revealQ: q => ({ answerText: q.answer }),
     score: voteScore,
-    aiShape: '{"question": "an obscure but real fact as a question", "answer": "the surprising real answer"}  (the real answer should sound unlikely, so bluffs can compete)',
-    fromAI: it => ({ question: str(it.question), answer: answerOf(it) }),
+    aiShape: '{"question": "an obscure but real fact as a question", "answer": "the surprising real answer", "decoys": ["3 believable fake answers in the same style and length"]}  (the real answer should sound unlikely, so bluffs can compete)',
+    fromAI: it => ({ question: str(it.question), answer: answerOf(it), decoys: list(it.decoys).slice(0, 4) }),
   },
   {
     id: 'actItOut', family: 'party', kind: 'text', judge: true, actor: true,

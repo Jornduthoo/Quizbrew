@@ -482,6 +482,7 @@
       input(t('builder.f.answer'), q.answer, v => set('answer', v), { el: { maxlength: 80 } }),
       input(t('builder.f.accept'), (q.accept || []).join(' | '), v => set('accept', v.split('|').map(s => s.trim()).filter(Boolean)), { el: { maxlength: 200, placeholder: t('builder.f.acceptHint') } }),
     ],
+    decoys: (q, set) => input(t('builder.f.decoys'), (q.decoys || []).join(' | '), v => set('decoys', v.split('|').map(s => s.trim()).filter(Boolean).slice(0, 4)), { cls: 'wide', el: { maxlength: 240, placeholder: t('builder.f.decoysHint') } }),
     number: (q, set) => [
       input(t('builder.f.number'), q.answer, v => set('answer', v === '' ? null : Number(String(v).replace(',', '.'))), { el: { type: 'number', step: 'any' } }),
       input(t('builder.f.unit'), q.unit, v => set('unit', v), { el: { maxlength: 20 } }),

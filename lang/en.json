@@ -1098,5 +1098,13 @@
   "pro.locked.cloud": "Quiz folder in OneDrive or Google Drive",
   "pro.locked.aiImage": "Pictures made by AI",
   "pro.locked.ai": "AI questions without a limit, whole quiz nights at once",
-  "pro.locked.quizzes": "As many quizzes as you like (the demo keeps 3)"
+  "pro.locked.quizzes": "As many quizzes as you like (the demo keeps 3)",
+  "play.truthTyped": "That's the real answer! Make up a fake one.",
+  "screen.truthOnPhone": "Find the truth on your phone",
+  "screen.truthPerPhone": "{n} answers in play · every phone gets its own {k}",
+  "screen.houseBluff": "House bluff",
+  "screen.otherBluffs": "{n} other bluffs fooled {m} more",
+  "screen.otherBluffsNobody": "{n} other bluffs fooled nobody",
+  "builder.f.decoys": "House bluffs (optional)",
+  "builder.f.decoysHint": "fake answers that fill up a small game, separated by |"
 }

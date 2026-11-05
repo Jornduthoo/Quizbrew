@@ -1098,5 +1098,13 @@
   "pro.locked.cloud": "Dossier de quiz dans OneDrive ou Google Drive",
   "pro.locked.aiImage": "Images créées par l'IA",
   "pro.locked.ai": "Questions IA sans limite, des soirées entières d'un coup",
-  "pro.locked.quizzes": "Autant de quiz que vous voulez (la démo en garde 3)"
+  "pro.locked.quizzes": "Autant de quiz que vous voulez (la démo en garde 3)",
+  "play.truthTyped": "C'est la vraie réponse ! Inventez-en une fausse.",
+  "screen.truthOnPhone": "Trouvez la vérité sur votre téléphone",
+  "screen.truthPerPhone": "{n} réponses en jeu · chaque téléphone en reçoit {k}",
+  "screen.houseBluff": "Bluff de la maison",
+  "screen.otherBluffs": "{n} autres bluffs ont piégé {m} fois de plus",
+  "screen.otherBluffsNobody": "{n} autres bluffs n'ont piégé personne",
+  "builder.f.decoys": "Bluffs de la maison (facultatif)",
+  "builder.f.decoysHint": "fausses réponses pour compléter une petite partie, séparées par |"
 }

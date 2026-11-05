@@ -257,7 +257,7 @@ function lenient(str, start) {
 const QUESTION_KEYS = ['question', 'answer', 'statement', 'items', 'clues', 'category', 'levels', 'options', 'groups', 'pairs', 'captions', 'emoji', 'word'];
 const looksLikeQuestion = x => !!x && typeof x === 'object' && !Array.isArray(x) && QUESTION_KEYS.some(k => k in canon(x));
 // Lists inside one question (its answers, levels, options ...) are never the list of questions.
-const INSIDE_QUESTION = new Set(['answers', 'choices', 'options', 'levels', 'groups', 'pairs', 'items', 'clues', 'captions', 'words', 'accept', 'imagePrompts', 'imageSearches']);
+const INSIDE_QUESTION = new Set(['answers', 'choices', 'options', 'levels', 'groups', 'pairs', 'items', 'clues', 'captions', 'words', 'accept', 'decoys', 'imagePrompts', 'imageSearches']);
 
 // The first array of question-like objects anywhere in the data ("questions", "vragen", nested, ...).
 function findArray(data, key, depth = 0) {
@@ -285,13 +285,14 @@ const KEY_ALIASES = {
   hints: 'clues', emojis: 'emoji', clipstart: 'clipStart', starttime: 'clipStart', start: 'clipStart', maphint: 'mapHint',
   funfact: 'fact', didyouknow: 'fact', trivia: 'fact', extrafact: 'fact', weetje: 'fact', explanation: 'fact',
   roundtype: 'type', categories: 'categories',
+  bluffs: 'decoys', fakeanswers: 'decoys', fakes: 'decoys', lies: 'decoys', housebluffs: 'decoys', decoyanswers: 'decoys',
 };
 const canonKey = k => {
   const n = String(k).toLowerCase().replace(/[\s_-]/g, '');
   return KEY_ALIASES[n] || CANON_KEYS[n] || k;
 };
 const CANON_KEYS = Object.fromEntries(['question', 'answer', 'answers', 'correct', 'accept', 'unit', 'clues', 'category', 'items', 'pairs', 'levels', 'options', 'groups', 'link', 'words',
-  'captions', 'emoji', 'song', 'sound', 'clip', 'statement', 'hint', 'fact', 'type', 'title', 'questions', 'rounds', 'word', 'artist', 'choices', 'truth', 'left', 'right'].map(k => [k.toLowerCase(), k]));
+  'captions', 'emoji', 'song', 'sound', 'clip', 'statement', 'hint', 'fact', 'type', 'title', 'questions', 'rounds', 'word', 'artist', 'choices', 'truth', 'left', 'right', 'decoys'].map(k => [k.toLowerCase(), k]));
 function canon(v, depth = 0) {
   if (Array.isArray(v)) return depth > 5 ? v : v.map(x => canon(x, depth + 1));
   if (!v || typeof v !== 'object' || depth > 5) return v;

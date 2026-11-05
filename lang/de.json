@@ -1098,5 +1098,13 @@
   "pro.locked.cloud": "Quiz-Ordner in OneDrive oder Google Drive",
   "pro.locked.aiImage": "Bilder von der KI",
   "pro.locked.ai": "KI-Fragen ohne Limit, ganze Quizabende auf einmal",
-  "pro.locked.quizzes": "So viele Quiz wie du willst (die Demo behält 3)"
+  "pro.locked.quizzes": "So viele Quiz wie du willst (die Demo behält 3)",
+  "play.truthTyped": "Das ist die richtige Antwort! Erfinde eine falsche.",
+  "screen.truthOnPhone": "Finde die Wahrheit auf deinem Handy",
+  "screen.truthPerPhone": "{n} Antworten im Spiel · jedes Handy bekommt eigene {k}",
+  "screen.houseBluff": "Bluff des Hauses",
+  "screen.otherBluffs": "{n} weitere Bluffs haben noch {m}-mal getäuscht",
+  "screen.otherBluffsNobody": "{n} weitere Bluffs haben niemanden getäuscht",
+  "builder.f.decoys": "Bluffs des Hauses (optional)",
+  "builder.f.decoysHint": "falsche Antworten, die eine kleine Runde auffüllen, getrennt mit |"
 }

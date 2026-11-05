@@ -1098,5 +1098,13 @@
   "pro.locked.cloud": "Carpeta de quiz en OneDrive o Google Drive",
   "pro.locked.aiImage": "Imágenes creadas por IA",
   "pro.locked.ai": "Preguntas IA sin límite, noches de quiz enteras de una vez",
-  "pro.locked.quizzes": "Todos los quiz que quieras (la demo guarda 3)"
+  "pro.locked.quizzes": "Todos los quiz que quieras (la demo guarda 3)",
+  "play.truthTyped": "¡Esa es la respuesta real! Inventa una falsa.",
+  "screen.truthOnPhone": "Encuentra la verdad en tu móvil",
+  "screen.truthPerPhone": "{n} respuestas en juego · cada móvil recibe sus propias {k}",
+  "screen.houseBluff": "Farol de la casa",
+  "screen.otherBluffs": "{n} faroles más engañaron {m} veces",
+  "screen.otherBluffsNobody": "{n} faroles más no engañaron a nadie",
+  "builder.f.decoys": "Faroles de la casa (opcional)",
+  "builder.f.decoysHint": "respuestas falsas que completan una partida pequeña, separadas por |"
 }

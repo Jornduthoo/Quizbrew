@@ -409,6 +409,87 @@ test('bluff: find the truth, fool the others', () => {
   assert.equal(game.screenState().ballot.find(b => b.truth).content, 'Watching a coffee pot');
 });
 
+test('bluff: typing the real answer is no bluff, and the phone hears so', () => {
+  const { game, ids, go } = play({ type: 'bluffBank', questions: [{ question: 'What was the first webcam used for?', answer: 'Watching a coffee pot' }] }, { teams: ['A', 'B'] });
+  go();
+  assert.equal(game.answer(ids[0], 'Watching a coffee pot'), false);
+  assert.equal(game.teamState(ids[0]).truthTyped, true);
+  assert.equal(game.teamState(ids[1]).truthTyped, false);
+  assert.equal(game.answer(ids[0], 'Spying on a cat'), true);
+  assert.equal(game.teamState(ids[0]).truthTyped, false);
+});
+
+test('bluff: house bluffs fill a small ballot up and score nobody', () => {
+  const { game, ids, go } = play({ type: 'bluffBank', questions: [{ question: 'What was the first webcam used for?', answer: 'Watching a coffee pot',
+    decoys: ['Guarding a fish tank', 'watching a coffee pot', 'Counting birds', 'Timing a kettle', 'Reading a meter', 'Checking a door', 'Spotting rain'] }] }, { teams: ['A', 'B'] });
+  go();
+  game.answer(ids[0], 'Counting birds');
+  game.answer(ids[1], 'Spying on a cat');
+  const ballot = game.teamState(ids[0]).ballot;
+  // 2 bluffs + the truth + house bluffs up to 7 cards; the decoy that is the truth or a team's bluff is left out.
+  assert.equal(ballot.length, 7);
+  assert.equal(ballot.filter(b => /coffee pot/i.test(b.content)).length, 1);
+  assert.equal(ballot.filter(b => b.content === 'Counting birds').length, 1);
+  const idx = text => ballot.find(b => b.content === text).id;
+  game.castVote(ids[0], idx('Guarding a fish tank'));
+  game.castVote(ids[1], idx('Watching a coffee pot'));
+  assert.deepEqual(scores(game), [0, 1]);
+  const shown = game.screenState().ballot.find(b => b.content === 'Guarding a fish tank');
+  assert.equal(shown.house, true);
+  assert.equal(shown.by, null);
+});
+
+test('bluff: the same bluff from two teams is one card, and both score', () => {
+  const { game, ids, go } = play({ type: 'bluffBank', questions: [{ question: 'What was the first webcam used for?', answer: 'Watching a coffee pot' }] }, { teams: ['A', 'B', 'C'] });
+  go();
+  game.answer(ids[0], 'Spying on a cat');
+  game.answer(ids[1], 'spying on a cat!');
+  game.answer(ids[2], 'Counting birds');
+  const ballot = game.teamState(ids[2]).ballot;
+  assert.equal(ballot.length, 3);
+  const cat = ballot.find(b => /cat/.test(b.content)).id;
+  assert.equal(game.castVote(ids[1], cat), false, 'your own bluff, even if the other team wrote it first');
+  assert.equal(game.teamState(ids[1]).ballot.find(b => b.id === cat).mine, true);
+  game.castVote(ids[2], cat);
+  game.castVote(ids[0], ballot.find(b => b.content === 'Counting birds').id);
+  game.castVote(ids[1], ballot.find(b => b.content === 'Counting birds').id);
+  assert.deepEqual(scores(game), [1, 1, 2]);
+  const card = game.screenState().ballot.find(b => b.id === cat);
+  assert.equal(card.by.name, 'A');
+  assert.deepEqual(card.also.map(x => x.name), ['B']);
+});
+
+test('bluff with many teams: every phone gets its own short list with the truth, dealt evenly, never its own bluff', () => {
+  const names = Array.from({ length: 20 }, (_, i) => 'T' + i);
+  const clock = { now: () => 0, setTimeout: () => 0, clearTimeout() {} };
+  const game = new Game({ clock });
+  game.load({ title: 'T', rounds: [{ type: 'bluffBank', questions: [{ question: 'Q?', answer: 'The real one' }] }] });
+  const { TEAM_COLORS } = require('../src/teams');
+  const ids = names.map((n, i) => { const id = `team${i}bbbb`; assert.ok(game.join(id, n, TEAM_COLORS[i], 's' + i).ok); return id; });
+  game.next();
+  game.next();
+  ids.forEach((id, i) => game.answer(id, `Bluff number ${i}`));
+  assert.equal(game.phase, 'vote');
+  assert.equal(game.screenState().vote.personal, true);
+  assert.equal(game.screenState().ballot.length, 21);
+  const seen = new Map();
+  for (const id of ids) {
+    const mine = game.teamState(id).ballot;
+    assert.equal(mine.length, 6);
+    assert.equal(mine.filter(b => b.content === 'The real one').length, 1);
+    assert.equal(mine.filter(b => b.mine).length, 0);
+    for (const b of mine) seen.set(b.id, (seen.get(b.id) || 0) + 1);
+  }
+  const counts = [...seen.entries()].filter(([id]) => game.screenState().ballot[id].content !== 'The real one').map(([, n]) => n);
+  assert.equal(counts.length, 20, 'every bluff is on some phone');
+  assert.ok(Math.max(...counts) - Math.min(...counts) <= 1, 'dealt evenly');
+  // A vote outside your own list does not count.
+  const list = new Set(game.teamState(ids[0]).ballot.map(b => b.id));
+  const other = game.screenState().ballot.findIndex((b, i) => !list.has(i) && b.content !== 'Bluff number 0');
+  assert.equal(game.castVote(ids[0], other), false);
+  assert.equal(game.castVote(ids[0], [...list][0]), true);
+});
+
 test("who's who: match answers to teams by colour", () => {
   const { game, ids, go } = play({ type: 'whosWho', questions: [{ question: 'Our hidden talent' }] }, { teams: ['A', 'B', 'C'] });
   go();

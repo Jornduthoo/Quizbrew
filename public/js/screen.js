@@ -913,6 +913,44 @@
     startPager(grid, pager.key);
     showPage(grid, true);
   });
+  // Bluff reveal: the cards turn one by one. First every bluff that fooled nobody, then the bluffs that fooled the most,
+  // the truth last. Re-renders during the reveal keep the clock, so a card never turns twice.
+  const TURN_MS = Number(new URLSearchParams(location.search).get('turnms')) || 1600;
+  let stage = { key: '', t0: 0, timers: [] };
+  function turnCards(grid, key) {
+    stage.timers.forEach(clearTimeout);
+    if (stage.key !== key) stage = { key, t0: Date.now(), timers: [] };
+    stage.timers = [];
+    for (const c of grid.children) {
+      const at = stage.t0 + Number(c.dataset.step || 0) * TURN_MS - Date.now();
+      const turn = flip => {
+        c.classList.add('turned');
+        if (c.dataset.win) c.classList.add('win');
+        if (flip) c.classList.add('flip');
+        if (c.dataset.win && (flip || at > -400)) later(() => FX.sparksAt(c, { color: cssColor('--good'), count: 70 }), flip ? 350 : 300);
+      };
+      if (at <= 0) turn(false);
+      else stage.timers.push(setTimeout(() => { turn(true); fitBallot(); }, at));
+    }
+  }
+  // The cards for the bluff reveal: all of them on a small ballot (in ballot order, so the letters match the phones),
+  // the five that fooled the most on a big one; every card gets the step on which it turns.
+  function truthCards(s) {
+    const votes = b => (b.votes || []).length;
+    const fooled = s.ballot.filter(b => !b.truth && votes(b) > 0).sort((a, b) => votes(a) - votes(b) || a.id - b.id);
+    const big = s.vote.personal;
+    const shown = big ? [...fooled.slice(-5), ...s.ballot.filter(b => b.truth)] : s.ballot;
+    const steps = new Map();
+    fooled.forEach((b, k) => steps.set(b, k + 1));
+    const truthStep = fooled.length + 1;
+    const rest = s.ballot.filter(b => !b.truth && !shown.includes(b));
+    return { shown, step: b => (b.truth ? truthStep : steps.get(b) || 0), rest, restFooled: rest.reduce((n, b) => n + votes(b), 0) };
+  }
+  function byLine(b) {
+    if (b.truth) return t('screen.theTruth');
+    if (b.house) return t('screen.houseBluff');
+    return [b.by, ...(b.also || [])].filter(Boolean).map(x => x.name).join(' + ');
+  }
   // Many teams (more than 8 entries; the bluff round has its own way): every phone votes on its own short list,
   // so the letters on the TV would not match the phones. While voting the TV turns the drawings over in pages
   // without letters, or shows a counter for texts. The reveal is a top 5.
@@ -921,6 +959,7 @@
     const reveal = s.phase === 'reveal';
     document.body.classList.toggle('revealed', reveal);
     const mode = s.vote.mode;
+    if (mode === 'truth') return renderTruth(s, fresh);
     const big = mode !== 'truth' && s.ballot.length > BIG_BALLOT;
     const voters = s.teams.filter(x => !x.paper).length;
     const pics = s.ballot.some(b => b.image);
@@ -934,6 +973,9 @@
     if (fresh) split($('#vote-q'), s.question.text || t(`round.${s.round.type}`), 'word');
     const most = reveal ? Math.max(0, ...shown.map(b => (b.votes || []).length)) : -1;
     const grid = $('#ballot-grid');
+    grid.hidden = false;
+    $('#vote-phones').hidden = true;
+    $('#ballot-more').hidden = true;
     // Texts with many teams while voting, or nobody got a vote: one card in the middle, no wall of 40.
     const waitCard = big && ((!reveal && !pics) || (top && !top.length));
     if (waitCard) {
@@ -958,7 +1000,7 @@
     grid.replaceChildren(...shown.map((b, i) => {
       const win = reveal && (top ? (b.votes || []).length === most : mode !== 'match' && (b.truth || (mode === 'best' && most > 0 && (b.votes || []).length === most)));
       const votes = (b.votes || []).length;
-      return h('li', { class: 'ballot-card' + (b.image ? ' pic' : '') + (b.truth ? ' truth' : '') + (win ? ' win' : ''), 'data-n': i + 1, style: `--k: ${i}` + (reveal && b.by ? `; ${teamVar(b.by.color)}` : '') },
+      return h('li', { class: 'ballot-card' + (b.image ? ' pic' : '') + (b.truth ? ' truth' : '') + (win ? ' win' : '') + (reveal ? ' turned' : ''), 'data-n': i + 1, style: `--k: ${i}` + (reveal && b.by ? `; ${teamVar(b.by.color)}` : '') },
         // The top 5 gets its place instead of a letter; a big ballot while voting gets no letter at all.
         top ? h('span', { class: 'letter rank' }, String(i + 1)) : big ? null : h('span', { class: 'letter' }, QB.cardLetter(i)),
         b.image ? h('img', { src: b.content, alt: '', onload: refitSoon }) : h('span', { class: 'bc-text' }, b.content),
@@ -977,6 +1019,63 @@
     }
     stopTimer = countdown(s.remaining, s.vote.time * 1000, left => { $('#vote-time').textContent = Math.ceil(left / 1000); });
   }
+
+
+  // The bluff round's vote and reveal.
+  function renderTruth(s, fresh) {
+    const reveal = s.phase === 'reveal';
+    const mode = s.vote.mode;
+    const truth = mode === 'truth';
+    // Many bluffs: every phone has its own short list, so the big screen shows no cards while the teams choose.
+    const phones = truth && s.vote.personal && !reveal;
+    $('#vote-kicker').textContent = t(reveal ? 'screen.voteResult' : truth ? 'screen.findTruth' : mode === 'match' ? 'screen.matchTeams' : 'screen.voteBest');
+    $('#vote-count').textContent = reveal ? '' : t('screen.votedCount', { n: s.answered, total: s.teams.filter(x => !x.paper).length });
+    if (fresh) split($('#vote-q'), s.question.text || t(`round.${s.round.type}`), 'word');
+    const grid = $('#ballot-grid');
+    grid.hidden = phones;
+    $('#vote-phones').hidden = !phones;
+    if (phones) {
+      $('#vp-big').textContent = t('screen.truthOnPhone');
+      $('#vp-sub').textContent = t('screen.truthPerPhone', { n: s.ballot.length, k: s.vote.per });
+    }
+    const cards = truth && reveal ? truthCards(s) : null;
+    const list = cards ? cards.shown : s.ballot;
+    const more = $('#ballot-more');
+    more.hidden = !(cards && cards.rest.length);
+    if (cards && cards.rest.length) more.textContent = cards.restFooled ? t('screen.otherBluffs', { n: cards.rest.length, m: cards.restFooled }) : t('screen.otherBluffsNobody', { n: cards.rest.length });
+    const most = reveal ? Math.max(0, ...s.ballot.map(b => (b.votes || []).length)) : -1;
+    const n = list.length;
+    const pics = list.some(b => b.image);
+    grid.className = 'ballot-grid n' + Math.min(n, 8) + (n > 8 && !pics ? ' many' : '') + (pics ? ' pics' : '') + (truth && s.vote.personal ? ' personal' : '');
+    // Up to 8 cards keep the classic columns; more teams get more columns: 4 up to 12, then 5, 6, 8, 10, and 11 for 40 bluffs plus the truth.
+    grid.style.setProperty('--cols', n <= 8 ? '' : n <= 12 ? 4 : n <= 15 ? 5 : n <= 24 ? 6 : n <= 32 ? 8 : n <= 40 ? 10 : 11);
+    grid.replaceChildren(...(phones ? [] : list).map((b, i) => {
+      const win = reveal && mode !== 'match' && (b.truth || (mode === 'best' && most > 0 && (b.votes || []).length === most));
+      // A bluff only shows it is the truth when its card turns.
+      const staged = !!cards;
+      const color = reveal && b.by && (!staged || !b.truth) ? `; ${teamVar(b.by.color)}` : '';
+      return h('li', {
+        class: 'ballot-card' + (b.image ? ' pic' : '') + (b.truth && !staged ? ' truth' : '') + (b.truth && staged ? ' is-truth' : '') + (b.house ? ' house' : '') + (win && !staged ? ' win' : '') + (reveal && !staged ? ' turned' : ''),
+        style: `--k: ${i}` + color, 'data-step': staged ? cards.step(b) : null, 'data-win': staged && win ? '1' : null,
+      },
+        h('span', { class: 'letter' }, QB.cardLetter(b.id ?? i)),
+        b.image ? h('img', { src: b.content, alt: '', onload: refitSoon }) : h('span', { class: 'bc-text' }, b.content),
+        reveal ? h('span', { class: 'bc-by' }, byLine(b)) : null,
+        reveal && mode !== 'match' ? h('span', { class: 'bc-votes' }, (b.votes || []).map((v, k) => h('i', { class: 'team-dot', style: teamVar(v.color) + `; --d: ${k}`, title: v.name }))) : null);
+    }));
+    startPager(grid, `${s.round.index}/${s.questionIndex}/${s.phase}`);
+    // The view may only be shown after this render, so measure on the next frame.
+    requestAnimationFrame(fitBallot);
+    if (stopTimer) stopTimer();
+    if (reveal) {
+      $('#vote-time').textContent = '';
+      if (cards) turnCards(grid, `${s.round.index}/${s.questionIndex}`);
+      else if (fresh) later(() => grid.querySelectorAll('.ballot-card.win').forEach(c => FX.sparksAt(c, { color: cssColor('--good'), count: 70 })), 300);
+      return;
+    }
+    stopTimer = countdown(s.remaining, s.vote.time * 1000, left => { $('#vote-time').textContent = Math.ceil(left / 1000); });
+  }
+
 
   function renderWager(s) {
     const mode = s.wagerMode;

@@ -1098,5 +1098,13 @@
   "pro.locked.cloud": "Quizmap in OneDrive of Google Drive",
   "pro.locked.aiImage": "Afbeeldingen gemaakt door AI",
   "pro.locked.ai": "AI-vragen zonder limiet, hele quizavonden in één keer",
-  "pro.locked.quizzes": "Zoveel quizzen als je wil (de demo bewaart er 3)"
+  "pro.locked.quizzes": "Zoveel quizzen als je wil (de demo bewaart er 3)",
+  "play.truthTyped": "Dat is het echte antwoord! Verzin een nepantwoord.",
+  "screen.truthOnPhone": "Zoek de waarheid op je telefoon",
+  "screen.truthPerPhone": "{n} antwoorden in het spel · elke telefoon krijgt er {k}",
+  "screen.houseBluff": "Huisbluf",
+  "screen.otherBluffs": "{n} andere bluffen foppen nog {m} keer",
+  "screen.otherBluffsNobody": "{n} andere bluffen foppen niemand",
+  "builder.f.decoys": "Huisbluffen (optioneel)",
+  "builder.f.decoysHint": "nepantwoorden die een klein spel aanvullen, gescheiden door |"
 }
