@@ -171,8 +171,8 @@ async function record(lang, tall) {
     const web = path.join(WEB, name + '.mp4');
     execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', full, '-vf', 'scale=1280:720:flags=lanczos', ...enc, '-crf', '27', '-preset', 'slow', '-an', web]);
     console.log(web, Math.round(fs.statSync(web).size / 1024) + ' KB');
-    if (lang === 'en') execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', '9', '-i', full, '-frames:v', '1', '-vf', 'scale=1280:720', '-q:v', '70', path.join(WEB, 'poster.webp')]);
-    if (lang === 'en') execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', '9', '-i', full, '-frames:v', '1', '-vf', 'scale=1200:675', '-q:v', '4', path.join(WEB, 'share.jpg')]);
+    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', '9', '-i', full, '-frames:v', '1', '-vf', 'scale=1280:720', '-q:v', '70', path.join(WEB, `poster-${lang}.webp`)]);
+    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', '9', '-i', full, '-frames:v', '1', '-vf', 'scale=1200:675', '-q:v', '4', path.join(WEB, lang === 'en' ? 'share.jpg' : `share-${lang}.jpg`)]);
   }
   sockets.forEach(s => s.close());
   await browser.close();

@@ -65,8 +65,18 @@
     const mail = document.getElementById('mail');
     mail.href = 'mailto:' + C.email; mail.textContent = C.email;
     families(lang);
+    shots(lang);
     film(lang);
     document.getElementById('lang').value = lang;
+  }
+
+  // Screenshots of the app in the page language: every picture under img/shots/<lang>/ and the film poster.
+  function shots(lang) {
+    document.querySelectorAll('img[src*="img/shots/"]').forEach(img => {
+      const src = img.getAttribute('src').replace(/img\/shots\/[a-z]{2}\//, `img/shots/${lang}/`);
+      if (src !== img.getAttribute('src')) img.setAttribute('src', src);
+    });
+    video.poster = `video/poster-${lang}.webp`;
   }
 
   // On a phone the round families fold up, so the list stays short; on a big screen they are all open.
@@ -104,11 +114,11 @@
   function showRound(id) {
     at = Math.max(0, ALL.findIndex(r => r.id === id));
     const r = ALL[at], lang = document.documentElement.lang;
-    document.getElementById('rv-img').src = `img/rounds/${r.id}.webp`;
+    document.getElementById('rv-img').src = `img/rounds/${lang}/${r.id}.webp`;
     document.getElementById('rv-family').textContent = r.family[lang] || r.family.en;
     document.getElementById('rv-name').textContent = r[lang] || r.en;
     document.getElementById('rv-desc').textContent = r.desc[lang] || r.desc.en;
-    new Image().src = `img/rounds/${ALL[(at + 1) % ALL.length].id}.webp`;
+    new Image().src = `img/rounds/${lang}/${ALL[(at + 1) % ALL.length].id}.webp`;
     if (!view.open) view.showModal();
   }
   const step = d => showRound(ALL[(at + d + ALL.length) % ALL.length].id);
@@ -140,10 +150,10 @@
   const lookImg = document.getElementById('look-img');
   tabs.forEach(tab => tab.addEventListener('click', () => {
     tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
-    lookImg.src = `img/shots/${tab.dataset.look}-intro.webp`;
+    lookImg.src = `img/shots/${document.documentElement.lang}/${tab.dataset.look}-intro.webp`;
   }));
   // Warm the other looks once the page is idle, so switching is instant.
-  addEventListener('load', () => setTimeout(() => tabs.forEach(t => { new Image().src = `img/shots/${t.dataset.look}-intro.webp`; }), 1500));
+  addEventListener('load', () => setTimeout(() => tabs.forEach(t => { new Image().src = `img/shots/${document.documentElement.lang}/${t.dataset.look}-intro.webp`; }), 1500));
 
   // The bar with the price at the bottom of a phone: after the hero, and not over the price section itself.
   const bar = document.getElementById('buybar');

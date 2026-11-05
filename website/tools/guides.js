@@ -274,7 +274,7 @@ function page(lang) {
 <meta name="description" content="${esc(t.desc)}">
 <meta property="og:title" content="${esc(t.title)}">
 <meta property="og:description" content="${esc(t.desc)}">
-<meta property="og:image" content="${BASE}video/share.jpg">
+<meta property="og:image" content="${BASE}video/${lang === 'en' ? 'share.jpg' : `share-${lang}.jpg`}">
 <meta property="og:url" content="${url}">
 <link rel="canonical" href="${url}">
 ${alt}
