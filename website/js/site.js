@@ -2,6 +2,8 @@
 (function () {
   const C = window.QB_SITE, T = window.QB_TEXT, R = window.QB_ROUNDS;
   const LANGS = Object.keys(T);
+  // The quiz night guide has one static page per language (made by tools/guides.js).
+  const GUIDES = { en: 'quiz-night.html', nl: 'quizavond.html', fr: 'soiree-quiz.html', de: 'quizabend.html', es: 'noche-de-quiz.html' };
   const LOCALE = { en: 'en-IE', nl: 'nl-BE', fr: 'fr-BE', de: 'de-DE', es: 'es-ES' };
   const store = {
     get() { try { return localStorage.getItem('qb.site.lang'); } catch { return null; } },
@@ -58,6 +60,8 @@
       if (url) { a.href = url; a.removeAttribute('data-soon'); }
       else { a.href = '#price'; a.dataset.soon = fill(lang, 'cta.soon'); }
     });
+    const guide = document.getElementById('guide');
+    if (guide) guide.href = GUIDES[lang] || GUIDES.en;
     const mail = document.getElementById('mail');
     mail.href = 'mailto:' + C.email; mail.textContent = C.email;
     families(lang);
