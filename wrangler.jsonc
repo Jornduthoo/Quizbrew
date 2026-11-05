@@ -1,0 +1,13 @@
+// Cloudflare Worker for the promo site (quizbrew.app): only the static files in website/.
+// Kept in the repo so preview builds on pull requests ("wrangler versions upload") find it too;
+// without it only "wrangler deploy" on main could guess the settings.
+{
+  "name": "quizbrew",
+  "compatibility_date": "2026-11-03",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./website"
+  }
+}

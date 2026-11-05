@@ -3,3 +3,4 @@ data/
 *.log
 keys/
 *.pem
+.wrangler/
