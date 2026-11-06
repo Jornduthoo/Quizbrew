@@ -40,7 +40,8 @@ async function record(lang, tall) {
   process.env.GEMINI_BASE_URL = `http://127.0.0.1:${aiServer.address().port}`;
   const data = { language: lang, sfx: false, look: 'pub', aiProvider: 'gemini', geminiKey: 'demo', geminiModel: 'gemini-demo' };
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'qb-promo-'));
-  const qb = createServer({ port: 0, settings: { get: k => data[k], set: (k, v) => { data[k] = v; } }, library: require('../../../src/library').create(tmp), lanAddresses: () => ['192.168.1.20'] });
+  // The full version (a test licence), so the film shows every team and every look.
+  const qb = createServer({ port: 0, license: require('../../../test/fixtures/pro').proLicense(), settings: { get: k => data[k], set: (k, v) => { data[k] = v; } }, library: require('../../../src/library').create(tmp), lanAddresses: () => ['192.168.1.20'] });
   qb.app.use('/promo', express.static(__dirname, { extensions: ['html'] }));
   const port = await qb.listen();
   const base = `http://127.0.0.1:${port}`;
@@ -94,11 +95,13 @@ async function record(lang, tall) {
   await lap.locator('#ai-result .brass-btn').waitFor({ timeout: 15000 });
   await lap.locator('#ai-result .brass-btn').scrollIntoViewIfNeeded();
   await wait(1800);
-  await scene('pick');
+  // The night lands in the editor; the round-type menu opens, and only then its caption.
   await lap.locator('#ai-result .brass-btn').click();
   await wait(1300);
   await lap.locator('.round-card.add').click();
-  await wait(2600);
+  await wait(150);
+  await scene('pick');
+  await wait(3000);
   await page.evaluate(() => { window.showLap(false); window.focusTv(false); });
   await wait(400);
   // 3. Teams join: the phone types its team name while other teams pop in on the big screen.
@@ -125,13 +128,15 @@ async function record(lang, tall) {
   await wait(2600);
   await page.evaluate(() => window.badge(false));
   // 4. Round intro.
+  host.emit('next');
+  await wait(450);
   await scene('start');
-  host.emit('next');
-  await wait(3000);
+  await wait(2800);
   // 5. Question: the phone taps, the other teams follow.
-  await scene('answer');
   host.emit('next');
-  await wait(2200);
+  await wait(1300);
+  await scene('answer');
+  await wait(900);
   const q = quiz.rounds[0].questions[0];
   await phone.locator('#choices .choice').nth(q.correct).click();
   for (const [i, s] of bots.entries()) { await wait(220); s.emit('answer', i % 3 === 1 ? (q.correct + 1) % q.answers.length : q.correct); }
@@ -141,14 +146,16 @@ async function record(lang, tall) {
   if (state.phase === 'question') host.emit('next');
   await wait(3200);
   // 7. Scoreboard, on the big screen only.
-  await scene('score');
   await page.evaluate(() => window.focusTv(true));
   host.emit('next');
-  await wait(5200);
+  await wait(700);
+  await scene('score');
+  await wait(4600);
   // 8. Five looks on the next round intro.
-  await scene('looks');
   host.emit('next');
-  await wait(1100);
+  await wait(900);
+  await scene('looks');
+  await wait(400);
   for (const look of ['space', 'winter', 'disco', 'beach', 'stadium', 'gala', 'jungle', 'spooky', 'arcade', 'pub']) { host.emit('look', look); await wait(620); }
   // 9. End card.
   await page.evaluate(() => window.card('outro', true));

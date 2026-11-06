@@ -2,7 +2,7 @@
 // Keys with a "|" in the text become list items.
 window.QB_TEXT = {
   en: {
-    'video.title': 'A quiz night in under a minute',
+    'video.title': 'Pull up a chair, the quiz is on',
     'meta.title': 'Quizbrew · Brew a quiz in seconds',
     'meta.desc': 'Quiz night software that runs on your own network. One laptop hosts, teams play on their phones. No internet, no subscription, no app.',
     'nav.make': 'Make a quiz', 'nav.how': 'How it works', 'nav.rounds': 'Round types', 'nav.looks': 'Looks', 'nav.price': 'Price', 'nav.faq': 'FAQ',
@@ -29,7 +29,7 @@ window.QB_TEXT = {
     'rounds.title': '{rounds} round types',
     'rounds.lead': 'From classic multiple choice to drawing, music, bluffing and a time bank where every second counts. Mix them however you like.',
     'rounds.tap': 'Tap a round type to see it on the big screen.', 'rounds.prev': 'Previous', 'rounds.next': 'Next', 'rounds.close': 'Close',
-    'ai.title': 'Make a quiz in one minute',
+    'ai.title': 'The AI writes, you host',
     'ai.lead': 'Type a topic and the AI writes a whole evening: rounds, questions and answers. Then change whatever you like. No homework for the quizmaster.',
     'ai.s1.t': 'Type a topic',
     'ai.s1.d': 'Pick the crowd, the difficulty and how long it lasts. One click and the AI writes every round.',
@@ -87,7 +87,7 @@ window.QB_TEXT = {
   },
 
   nl: {
-    'video.title': 'Een quizavond in minder dan een minuut',
+    'video.title': 'Schuif aan, de quiz begint',
     'meta.title': 'Quizbrew · Brouw een quiz in seconden',
     'meta.desc': 'Quizsoftware die op je eigen netwerk draait. Eén laptop is de baas, teams spelen op hun gsm. Geen internet, geen abonnement, geen app.',
     'nav.make': 'Quiz maken', 'nav.how': 'Zo werkt het', 'nav.rounds': 'Rondes', 'nav.looks': 'Looks', 'nav.price': 'Prijs', 'nav.faq': 'Vragen',
@@ -114,7 +114,7 @@ window.QB_TEXT = {
     'rounds.title': '{rounds} soorten rondes',
     'rounds.lead': 'Van klassieke meerkeuze tot tekenen, muziek, bluffen en een tijdbank waar elke seconde telt. Combineer ze zoals je wil.',
     'rounds.tap': 'Tik op een soort ronde om te zien hoe ze er op het grote scherm uitziet.', 'rounds.prev': 'Vorige', 'rounds.next': 'Volgende', 'rounds.close': 'Sluiten',
-    'ai.title': 'Een quiz in één minuut',
+    'ai.title': 'De AI schrijft, jij presenteert',
     'ai.lead': 'Typ een onderwerp en de AI schrijft een hele avond: rondes, vragen en antwoorden. Daarna pas je aan wat je wil. Geen huiswerk voor de quizmaster.',
     'ai.s1.t': 'Typ een onderwerp',
     'ai.s1.d': 'Kies het publiek, de moeilijkheid en hoe lang het duurt. Eén klik en de AI schrijft elke ronde.',
@@ -172,7 +172,7 @@ window.QB_TEXT = {
   },
 
   fr: {
-    'video.title': 'Une soirée quiz en moins d’une minute',
+    'video.title': 'Installe-toi, le quiz commence',
     'meta.title': 'Quizbrew · Brasse un quiz en quelques secondes',
     'meta.desc': 'Le logiciel de soirée quiz qui tourne sur ton propre réseau. Un portable anime, les équipes jouent sur leur téléphone. Sans internet, sans abonnement, sans appli.',
     'nav.make': 'Créer un quiz', 'nav.how': 'Comment ça marche', 'nav.rounds': 'Manches', 'nav.looks': 'Ambiances', 'nav.price': 'Prix', 'nav.faq': 'Questions',
@@ -199,7 +199,7 @@ window.QB_TEXT = {
     'rounds.title': '{rounds} types de manches',
     'rounds.lead': 'Du QCM classique au dessin, à la musique, au bluff et à une banque de temps où chaque seconde compte. Combine-les comme tu veux.',
     'rounds.tap': 'Touche un type de manche pour le voir sur le grand écran.', 'rounds.prev': 'Précédente', 'rounds.next': 'Suivante', 'rounds.close': 'Fermer',
-    'ai.title': 'Un quiz en une minute',
+    'ai.title': 'L’IA écrit, toi tu animes',
     'ai.lead': 'Tape un thème et l’IA écrit toute la soirée : manches, questions et réponses. Ensuite tu changes ce que tu veux. Zéro devoirs pour le quizmaster.',
     'ai.s1.t': 'Tape un thème',
     'ai.s1.d': 'Choisis le public, la difficulté et la durée. Un clic et l’IA écrit chaque manche.',
@@ -257,7 +257,7 @@ window.QB_TEXT = {
   },
 
   de: {
-    'video.title': 'Ein Quizabend in unter einer Minute',
+    'video.title': 'Platz nehmen, das Quiz geht los',
     'meta.title': 'Quizbrew · Brau ein Quiz in Sekunden',
     'meta.desc': 'Quizabend-Software für dein eigenes Netzwerk. Ein Laptop leitet, Teams spielen am Handy. Kein Internet, kein Abo, keine App.',
     'nav.make': 'Quiz erstellen', 'nav.how': 'So funktioniert’s', 'nav.rounds': 'Runden', 'nav.looks': 'Looks', 'nav.price': 'Preis', 'nav.faq': 'Fragen',
@@ -284,7 +284,7 @@ window.QB_TEXT = {
     'rounds.title': '{rounds} Rundentypen',
     'rounds.lead': 'Vom klassischen Multiple Choice bis zu Zeichnen, Musik, Bluffen und einer Zeitbank, bei der jede Sekunde zählt. Kombiniere sie, wie du willst.',
     'rounds.tap': 'Tippe auf einen Rundentyp, um ihn auf dem großen Bildschirm zu sehen.', 'rounds.prev': 'Zurück', 'rounds.next': 'Weiter', 'rounds.close': 'Schließen',
-    'ai.title': 'Ein Quiz in einer Minute',
+    'ai.title': 'Die KI schreibt, du moderierst',
     'ai.lead': 'Tippe ein Thema und die KI schreibt einen ganzen Abend: Runden, Fragen und Antworten. Danach änderst du, was du willst. Keine Hausaufgaben für den Quizmaster.',
     'ai.s1.t': 'Thema eintippen',
     'ai.s1.d': 'Wähle Publikum, Schwierigkeit und Dauer. Ein Klick und die KI schreibt jede Runde.',
@@ -342,7 +342,7 @@ window.QB_TEXT = {
   },
 
   es: {
-    'video.title': 'Una noche de quiz en menos de un minuto',
+    'video.title': 'Siéntate, empieza el quiz',
     'meta.title': 'Quizbrew · Prepara un quiz en segundos',
     'meta.desc': 'Software para noches de quiz en tu propia red. Un portátil dirige, los equipos juegan con el móvil. Sin internet, sin suscripción, sin app.',
     'nav.make': 'Crear quiz', 'nav.how': 'Cómo funciona', 'nav.rounds': 'Rondas', 'nav.looks': 'Estilos', 'nav.price': 'Precio', 'nav.faq': 'Preguntas',
@@ -369,7 +369,7 @@ window.QB_TEXT = {
     'rounds.title': '{rounds} tipos de ronda',
     'rounds.lead': 'Del test clásico a dibujar, música, faroles y un banco de tiempo donde cada segundo cuenta. Combínalas como quieras.',
     'rounds.tap': 'Toca un tipo de ronda para verlo en la pantalla grande.', 'rounds.prev': 'Anterior', 'rounds.next': 'Siguiente', 'rounds.close': 'Cerrar',
-    'ai.title': 'Un quiz en un minuto',
+    'ai.title': 'La IA escribe, tú presentas',
     'ai.lead': 'Escribe un tema y la IA prepara una noche entera: rondas, preguntas y respuestas. Luego cambias lo que quieras. Cero deberes para el presentador.',
     'ai.s1.t': 'Escribe un tema',
     'ai.s1.d': 'Elige el público, la dificultad y la duración. Un clic y la IA escribe cada ronda.',
