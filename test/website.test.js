@@ -69,3 +69,20 @@ test('website: quiz night guide pages exist in all 5 languages and are up to dat
     assert.ok(fs.readFileSync(path.join(dir, 'sitemap.xml'), 'utf8').includes(PAGES[lang]), `${PAGES[lang]} not in sitemap.xml`);
   }
 });
+
+test('website: the film and its poster carry the version stamp (videos are cached for a week)', () => {
+  const site = fs.readFileSync(path.join(dir, 'js', 'site.js'), 'utf8');
+  assert.match(site, /video\/promo-\$\{lang\}-wide\.mp4\$\{V\}/);
+  assert.match(site, /video\/poster-\$\{lang\}\.webp\$\{V\}/);
+  assert.match(html, /poster="video\/poster-en\.webp\?v=\d+"/);
+});
+
+test('website: the top of the page says something different in every heading', () => {
+  const T = load('js/i18n.js').QB_TEXT;
+  const P = load('tools/promo/text.js').PROMO_TEXT;
+  for (const lang of Object.keys(T)) {
+    const lines = [T[lang]['hero.title'], T[lang]['video.title'], P[lang].build, T[lang]['ai.title']].map(s => s.toLowerCase());
+    assert.equal(new Set(lines).size, lines.length, `${lang}: repeated heading`);
+    assert.ok(!/minu/.test(lines.slice(1).join(' ')), `${lang}: "a quiz in a minute" again`);
+  }
+});

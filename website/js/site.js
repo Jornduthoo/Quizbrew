@@ -2,6 +2,10 @@
 (function () {
   const C = window.QB_SITE, T = window.QB_TEXT, R = window.QB_ROUNDS;
   const LANGS = Object.keys(T);
+  // The version stamp of this script (set by tools/build.js), also put on the film and its poster:
+  // videos are cached for a week, so a new film needs a new address.
+  const VER = ((document.currentScript && document.currentScript.src.match(/\?v=(\d+)/)) || [])[1];
+  const V = VER ? `?v=${VER}` : '';
   // The quiz night guide has one static page per language (made by tools/guides.js).
   const GUIDES = { en: 'quiz-night.html', nl: 'quizavond.html', fr: 'soiree-quiz.html', de: 'quizabend.html', es: 'noche-de-quiz.html' };
   const LOCALE = { en: 'en-IE', nl: 'nl-BE', fr: 'fr-BE', de: 'de-DE', es: 'es-ES' };
@@ -76,7 +80,7 @@
       const src = img.getAttribute('src').replace(/img\/shots\/[a-z]{2}\//, `img/shots/${lang}/`);
       if (src !== img.getAttribute('src')) img.setAttribute('src', src);
     });
-    video.poster = `video/poster-${lang}.webp`;
+    video.poster = `video/poster-${lang}.webp${V}`;
   }
 
   // On a phone the round families fold up, so the list stays short; on a big screen they are all open.
@@ -134,7 +138,7 @@
   function film(lang) {
     filmLang = lang;
     if (!seen) return;
-    const src = `video/promo-${lang}-wide.mp4`;
+    const src = `video/promo-${lang}-wide.mp4${V}`;
     if (!video.src.endsWith(src)) { video.src = src; video.play().catch(() => {}); }
   }
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
