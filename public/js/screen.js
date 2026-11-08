@@ -486,6 +486,7 @@
     later(() => FX.sparksAt($('#ri-medal'), { color: theme.glow, count: 70, speed: 1.3 }), 700);
   }
 
+  let zoom = null;
   function renderQuestion(s, fresh) {
     const q = s.question;
     const reveal = s.phase === 'reveal';
@@ -602,7 +603,8 @@
     // Round memory: pots, streaks and who is out.
     const board = $('#round-board');
     board.hidden = !s.board;
-    if (s.board) {
+    const pills = s.board && s.teams.map(tm => [tm.name, tm.color, tm.out, tm.banked, tm.pot, tm.streak]);
+    if (s.board && QB.changed(board, s.round.type, pills, I18n.lang)) {
       board.replaceChildren(...s.teams.map(tm => h('li', { class: 'rb-team' + (tm.out ? ' out' : '') + (tm.banked ? ' banked' : ''), style: teamVar(tm.color) },
         h('span', { class: 'team-dot' }), h('span', { class: 'rb-name tn' }, tm.name),
         h('span', { class: 'rb-val' }, s.round.type === 'pushYourLuck' ? (tm.banked ? t('screen.banked') : t('screen.pot', { n: tm.pot }))
@@ -744,12 +746,17 @@
     const clues = [...$('#q-clues').children];
     const img = $('#q-img');
     if (q.effect === 'zoom' && q.image) {
-      // Zoomed in far at the start, the whole picture when time is up.
-      img.style.animation = 'none';
-      void img.offsetWidth;
-      img.style.animation = `zoom-out ${total}ms linear both`;
-      img.style.animationDelay = `-${total - s.remaining}ms`;
-    }
+      // Zoomed in far at the start, the whole picture when time is up. An answer does not restart the zoom:
+      // only a new question, a pause or extra time (the end moves by more than a moment) puts it where the clock is.
+      const end = performance.now() + s.remaining;
+      if (fresh || !zoom || zoom.key !== lastKey || Math.abs(zoom.end - end) > 750) {
+        zoom = { key: lastKey, end };
+        img.style.animation = 'none';
+        void img.offsetWidth;
+        img.style.animation = `zoom-out ${total}ms linear both`;
+        img.style.animationDelay = `-${total - s.remaining}ms`;
+      }
+    } else zoom = null;
     const canvas = $('#q-canvas');
     canvas.hidden = q.effect !== 'pixel';
     img.hidden = q.effect === 'pixel' || !q.image;
@@ -890,7 +897,7 @@
     const dots = $('#ballot-pages');
     dots.hidden = pages.length < 2;
     const winPage = pages.length > 1 && pages[0].some(c => c.classList.contains('win')) && pages[0].length < grid.children.length / 2;
-    dots.replaceChildren(...pages.map((p, i) => h('i', { class: (i === step ? 'on' : '') + (winPage && i === 0 ? ' star' : '') })));
+    if (QB.changed(dots, pages.length, step, winPage)) dots.replaceChildren(...pages.map((p, i) => h('i', { class: (i === step ? 'on' : '') + (winPage && i === 0 ? ' star' : '') })));
     if (animate) fitBallot();
   }
   function startPager(grid, key) {
@@ -982,13 +989,18 @@
     if (waitCard) {
       grid.className = 'ballot-grid n1 big wait';
       grid.style.removeProperty('--cols');
-      grid.replaceChildren(h('li', { class: 'ballot-card vote-wait' },
-        !reveal && s.question.image ? h('img', { src: s.question.image, alt: '', onload: refitSoon }) : null,
-        reveal ? null : h('span', { class: 'vw-count' }, `${s.answered} / ${voters}`),
-        h('span', { class: 'bc-text' }, reveal ? t('screen.noVotesAll')
-          : t(mode === 'match' ? 'screen.shortlistMatch' : 'screen.shortlistBest', { n: mode === 'match' ? 3 : 6 }))));
+      // A vote only changes the count: the card itself stays.
+      if (QB.changed(grid, 'wait', lastKey, reveal, mode, s.question.image, I18n.lang)) {
+        grid.replaceChildren(h('li', { class: 'ballot-card vote-wait' },
+          !reveal && s.question.image ? h('img', { src: s.question.image, alt: '', onload: refitSoon }) : null,
+          reveal ? null : h('span', { class: 'vw-count' }),
+          h('span', { class: 'bc-text' }, reveal ? t('screen.noVotesAll')
+            : t(mode === 'match' ? 'screen.shortlistMatch' : 'screen.shortlistBest', { n: mode === 'match' ? 3 : 6 }))));
+        requestAnimationFrame(fitBallot);
+      }
+      const count = grid.querySelector('.vw-count');
+      if (count) count.textContent = `${s.answered} / ${voters}`;
       startPager(grid, `${s.round.index}/${s.questionIndex}/${s.phase}`);
-      requestAnimationFrame(fitBallot);
       if (stopTimer) stopTimer();
       if (reveal) { $('#vote-time').textContent = ''; return; }
       stopTimer = countdown(s.remaining, s.vote.time * 1000, left => { $('#vote-time').textContent = Math.ceil(left / 1000); });
@@ -997,8 +1009,11 @@
     const n = shown.length;
     grid.className = 'ballot-grid n' + Math.min(n, 8) + (n > 8 && !pics ? ' many' : '') + (pics ? ' pics' : '') + (big ? ' big' : '');
     // Up to 8 cards keep the classic columns; more teams get more columns: 4 up to 12, then 5, 6, 8, 10, and 11 for 40 bluffs plus the truth.
-    grid.style.setProperty('--cols', n <= 8 ? '' : n <= 12 ? 4 : n <= 15 ? 5 : n <= 24 ? 6 : n <= 32 ? 8 : n <= 40 ? 10 : 11);
-    grid.replaceChildren(...shown.map((b, i) => {
+    // A team that votes changes only the count above the cards: the cards stay as they are.
+    const redraw = QB.changed(grid, 'cards', lastKey, reveal, mode, big, !!top, most, shown, I18n.lang);
+    // The fit sets its own columns for pictures: only new cards start again from these.
+    if (redraw) grid.style.setProperty('--cols', n <= 8 ? '' : n <= 12 ? 4 : n <= 15 ? 5 : n <= 24 ? 6 : n <= 32 ? 8 : n <= 40 ? 10 : 11);
+    if (redraw) grid.replaceChildren(...shown.map((b, i) => {
       const win = reveal && (top ? (b.votes || []).length === most : mode !== 'match' && (b.truth || (mode === 'best' && most > 0 && (b.votes || []).length === most)));
       const votes = (b.votes || []).length;
       return h('li', { class: 'ballot-card' + (b.image ? ' pic' : '') + (b.truth ? ' truth' : '') + (win ? ' win' : '') + (reveal ? ' turned' : ''), 'data-n': i + 1, style: `--k: ${i}` + (reveal && b.by ? `; ${teamVar(b.by.color)}` : '') },
@@ -1011,7 +1026,7 @@
     }));
     startPager(grid, `${s.round.index}/${s.questionIndex}/${s.phase}`);
     // The view may only be shown after this render, so measure on the next frame.
-    requestAnimationFrame(fitBallot);
+    if (redraw) requestAnimationFrame(fitBallot);
     if (stopTimer) stopTimer();
     if (reveal) {
       $('#vote-time').textContent = '';
@@ -1049,8 +1064,11 @@
     const pics = list.some(b => b.image);
     grid.className = 'ballot-grid n' + Math.min(n, 8) + (n > 8 && !pics ? ' many' : '') + (pics ? ' pics' : '') + (truth && s.vote.personal ? ' personal' : '');
     // Up to 8 cards keep the classic columns; more teams get more columns: 4 up to 12, then 5, 6, 8, 10, and 11 for 40 bluffs plus the truth.
-    grid.style.setProperty('--cols', n <= 8 ? '' : n <= 12 ? 4 : n <= 15 ? 5 : n <= 24 ? 6 : n <= 32 ? 8 : n <= 40 ? 10 : 11);
-    grid.replaceChildren(...(phones ? [] : list).map((b, i) => {
+    // A team that votes changes only the count: the cards stay (and keep their place in the reveal).
+    const redraw = QB.changed(grid, 'truth', lastKey, reveal, mode, phones, most, list, I18n.lang);
+    // The fit sets its own columns for pictures: only new cards start again from these.
+    if (redraw) grid.style.setProperty('--cols', n <= 8 ? '' : n <= 12 ? 4 : n <= 15 ? 5 : n <= 24 ? 6 : n <= 32 ? 8 : n <= 40 ? 10 : 11);
+    if (redraw) grid.replaceChildren(...(phones ? [] : list).map((b, i) => {
       const win = reveal && mode !== 'match' && (b.truth || (mode === 'best' && most > 0 && (b.votes || []).length === most));
       // A bluff only shows it is the truth when its card turns.
       const staged = !!cards;
@@ -1066,7 +1084,7 @@
     }));
     startPager(grid, `${s.round.index}/${s.questionIndex}/${s.phase}`);
     // The view may only be shown after this render, so measure on the next frame.
-    requestAnimationFrame(fitBallot);
+    if (redraw) requestAnimationFrame(fitBallot);
     if (stopTimer) stopTimer();
     if (reveal) {
       $('#vote-time').textContent = '';
