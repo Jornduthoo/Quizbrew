@@ -79,6 +79,8 @@ body.screen[data-phase="wager"] .bg-stage { opacity: 1; animation-play-state: ru
 }
 .screen .ta-name { color: var(--muted); }
 .screen .ta-answer { overflow-wrap: normal; }
+/* A single word too long even when small (a team typed one huge word) may break as a last resort. */
+.screen .ta-answer.break { overflow-wrap: anywhere; hyphens: auto; }
 .screen .team-answer.right .ta-answer { color: var(--good); }
 .screen .team-answer.wrong .ta-answer { color: #ff9a9a; text-decoration: line-through rgba(255, 90, 90, .6); }
 .screen .team-answer.part .ta-answer { color: var(--brass-light); }
@@ -530,7 +532,8 @@ body[data-phase="reveal"] .q-fact:not([hidden]) ~ .answered-dots, body[data-phas
 .screen .clock { min-width: 7.5em; padding: .5em .9em .45em; gap: .2em; }
 /* Ballot cards: the text stays clear of the letter in the corner. */
 .screen .ballot-card:not(.pic) { padding-top: 2.6em; }
-.screen .bc-text { max-width: 100%; overflow-wrap: break-word; }
+.screen .bc-text { max-width: 100%; }
+.screen .bc-text.break { overflow-wrap: anywhere; hyphens: auto; }
 /* Odd one out: the check mark sits inside the picture, not clipped at its edge. */
 .screen .answers.images .answer.correct::after { right: 1vh; top: auto; bottom: 1vh; }
 /* Categories to pick: equal cards, long names a bit smaller. */
@@ -541,15 +544,15 @@ body[data-phase="reveal"] .q-fact:not([hidden]) ~ .answered-dots, body[data-phas
 /* Word web: four group colours, used on the phone and the big screen */
 :root { --web-0: rgb(var(--k-amber)); --web-1: rgb(var(--k-cyan)); --web-2: rgb(var(--k-pink)); --web-3: #9dff6a; }
 .phone .build.web { gap: 10px; }
-.phone .web-pool { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.phone .web-pool { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .phone .web-word {
-  display: grid; place-items: center; min-height: 3.2em; padding: 6px 4px; border-radius: 12px; font: inherit; font-weight: 800; font-size: .95em; line-height: 1.15; text-align: center; overflow-wrap: anywhere;
+  display: grid; place-items: center; min-height: 3.2em; padding: 6px 4px; border-radius: 12px; font: inherit; font-weight: 800; font-size: .95em; line-height: 1.15; text-align: center; min-width: 0;
   color: var(--cream); background: rgba(0, 0, 0, .45); border: 2px solid rgb(var(--k-brass-l) / .3); cursor: pointer; transition: border-color .15s, background .15s, transform .1s;
 }
 .phone .web-word:active { transform: scale(.96); }
 .phone .web-word.on { border-color: var(--g); background: color-mix(in srgb, var(--g) 22%, rgba(0, 0, 0, .5)); box-shadow: 0 0 14px color-mix(in srgb, var(--g) 50%, transparent); color: #fff; }
 .phone .web-group { padding: 8px; border-radius: 14px; border: 2px solid var(--g); background: color-mix(in srgb, var(--g) 14%, rgba(0, 0, 0, .5)); box-shadow: 0 0 14px color-mix(in srgb, var(--g) 30%, transparent); animation: choice-in .35s cubic-bezier(.2, 1.3, .4, 1) both; }
-.phone .web-words { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.phone .web-words { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
 .phone .web-word.set { min-height: 2.4em; font-size: .78em; cursor: default; border-color: transparent; background: rgba(0, 0, 0, .35); }
 .phone .web-link { width: 100%; margin-top: 6px; padding: .55em .8em; border-radius: 10px; border: 1.5px solid color-mix(in srgb, var(--g) 60%, transparent); background: rgba(0, 0, 0, .45); color: #fff; font: inherit; font-weight: 700; box-sizing: border-box; }
 .phone .web-link::placeholder { color: color-mix(in srgb, var(--g) 60%, var(--muted)); font-weight: 600; }

@@ -8,6 +8,8 @@ module.exports = {
   rounds: [
     { type: 'classic', title: 'Ronde 2: Van Pretpark tot Popcultuur', questions: [
       { question: 'Welke Belgische stripfiguur reisde in een van zijn avonturen naar de maan, nog voor de echte maanlanding plaatsvond?', answers: ['Kuifje met zijn hond Bobbie en kapitein Haddock', 'Suske en Wiske samen met Lambik en Jerom', 'Robbedoes en Kwabbernoot met de Marsupilami', 'Lucky Luke en Jolly Jumper in het wilde westen'], correct: 0, fact },
+      // Long single words (Jorn's quiz night: "de bananenplan" / "t"): they wrap between words or get smaller, never inside a word.
+      { question: 'Welke van deze woorden is het langste dat ooit in een Nederlands woordenboek werd opgenomen?', answers: ['de bananenplant', 'Ruimtevaartorganisatie', 'Kinderboekenweekgeschenk', 'Arbeidsongeschiktheidsverzekering'], correct: 3, fact },
     ] },
     { type: 'trueFalse', title: 'Waar of niet waar: de allergrootste onzin over Wetenschapsgeschiedenis', questions: [
       { question: 'Een dag op Venus duurt langer dan een jaar op Venus, omdat de planeet heel traag om haar eigen as draait.', correct: true, fact },
@@ -25,10 +27,10 @@ module.exports = {
       { clues: ['Het is een boyband die in 1993 werd gevormd door producer Lou Pearlman in Orlando, Florida.', 'Ze braken eerst stormachtig door in Europa voordat Amerika volgde.', "Hun megahit begint met de zin 'You are my fire, the one desire'.", 'De band bestaat uit AJ, Howie, Nick, Kevin en Brian.'], answer: 'Backstreet Boys', accept: ['The Backstreet Boys'], fact },
     ] },
     { type: 'pairUp', title: 'Koppel de sport', questions: [
-      { question: 'Koppel de sport aan de juiste speelbal of uitrusting die erbij hoort', pairs: [['Voetbal', 'Lederen bal'], ['Tennis', 'Gele viltbal'], ['Badminton', 'Shuttle met veertjes'], ['IJshockey', 'Zwarte rubberen puck'], ['Golf', 'Witte bal met putjes']], fact },
+      { question: 'Koppel de sport aan de juiste speelbal of uitrusting die erbij hoort', pairs: [['Voetbal', 'Lederen bal'], ['Tennis', 'Gele viltbal'], ['Badminton', 'Shuttle met veertjes'], ['IJshockey', 'Zwarte rubberen puck'], ['Golf', 'Golfbalverzamelaarsmand']], fact },
     ] },
     { type: 'orderUp', title: 'In de juiste volgorde', questions: [
-      { question: 'Zet deze gebouwen in volgorde van oud naar nieuw, het oudste bovenaan', items: ['De piramides van Gizeh in Egypte', 'Het Colosseum in het oude Rome', 'De Eiffeltoren in Parijs', 'De Burj Khalifa in Dubai', 'Het Atomium in Brussel'], fact },
+      { question: 'Zet deze gebouwen in volgorde van oud naar nieuw, het oudste bovenaan', items: ['De piramides van Gizeh in Egypte', 'Het Colosseum in het oude Rome', 'De Eiffeltoren in Parijs', 'De Burj Khalifa in Dubai', 'Het Atomium in Brussel', 'Kathedraalbouwmeesterswerkplaats'], fact },
     ] },
     { type: 'emoji', title: 'Emoji-raadsel', questions: [
       { emoji: '🌧️🐱🐶☂️🏠', question: 'Welk spreekwoord of gezegde zoeken we hier eigenlijk?', answer: 'Het regent pijpenstelen en kattenjongen', fact },
@@ -38,7 +40,7 @@ module.exports = {
     ] },
     { type: 'wordWeb', title: 'Woordweb: zoek de verbanden', questions: [
       { question: 'Zoek de vier groepjes van vier en wat hen verbindt', groups: [
-        { link: 'Rivieren in Europa', words: ['Donau', 'Schelde', 'Theems', 'Wolga'] },
+        { link: 'Rivieren in Europa', words: ['Donau', 'Schelde', 'Theems', 'Guadalquivir'] },
         { link: 'Planeten', words: ['Mercurius', 'Saturnus', 'Jupiter', 'Neptunus'] },
         { link: 'Chocoladerepen', words: ['Bounty', 'Twix', 'Snickers', 'Galaxy'] },
         { link: 'Dansstijlen', words: ['Wals', 'Tango', 'Samba', 'Foxtrot'] },
@@ -55,12 +57,13 @@ module.exports = {
     ] },
     { type: 'speed', title: 'Snelle vingers', questions: [
       { question: 'Hoeveel zijden heeft een zeshoek?', answers: ['Vijf', 'Zes', 'Zeven', 'Acht'], correct: 1, fact },
+      { question: 'Welke plant draagt trossen gele vruchten?', answers: ['de bananenplant', 'de aardbeienplant', 'de tomatenplant', 'de vijgenboom'], correct: 0, fact },
     ] },
   ],
 };
 
 const img = '/img/look/pub-lobby.webp';
-const long4 = ['Kuifje met zijn hond Bobbie en kapitein Haddock', 'Suske en Wiske samen met Lambik en Jerom', 'Robbedoes en Kwabbernoot met de Marsupilami', 'Lucky Luke en Jolly Jumper in het wilde westen'];
+const long4 = ['Kuifje met zijn hond Bobbie en kapitein Haddock', 'Suske en Wiske samen met Lambik en Jerom', 'Robbedoes en Kwabbernoot met de Marsupilami', 'Lucky Luke en de bananenplantage in het wilde westen'];
 const mc = (question, extraFields = {}) => ({ question, answers: long4, correct: 0, fact, ...extraFields });
 const open = (question, extraFields = {}) => ({ question, answer: 'Eiffeltoren in Parijs', accept: ['Eiffeltoren'], fact, ...extraFields });
 

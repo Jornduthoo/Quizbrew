@@ -29,7 +29,7 @@ const TEAMS = NAMES.slice(0, TEAM_COUNT);
 const COLORS = require('../src/teams').TEAM_COLORS;
 const NO_MOTION = '*, *::before, *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition: none !important; }';
 
-const { problems } = require('./fixtures/screen-problems');
+const { problems, brokenWords } = require('./fixtures/screen-problems');
 
 // Runs in the phone, host and remote pages: the page never scrolls sideways and no block sticks out on the side.
 function pageProblems() {
@@ -100,6 +100,7 @@ test('big screen, phone, host and remote: no overlap, nothing sticks out, every 
     for (const { page, size } of pages) {
       await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
       (await page.evaluate(problems)).forEach(p => failures.push(`${step} @ ${size.name}: ${p}`));
+      (await page.evaluate(brokenWords)).forEach(p => failures.push(`${step} @ ${size.name}: ${p}`));
       if (shots) await page.screenshot({ path: path.join(shots, `${step}-${size.name}.png`) });
     }
     if (withOthers) await checkOthers(step);
@@ -107,6 +108,7 @@ test('big screen, phone, host and remote: no overlap, nothing sticks out, every 
   const checkOthers = async step => {
     for (const [name, page] of others) {
       (await page.evaluate(pageProblems)).forEach(p => failures.push(`${step} @ ${name}: ${p}`));
+      (await page.evaluate(brokenWords)).forEach(p => failures.push(`${step} @ ${name}: ${p}`));
       if (shots) await page.screenshot({ path: path.join(shots, `${step}-${name}.png`), fullPage: name === 'host' });
     }
   };
@@ -124,7 +126,7 @@ test('big screen, phone, host and remote: no overlap, nothing sticks out, every 
       case 'level': return { l: i % 3, i: 0 };
       case 'buzz': return 'buzz';
       case 'draw': case 'photo': return media.pictures[i % media.pictures.length];
-      default: return i === 2 ? 'Broodje eekhoorntjes' : ['de Backstreet Boys', 'Take That en nog wat', 'sinck', 'Olympus Mons', 'Een hele lange foute gok van dit team', 'Het Atomium in Brussel of toch de Eiffeltoren'][i % 6];
+      default: return i === 2 ? 'Broodje eekhoorntjes' : ['de Backstreet Boys', 'Take That en nog wat', 'sinck', 'Olympus Mons', 'Een hele lange foute gok van dit team', 'Het Atomium in Brussel of toch de Eiffeltoren', 'de Kinderboekenweekgeschenkverpakking'][i % 7];
     }
   };
 

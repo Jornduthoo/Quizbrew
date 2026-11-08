@@ -56,7 +56,7 @@
     <div class="aud-head"><span class="aud-badge" data-i18n="play.audience.badge"></span><span class="aud-name" id="aud-name"></span><span class="aud-score" id="aud-score"></span></div>
     <p class="phone-q aud-q" id="aud-q" hidden></p>
     <div class="choices" id="aud-choices"></div>
-    <p class="say aud-say" id="aud-say" aria-live="polite"></p>
+    <p class="fitw say aud-say" id="aud-say" aria-live="polite"></p>
     <ol class="standings" id="aud-top" hidden></ol>
     <button class="link-btn aud-leave" id="aud-leave" type="button" data-i18n="play.audience.leave"></button>
   </section>
@@ -64,13 +64,13 @@
   <!-- No quiz loaded yet -->
   <section id="v-idle" class="view center" hidden>
     <img class="logo" src="/img/logo.webp" alt="Quizbrew">
-    <p class="say" data-i18n="play.noQuiz"></p>
+    <p class="fitw say" data-i18n="play.noQuiz"></p>
   </section>
 
   <!-- Waiting: look at the big screen -->
   <section id="v-wait" class="view center" hidden>
     <div class="badge" id="wait-badge"></div>
-    <p class="say" id="wait-text" aria-live="polite"></p>
+    <p class="fitw say" id="wait-text" aria-live="polite"></p>
     <p class="quip" id="wait-quip"></p>
     <button class="ghost-btn photo-later" id="photo-later" type="button" hidden data-i18n="play.teamPhotoLater"></button>
     <ol class="standings" id="standings" hidden></ol>
@@ -132,7 +132,7 @@
   <section id="v-buzz" class="view center" hidden>
     <div class="mini-head wide"><span id="z-num"></span><span id="z-time"></span></div>
     <button class="buzz-btn" id="buzz-btn" type="button"><span data-i18n="play.buzz"></span></button>
-    <p class="say" id="buzz-text" aria-live="polite"></p>
+    <p class="fitw say" id="buzz-text" aria-live="polite"></p>
   </section>
 
   <!-- List rush: type as many as you can -->
@@ -181,7 +181,7 @@
   <!-- Bet points before the question (jackpot) -->
   <section id="v-wager" class="view center" hidden>
     <p class="label" id="wager-kicker"></p>
-    <p class="say big" id="wager-category"></p>
+    <p class="fitw say big" id="wager-category"></p>
     <div class="bet-box" id="bet-box">
       <output class="wager-amount" id="wager-amount"></output>
       <input class="wager-range" type="range" id="wager-range" min="0" step="1" data-i18n-attr="aria-label:play.wagerKicker">
@@ -195,7 +195,7 @@
   <!-- Result after the reveal -->
   <section id="v-reveal" class="view center" hidden>
     <div class="result-wrap"><div class="rays" aria-hidden="true"></div><div class="result" id="result-icon"></div></div>
-    <p class="say big" id="result-text" aria-live="polite"></p>
+    <p class="fitw say big" id="result-text" aria-live="polite"></p>
     <p class="sub" id="result-sub"></p>
     <p class="quip" id="result-quip"></p>
     <p class="fact" id="result-fact" hidden></p>

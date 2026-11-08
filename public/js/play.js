@@ -68,7 +68,7 @@
       $('#aud-choices').replaceChildren(...answers.map((a, i) => h('button', {
         class: 'choice', style: tf ? `--k: ${i}` : `--a: var(--ans-${i}); --k: ${i}`,
         onclick: () => { if (navigator.vibrate) navigator.vibrate(25); socket.emit('audienceAnswer', i); },
-      }, h('span', { class: 'letter', 'data-shape': tf ? null : i }, tf ? (i === 0 ? '✓' : '✗') : LETTERS[i]), h('span', { class: 'text' }, a))));
+      }, h('span', { class: 'letter', 'data-shape': tf ? null : i }, tf ? (i === 0 ? '✓' : '✗') : LETTERS[i]), h('span', { class: 'text fitw' }, a))));
     }
     if (!q) $('#aud-choices').replaceChildren();
     [...$('#aud-choices').children].forEach((b, i) => {
@@ -551,7 +551,7 @@
         h('div', { class: 'pair-right' }, q.right.map((r, i) => h('button', {
           type: 'button', class: 'build-item' + (build.includes(i) ? ' used' : ''), disabled: done || build.includes(i),
           onclick: tap(() => build.push(i)),
-        }, h('span', { class: 'text' }, r)))),
+        }, h('span', { class: 'text fitw' }, r)))),
       );
     } else if (q.kind === 'groups') {
       // Word web: tap 4 words to make a group; the last group fills itself. Then name what links each group.
@@ -562,13 +562,13 @@
       $('#build-label').textContent = done ? t('play.webLinks') : t('play.webPick', { n: made + 1, total: q.groupCount });
       box.className = 'build web' + (enter ? ' enter' : '');
       const rows = Array.from({ length: made }, (_, g) => h('div', { class: 'web-group', style: `--g: var(--web-${g})` },
-        h('div', { class: 'web-words' }, build.slice(g * 4, g * 4 + 4).map(i => h('span', { class: 'web-word set' }, q.words[i]))),
+        h('div', { class: 'web-words' }, build.slice(g * 4, g * 4 + 4).map(i => h('span', { class: 'web-word set fitw' }, q.words[i]))),
         h('input', { class: 'web-link', maxlength: 60, placeholder: t('play.webLinkPh'), value: links[g] || '', autocomplete: 'off', oninput: e => { links[g] = e.target.value; } })));
       const pending = build.slice(made * 4);
       box.replaceChildren(...rows, done ? '' : h('div', { class: 'web-pool' }, q.words.map((w, i) => {
         const at = pending.indexOf(i);
         if (build.includes(i) && at < 0) return null;
-        return h('button', { type: 'button', class: 'web-word' + (at >= 0 ? ' on' : ''), style: `--g: var(--web-${made})`,
+        return h('button', { type: 'button', class: 'web-word fitw' + (at >= 0 ? ' on' : ''), style: `--g: var(--web-${made})`,
           onclick: tap(() => { if (at >= 0) build.splice(made * 4 + at, 1); else build.push(i); }) }, w);
       })));
     } else {
@@ -885,6 +885,22 @@
   }
   addEventListener('resize', fitBadge);
   addEventListener('resize', () => fitChoices());
+  // Every text that may hold a long word (.fitw) gets smaller rather than breaking in the middle of the word,
+  // whenever something on the phone changes. Only the font size of those texts changes, which is not watched.
+  let wordsQueued = false;
+  const fitPhoneWords = () => {
+    if (wordsQueued) return;
+    wordsQueued = true;
+    requestAnimationFrame(() => {
+      wordsQueued = false;
+      QB.fitAllWords(document.body, '.fitw');
+      // The answer buttons of one question keep the same size, and all fit the phone.
+      QB.fitAllWords($('#aud-choices'), '.fitw', { same: true });
+      fitChoices();
+    });
+  };
+  new MutationObserver(fitPhoneWords).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['hidden'] });
+  addEventListener('resize', fitPhoneWords);
   if (document.fonts) document.fonts.ready.then(fitBadge);
 
   function wait(text, badge) {
@@ -1065,9 +1081,10 @@
     box.style.fontSize = '';
     const view = $('#v-question');
     if (view.hidden) return;
+    QB.fitAllWords(box, '.fitw', { same: true });
     const over = () => view.scrollHeight > innerHeight + 1;
     let k = 1;
-    while (over() && k > 0.75) { k *= 0.93; box.style.fontSize = k + 'em'; }
+    while (over() && k > 0.65) { k *= 0.93; box.style.fontSize = k + 'em'; }
   }
 
   function renderChoices(s, fresh) {
@@ -1084,7 +1101,7 @@
           if (navigator.vibrate) navigator.vibrate(25);
           socket.emit('answer', i);
         },
-      }, h('span', { class: 'letter', 'data-shape': tf ? null : i }, tf ? (i === 0 ? '✓' : '✗') : LETTERS[i]), h('span', { class: 'text' }, a))));
+      }, h('span', { class: 'letter', 'data-shape': tf ? null : i }, tf ? (i === 0 ? '✓' : '✗') : LETTERS[i]), h('span', { class: 'text fitw' }, a))));
     }
     // Shrinking options and the 50/50 lifeline: answers that are gone can not be tapped.
     const gone = new Set(s.question.gone || []);
