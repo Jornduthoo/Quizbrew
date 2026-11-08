@@ -352,6 +352,7 @@
     }
     // Long team names stay on one line in their card.
     grid.querySelectorAll('.bc-by').forEach(el => QB.fit(el, { min: 0.4 }));
+    QB.fitNames(grid, '.vn');
   }
   // Drawings and photos: try every number of columns and keep the one with the biggest pictures. The rows share
   // the height under the question equally, so the grid can never run off the screen or under the title.
@@ -392,9 +393,10 @@
     grid.style.fontSize = best.f + 'px';
     cards.flatMap(c => [...c.querySelectorAll('.bc-text')]).forEach(el => QB.fit(el, { lines: 3, min: 0.5 }));
     cards.flatMap(c => [...c.querySelectorAll('.bc-by')]).forEach(el => QB.fit(el, { min: 0.4 }));
+    QB.fitNames(grid, '.vn');
     // Many votes on one drawing: one row of dots and a count for the rest, so the drawing keeps its size.
     for (const dots of cards.flatMap(c => [...c.querySelectorAll('.bc-votes')])) {
-      const all = [...dots.querySelectorAll('.team-dot')];
+      const all = [...dots.querySelectorAll('.voter')];
       dots.querySelector('.more')?.remove();
       all.forEach(d => { d.hidden = false; });
       if (all.length < 2 || dots.scrollHeight <= all[0].offsetHeight * 1.5) continue;
@@ -963,6 +965,8 @@
   // so the letters on the TV would not match the phones. While voting the TV turns the drawings over in pages
   // without letters, or shows a counter for texts. The reveal is a top 5.
   const BIG_BALLOT = 8, TOP = 5;
+  // A team that voted for a card: its selfie (or its dot) and its name, so the room sees who fell for what.
+  const voter = (v, k) => h('span', { class: 'voter', style: `${teamVar(v.color)}; --d: ${k}`, title: v.name }, QB.dot(v), h('span', { class: 'vn tn' }, v.name));
   function renderVote(s, fresh) {
     const reveal = s.phase === 'reveal';
     document.body.classList.toggle('revealed', reveal);
@@ -1021,7 +1025,7 @@
         top ? h('span', { class: 'letter rank' }, String(i + 1)) : big ? null : h('span', { class: 'letter' }, QB.cardLetter(i)),
         b.image ? h('img', { src: b.content, alt: '', onload: refitSoon }) : h('span', { class: 'bc-text' }, b.content),
         reveal ? h('span', { class: 'bc-by' }, b.truth ? t('screen.theTruth') : b.by ? b.by.name : '') : null,
-        reveal && (top || mode !== 'match') ? h('span', { class: 'bc-votes' }, (b.votes || []).slice(0, top && !pics ? 12 : undefined).map(v => h('i', { class: 'team-dot', style: teamVar(v.color), title: v.name }))) : null,
+        reveal && (top || mode !== 'match') ? h('span', { class: 'bc-votes' }, (b.votes || []).slice(0, top && !pics ? 12 : undefined).map((v, k) => voter(v, k))) : null,
         top ? h('span', { class: 'bc-count' }, `${votes} ${mode === 'match' ? '✓' : '★'}`) : null);
     }));
     startPager(grid, `${s.round.index}/${s.questionIndex}/${s.phase}`);
@@ -1080,7 +1084,7 @@
         h('span', { class: 'letter' }, QB.cardLetter(b.id ?? i)),
         b.image ? h('img', { src: b.content, alt: '', onload: refitSoon }) : h('span', { class: 'bc-text' }, b.content),
         reveal ? h('span', { class: 'bc-by' }, byLine(b)) : null,
-        reveal && mode !== 'match' ? h('span', { class: 'bc-votes' }, (b.votes || []).map((v, k) => h('i', { class: 'team-dot', style: teamVar(v.color) + `; --d: ${k}`, title: v.name }))) : null);
+        reveal && mode !== 'match' ? h('span', { class: 'bc-votes' }, (b.votes || []).map((v, k) => voter(v, k))) : null);
     }));
     startPager(grid, `${s.round.index}/${s.questionIndex}/${s.phase}`);
     // The view may only be shown after this render, so measure on the next frame.
