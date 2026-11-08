@@ -953,7 +953,8 @@ class Game {
         if (authors.length > 1) out.also = authors.slice(1).map(a => ({ name: a.name, color: a.color }));
         // Who's who: the teams that guessed the author right.
         const voted = match ? x => Array.isArray(x.vote) && b.teamId && x.vote[b.id] === b.teamId : x => x.vote === b.id;
-        out.votes = [...this.teams.values()].filter(voted).map(x => ({ name: x.name, color: x.color }));
+        // With their selfie: on the TV everyone sees at a glance who fell for it.
+        out.votes = [...this.teams.values()].filter(voted).map(x => ({ name: x.name, color: x.color, photo: x.photo || null }));
       }
       return out;
     });
