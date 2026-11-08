@@ -77,4 +77,36 @@ function problems() {
   return out;
 }
 
-module.exports = { problems };
+// Runs in any page: no word on screen is broken in the middle over two lines ("de bananenplan" / "t").
+// Text wraps between words only; a long word gets a smaller font instead. Team names and web addresses may
+// still break as a last resort (.break), and words with a hyphen or slash may break after it.
+function brokenWords() {
+  const out = [];
+  const seen = new Set();
+  const range = document.createRange();
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n; (n = walker.nextNode());) {
+    const el = n.parentElement;
+    if (!el || !n.data.trim() || el.closest('[hidden], svg, script, style, textarea, .break, .url, .big-url, .remote-url, .join-big, .reactions')) continue;
+    if (el.offsetParent === null && getComputedStyle(el).position !== 'fixed') continue;
+    const lh = parseFloat(getComputedStyle(el).fontSize) || 16;
+    const re = /\S+/g;
+    for (let m; (m = re.exec(n.data));) {
+      const word = m[0];
+      if (word.length < 3 || /[-‐/–—_.@:]/.test(word.slice(0, -1))) continue;
+      range.setStart(n, m.index);
+      range.setEnd(n, m.index + word.length);
+      const rects = [...range.getClientRects()].filter(r => r.width > 0.5 && r.height > 0.5);
+      if (rects.length < 2) continue;
+      const tops = rects.map(r => r.top);
+      if (Math.max(...tops) - Math.min(...tops) < lh * 0.5) continue;
+      if (seen.has(word)) continue;
+      seen.add(word);
+      const cls = el.className && typeof el.className === 'string' ? '.' + el.className.split(' ')[0] : el.tagName;
+      out.push(`the word "${word}" in ${el.id ? '#' + el.id : cls} breaks over two lines`);
+    }
+  }
+  return out;
+}
+
+module.exports = { problems, brokenWords };

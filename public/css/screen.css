@@ -286,7 +286,7 @@ body.urgent .vignette::after { animation: heartbeat 1s ease-in-out infinite; }
 .q-board { animation: board-in .7s cubic-bezier(.2, 1.2, .4, 1) both; }
 @keyframes board-in { from { transform: translateY(-3vh) scale(.97); opacity: 0; } }
 
-.answers { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 2.2vh 2vw; }
+.answers { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2.2vh 2vw; }
 .answer {
   position: relative;
   display: flex; align-items: center; gap: 1.2vw;

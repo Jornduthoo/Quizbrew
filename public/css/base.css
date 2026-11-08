@@ -199,6 +199,9 @@ h1, h2, .display { font-family: var(--display); font-weight: 400; font-synthesis
 .tn { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 1.15; }
 .tn.two { white-space: normal; }
 .tn.break { overflow-wrap: anywhere; }
+/* Text that wraps between words only (QB.fitWords); a word too long even at the smallest size breaks, hyphenated. */
+.fitw { min-width: 0; overflow-wrap: normal; word-break: normal; }
+.fitw.break { overflow-wrap: anywhere; hyphens: auto; }
 .tn.cut { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
 
 @keyframes flicker {

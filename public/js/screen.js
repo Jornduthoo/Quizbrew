@@ -296,6 +296,9 @@
       if (!roundBoard.hidden) { QB.fit(roundBoard, { height: innerHeight * (teamsBox.hidden ? 0.2 : 0.14), min: 0.45 }); QB.fitNames(roundBoard); }
       const clocks = $('#clock-board');
       if (!clocks.hidden) QB.fit(clocks, { height: innerHeight * (clocks.children.length > 24 ? 0.36 : 0.42), min: 0.4 });
+      // A long word in an answer makes that answer smaller instead of breaking in the middle of the word.
+      QB.fitAllWords(main, '.fitw');
+      QB.fitAllWords($('#answers'), '.fitw', { same: true });
       // The lists under the board: everything inside .q-main is sized in em, so one font size scales it all.
       const gap = parseFloat(getComputedStyle(main).rowGap) || 0;
       const outer = c => { const cs = getComputedStyle(c); return c.offsetHeight + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom); };
@@ -341,7 +344,12 @@
     if (grid.offsetParent === null) return;
     if (grid.classList.contains('pics')) return fitPictures(grid);
     // A long entry gets smaller, so every card keeps the same size and nothing runs over the letter.
-    const texts = () => grid.querySelectorAll('.bc-text').forEach(el => QB.fit(el, { lines: 3, min: 0.5 }));
+    // A long word makes the text smaller too; only a word that does not fit even then may break (.break).
+    const texts = () => grid.querySelectorAll('.bc-text').forEach(el => {
+      el.classList.remove('break');
+      QB.fit(el, { lines: 3, min: 0.5 });
+      el.classList.toggle('break', el.scrollWidth > el.clientWidth + 1);
+    });
     texts();
     let size = parseFloat(getComputedStyle(grid).fontSize);
     const min = size * 0.45;
@@ -512,7 +520,7 @@
       $('#answers').replaceChildren(...answers.map((a, i) => h('li', { class: 'answer', style: kind === 'trueFalse' ? `--k: ${i}` : `--a: var(--ans-${i}); --k: ${i}` },
         q.images ? h('img', { class: 'answer-img', src: q.images[i], alt: '' }) : null,
         h('span', { class: 'letter', 'data-shape': kind === 'trueFalse' ? null : i }, kind === 'trueFalse' ? (i === 0 ? '✓' : '✗') : LETTERS[i]),
-        h('span', { class: 'text' }, a),
+        h('span', { class: 'text fitw' }, a),
         h('span', { class: 'count' }))));
       $('#q-emoji').hidden = !q.emoji;
       if (q.emoji) $('#q-emoji').replaceChildren(...Array.from(q.emoji.replace(/\s+/g, ''), (c, i) => c).reduce((out, c) => {
@@ -523,7 +531,7 @@
         return out;
       }, []).map((c, i) => h('span', { class: 'emo', style: `--k: ${i}` }, c)));
       $('#q-items').hidden = !q.items;
-      if (q.items) $('#q-items').replaceChildren(...q.items.map((it, i) => h('li', { class: 'order-item', style: `--k: ${i}` }, h('span', { class: 'letter' }, QB.cardLetter(i)), h('span', {}, it))));
+      if (q.items) $('#q-items').replaceChildren(...q.items.map((it, i) => h('li', { class: 'order-item', style: `--k: ${i}` }, h('span', { class: 'letter' }, QB.cardLetter(i)), h('span', { class: 'fitw' }, it))));
       $('#q-pairs').hidden = !q.left;
       if (q.left) $('#q-pairs').replaceChildren(
         h('ol', { class: 'pair-col left' }, q.left.map((x, i) => h('li', { style: `--k: ${i}` }, h('span', { class: 'num' }, i + 1), x))),

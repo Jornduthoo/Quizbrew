@@ -219,6 +219,28 @@
     while (high() && scale > min) set(scale * 0.94);
     if (high() || wide()) el.classList.add('cut');
   }
+  // A long word never breaks in the middle ("de bananenplan" / "t"): the text gets smaller until its longest
+  // word fits the line. Only a word that still does not fit at `min` may break (.break, hyphenated where the
+  // browser knows the language). The element needs a width of its own (block or flex item with min-width: 0).
+  function fitWords(el, { min = 0.5 } = {}) {
+    if (!el || el.offsetParent === null) return 1;
+    el.style.fontSize = '';
+    el.classList.remove('break');
+    const wide = () => el.scrollWidth > el.clientWidth + 1;
+    let scale = 1;
+    while (wide() && scale > min) { scale *= 0.93; el.style.fontSize = scale + 'em'; }
+    if (wide()) el.classList.add('break');
+    return scale;
+  }
+  // `same`: answer buttons side by side all get the size of the smallest one, so they look alike.
+  function fitAllWords(root, sel, opts = {}) {
+    if (!root) return;
+    const els = [...root.querySelectorAll(sel)];
+    const scales = els.map(el => fitWords(el, opts));
+    if (!opts.same) return;
+    const k = Math.min(1, ...scales);
+    els.forEach((el, i) => { if (scales[i] > k) el.style.fontSize = k + 'em'; });
+  }
   function fitNames(root, sel = '.tn', opts) {
     if (root) root.querySelectorAll(sel).forEach(el => fitName(el, opts));
   }
@@ -250,5 +272,5 @@
     return keys.length ? t(keys[(Math.random() * keys.length) | 0], vars) : '';
   }
 
-  window.QB = { twistChips, quip, applyLook, $, h, showView, LETTERS, cardLetter, REACTIONS, teamVar, dot, countdown, mmss, info, ROUND_THEMES, roundTheme, CROWN, split, fit, fitName, fitNames, countUp, later, clearLater };
+  window.QB = { twistChips, quip, applyLook, $, h, showView, LETTERS, cardLetter, REACTIONS, teamVar, dot, countdown, mmss, info, ROUND_THEMES, roundTheme, CROWN, split, fit, fitName, fitNames, fitWords, fitAllWords, countUp, later, clearLater };
 })();

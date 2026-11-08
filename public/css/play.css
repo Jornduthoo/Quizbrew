@@ -51,7 +51,7 @@ body.phone::before {
 .error { margin: 0; min-height: 1.2em; color: var(--bad); font-weight: 600; }
 .brass-btn.big { font-size: 1.25em; padding: 16px; margin-top: 4px; }
 
-.say { font-size: 1.45em; font-weight: 700; line-height: 1.25; margin: 0; max-width: min(18em, 100%); overflow-wrap: anywhere; }
+.say { font-size: 1.45em; font-weight: 700; line-height: 1.25; margin: 0; max-width: min(18em, 100%); }
 .say.big { font-size: 2em; }
 .sub { color: var(--muted); margin: 0; font-size: 1.1em; max-width: 20em; }
 
