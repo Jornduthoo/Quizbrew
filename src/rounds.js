@@ -135,6 +135,44 @@ function scramble(word) {
 }
 
 
+// The AI often writes its own shuffled letters into the hint ("Unscramble this animal: LIOFTANE"),
+// and those letters are often wrong. The tiles always come from the answer, so we take any shuffled
+// letters out of the hint. When they are far off from the answer, the AI mixed up its questions and
+// the whole hint is not trusted. A hint that gives away the answer is dropped too.
+const lettersOf = s => String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\p{L}\p{N}]/gu, '');
+function letterGap(a, b) {
+  const count = {};
+  for (const c of a) count[c] = (count[c] || 0) + 1;
+  let common = 0;
+  for (const c of b) if (count[c] > 0) { count[c]--; common++; }
+  return { common, gap: Math.max(a.length, b.length) - common };
+}
+function scrambleHint(hint, answer) {
+  let text = str(hint);
+  const word = lettersOf(answer);
+  if (!text || !word) return text;
+  if (word.length >= 3 && lettersOf(text).includes(word)) return '';
+  // "S O M N C E" or "N-A-K-V" written as one block of letters.
+  text = text.replace(/(?<![\p{L}\p{N}])(?:\p{Lu}[ .\-·/]){2,}\p{Lu}(?![\p{L}\p{N}])/gu, m => m.replace(/[ .\-·/]/g, ''));
+  let confused = false;
+  text = text.replace(/(?<![\p{L}\p{N}])\p{Lu}{4,}(?![\p{L}\p{N}])/gu, token => {
+    const t = lettersOf(token);
+    if (Math.abs(t.length - word.length) > 3) return token;
+    const { common, gap } = letterGap(word, t);
+    if (common < t.length * 0.6) return token; // a normal word or abbreviation, not a shuffle
+    if (gap > Math.max(2, Math.round(word.length * 0.2))) confused = true;
+    return '\u0000';
+  });
+  if (confused) return '';
+  if (!text.includes('\u0000')) return text;
+  text = text.replace(/[ \t]*["'“”‘’«»]?\u0000["'“”‘’«»]?[ \t]*/g, ' ').replace(/\s+/g, ' ').trim();
+  // "Unscramble the letters: (the captain of the club)." keeps what is between the brackets.
+  const inBrackets = text.match(/^[^()]*[:\-–]\s*\((.+)\)[.!?]?$/);
+  if (inBrackets) text = inBrackets[1].trim();
+  text = text.replace(/\(\s*\)/g, '').replace(/\s+([.,:;!?])/g, '$1').replace(/[\s:;,\-–]+$/, '').replace(/^[\s:;,\-–]+/, '').trim();
+  return text ? text[0].toUpperCase() + text.slice(1) : '';
+}
+
 // A fixed shuffle of 0..n-1 for the same content (so a reload shows the same order), never the identity when n > 1.
 function permutation(n, seedText) {
   const idx = Array.from({ length: n }, (_, i) => i);
@@ -505,9 +543,12 @@ const TYPES = [
       need.answer(q, fail);
       if (q.answer.replace(/\s/g, '').length < 3) fail('needs a word of at least 3 letters');
     },
-    publicQ: q => ({ scrambled: scramble(q.answer), hint: str(q.question) }),
-    aiShape: '{"answer": "WORD", "question": "a short hint or category"}  (one word or a short name of 4-12 letters)',
-    fromAI: it => ({ answer: (answerOf(it) || str(it.word) || str(it.solution)).toUpperCase(), question: str(it.question) || str(it.hint) }),
+    publicQ: q => ({ scrambled: scramble(q.answer), hint: scrambleHint(q.question, q.answer) }),
+    aiShape: '{"answer": "WORD", "question": "the category of this exact word in 1 to 4 words, e.g. \\"animal\\""}  (one word or a short name of 4-12 letters; never write shuffled letters anywhere, the app shuffles the answer itself)',
+    fromAI: it => {
+      const answer = (answerOf(it) || str(it.word) || str(it.solution)).toUpperCase();
+      return { answer, question: scrambleHint(str(it.question) || str(it.category) || str(it.hint), answer) };
+    },
   },
   {
     id: 'commonThread', family: 'puzzle', ...textType,
@@ -1205,4 +1246,4 @@ function catalog() {
   };
 }
 
-module.exports = { linkMatches, crowdGroups, typeFrom, num, yesNo, choicesOf, correctOf, pairsOf, listLoose, textOf, twistFits, CHOICE_TWISTS, isTurn, listFound, permutation, pointDistance, TYPES, SCORINGS, TWISTS, FAMILIES, get, kindOf, stepsOf, withDefaults, catalog, normalize, textMatches, scramble, list, str };
+module.exports = { linkMatches, crowdGroups, typeFrom, num, yesNo, choicesOf, correctOf, pairsOf, listLoose, textOf, twistFits, CHOICE_TWISTS, isTurn, listFound, permutation, pointDistance, scrambleHint, TYPES, SCORINGS, TWISTS, FAMILIES, get, kindOf, stepsOf, withDefaults, catalog, normalize, textMatches, scramble, list, str };

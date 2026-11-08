@@ -92,7 +92,7 @@ const TYPE_HELP = {
   picture: 'a picture is shown; teams name what or who it is',
   zoomOut: 'a picture starts zoomed in very far and slowly zooms out; teams name what it is',
   speed: 'quick multiple choice with 4 options; fast answers score more, keep questions very short',
-  scramble: 'the letters of a word are shuffled; teams find the word',
+  scramble: 'the app shuffles the letters of a word; teams find the word. Give only the word and its category, never shuffled letters',
   commonThread: 'clues appear one by one from hard to easy; teams find what links them',
   jackpot: 'teams bet points after seeing only the category, then answer one open question',
   music: 'a music fragment plays; teams name the artist or title',
