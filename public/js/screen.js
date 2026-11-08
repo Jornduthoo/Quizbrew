@@ -747,17 +747,21 @@
     }
     const clues = [...$('#q-clues').children];
     const img = $('#q-img');
+    // Zoom and pixel fog: the whole picture is clear with 30% of the time left
+    // (at most 8 s, at least 3 s), so teams still have time to type the answer.
+    const unfold = total - Math.min(8000, Math.max(3000, total * 0.3), total * 0.5);
     if (q.effect === 'zoom' && q.image) {
-      // Zoomed in far at the start, the whole picture when time is up. An answer does not restart the zoom:
+      // Zoomed in far at the start. An answer does not restart the zoom:
       // only a new question, a pause or extra time (the end moves by more than a moment) puts it where the clock is.
       const end = performance.now() + s.remaining;
       if (fresh || !zoom || zoom.key !== lastKey || Math.abs(zoom.end - end) > 750) {
         zoom = { key: lastKey, end };
         img.style.animation = 'none';
         void img.offsetWidth;
-        img.style.animation = `zoom-out ${total}ms linear both`;
+        img.style.animation = `zoom-out ${unfold}ms linear both`;
         img.style.animationDelay = `-${total - s.remaining}ms`;
       }
+      img.style.animationPlayState = s.paused ? 'paused' : '';
     } else zoom = null;
     const canvas = $('#q-canvas');
     canvas.hidden = q.effect !== 'pixel';
@@ -773,7 +777,7 @@
       const sec = Math.ceil(left / 1000);
       if (sec !== lastTick) { lastTick = sec; if (sec > 0 && sec <= 5) SFX.tick(sec); }
       Media.tick(total - left);
-      if (q.effect === 'pixel') pixelate(canvas, img, 1 - frac);
+      if (q.effect === 'pixel') pixelate(canvas, img, Math.min(1, (total - left) / unfold));
       ring.style.strokeDashoffset = C * (1 - frac);
       $('#timer-num').textContent = Math.ceil(left / 1000);
       const urgent = left < 5000 && left > 0;
