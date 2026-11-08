@@ -170,6 +170,7 @@ test('the exact word scramble answer Jorn pasted (same markdown copy) is read', 
   const got = ai.parseRound(text, 'scramble');
   assert.equal(got.length, 3);
   assert.deepEqual(got.map(q => q.answer.toUpperCase()), ['VANAKEN', 'MIGNOLET', 'TZOLIS']);
+  assert.deepEqual(got.map(q => q.question), ['De aanvoerder van Club Brugge', 'De doelman van Club Brugge', 'De Griekse aanvaller van Club Brugge'], 'the AI letters are taken out of the hint');
   for (const q of got) assert.ok(!/&#|\\/.test(JSON.stringify(q)), JSON.stringify(q));
 });
 
@@ -297,4 +298,15 @@ test('importing a quiz file an AI wrote: other type names, AI shapes and sloppy 
   res = await post({ name: 'odd.json', text: JSON.stringify({ title: 'X', rounds: [{ type: 'karaoke battle', questions: [{ question: 'Q' }] }] }) });
   assert.equal(res.status, 400);
   assert.match(res.data.detail, /karaoke battle/);
+});
+
+test('word scramble: the AI\'s own shuffled letters never reach the screen (Jorn\'s quiz night)', () => {
+  const got = ai.parseRound(JSON.stringify([
+    { answer: 'SCHOENLEPEL', question: 'Ontcijfer dit zonnestelsellichaam: SOMNCEPLUHA' },
+    { answer: 'OLIFANT', question: 'Ontcijfer dit dier: LIOFTANE' },
+    { answer: 'WAFFLE', category: 'Belgian treat' },
+  ]), 'scramble');
+  assert.equal(got[0].question, '', 'letters far off from the answer: the AI mixed up its questions, hint dropped');
+  assert.equal(got[1].question, 'Ontcijfer dit dier');
+  assert.equal(got[2].question, 'Belgian treat');
 });

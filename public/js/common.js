@@ -266,11 +266,22 @@
   const later = (fn, ms) => timers.push(setTimeout(fn, ms));
   const clearLater = () => { while (timers.length) clearTimeout(timers.pop()); };
 
+  // Every answer or vote sends a new state to every screen. A list that shows the same thing must not be built
+  // again: new cards replay their neon entrance, pictures load again and the fit starts over, and on a TV that
+  // flickers the whole screen. changed(el, ...what) is true only when what the element shows is different.
+  const drawn = new WeakMap();
+  function changed(el, ...what) {
+    const sig = JSON.stringify(what);
+    if (drawn.get(el) === sig) return false;
+    drawn.set(el, sig);
+    return true;
+  }
+
     // A random one-liner from a group (quip.<group>.1, .2, ...), written per language, not translated.
   function quip(group, vars) {
     const keys = Object.keys(I18n.dict).filter(k => k.startsWith('quip.' + group + '.'));
     return keys.length ? t(keys[(Math.random() * keys.length) | 0], vars) : '';
   }
 
-  window.QB = { twistChips, quip, applyLook, $, h, showView, LETTERS, cardLetter, REACTIONS, teamVar, dot, countdown, mmss, info, ROUND_THEMES, roundTheme, CROWN, split, fit, fitName, fitNames, fitWords, fitAllWords, countUp, later, clearLater };
+  window.QB = { twistChips, quip, applyLook, $, h, showView, LETTERS, cardLetter, REACTIONS, teamVar, dot, countdown, mmss, info, ROUND_THEMES, roundTheme, CROWN, split, fit, fitName, fitNames, fitWords, fitAllWords, countUp, later, clearLater, changed };
 })();

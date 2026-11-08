@@ -232,7 +232,6 @@ body.screen .vote { display: grid; grid-template-rows: auto auto minmax(0, 1fr);
 .screen .bc-by { max-width: 100%; white-space: nowrap; }
 .screen .ballot-card { min-width: 0; }
 .screen .ballot-grid.many img { max-height: 7em; }
-.screen .ballot-grid.many .bc-votes .team-dot { width: 1.1em; height: 1.1em; }
 .screen .ballot-card {
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2vh; min-height: 16vh; padding: 2.4vh 1.6vw 2vh; border-radius: 18px; text-align: center;
   background: rgba(0, 0, 0, .5); border: 3px solid var(--c, var(--theme, var(--brass))); box-shadow: 0 0 18px color-mix(in srgb, var(--c, var(--theme, var(--brass))) 40%, transparent);
@@ -245,14 +244,22 @@ body.screen .vote { display: grid; grid-template-rows: auto auto minmax(0, 1fr);
 .screen .ballot-grid.n7 img, .screen .ballot-grid.n8 img { max-height: 22vh; }
 .screen .bc-by { font-weight: 800; font-size: 1.2em; color: var(--c, var(--brass-light)); text-shadow: 0 0 12px var(--c, transparent); }
 .screen .bc-votes { display: flex; gap: .5vw; flex-wrap: wrap; justify-content: center; min-height: 2vh; }
-.screen .bc-votes .team-dot { width: 2.4vh; height: 2.4vh; animation: pop-in .4s cubic-bezier(.2, 1.5, .4, 1) both; }
+/* Who voted for a card: a pill with the team's selfie (or its dot) and its name. */
+.screen .bc-votes .voter {
+  display: inline-flex; align-items: center; gap: .35em; max-width: 100%; min-width: 0; box-sizing: border-box;
+  padding: .15em .6em .15em .15em; border-radius: 999px; font-size: .8em; font-weight: 700; line-height: 1.15; color: #fff;
+  background: rgba(0, 0, 0, .55); border: 2px solid var(--c); animation: pop-in .4s cubic-bezier(.2, 1.5, .4, 1) both;
+}
+.screen .ballot-grid .bc-votes .voter .team-dot { width: 1.7em; height: 1.7em; }
+.screen .bc-votes .voter .vn { min-width: 0; max-width: 12em; text-align: left; }
+.screen .ballot-grid .bc-votes .voter[hidden] { display: none; }
 body.revealed .ballot-card.turned:not(.win) { opacity: .6; transform: scale(.97); }
 body.revealed .ballot-card.win { transform: scale(1.04); box-shadow: 0 0 40px var(--good); border-color: var(--good); }
 body.revealed .ballot-card.truth, body.revealed .ballot-card.is-truth.turned { --c: var(--good); }
 /* Bluff reveal: a card keeps its secret (who wrote it, who fell for it) until it turns; the truth turns last. */
 body.revealed .ballot-card:not(.turned) :is(.bc-by, .bc-votes) { visibility: hidden; }
 body.revealed .ballot-card.flip { animation: bc-turn .7s cubic-bezier(.3, .7, .3, 1); }
-body.revealed .ballot-card.flip .bc-votes .team-dot { animation-delay: calc(.35s + var(--d, 0) * .07s); }
+body.revealed .ballot-card.flip .bc-votes .voter { animation-delay: calc(.35s + var(--d, 0) * .07s); }
 body.revealed .ballot-card.house.turned { border-style: dashed; --c: var(--muted); }
 @keyframes bc-turn { 0% { } 45% { transform: perspective(60em) rotateY(90deg); filter: brightness(1.8); } 100% { } }
 .screen .ballot-grid.personal .ballot-card .letter { display: none; }
@@ -569,10 +576,9 @@ body[data-phase="reveal"] .q-fact:not([hidden]) ~ .answered-dots, body[data-phas
 .screen .ballot-grid.pics .bc-text { font-size: 1.25em; }
 .screen .ballot-grid.pics .bc-by { flex: none; font-size: 1.1em; line-height: 1.15; }
 .screen .ballot-grid.pics .bc-votes { flex: none; gap: .25em; min-height: 0; }
-.screen .ballot-grid.pics .bc-votes .team-dot { width: .9em; height: .9em; }
+.screen .ballot-grid.pics .bc-votes .voter { font-size: .7em; }
 .screen .ballot-grid.pics .ballot-card .letter { font-size: .85em; }
 .screen .ballot-grid.pics .bc-votes { flex-wrap: wrap; align-items: center; }
-.screen .ballot-grid.pics .bc-votes .team-dot[hidden] { display: none; }
 .screen .ballot-grid.pics .bc-votes .more { font-size: .8em; line-height: 1; color: var(--brass-light); }
 /* Pages of drawings: the cards of other pages are out, the dots under the grid show where the carousel is. */
 .screen .ballot-grid .ballot-card.off { display: none; }

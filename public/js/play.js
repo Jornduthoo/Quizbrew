@@ -256,8 +256,10 @@
         if (s.team.rank === 1) {
           const b = $('#wait-badge');
           b.classList.add('first');
-          b.append(h('span', { class: 'badge-crown' }));
-          b.lastChild.innerHTML = CROWN;
+          if (!b.querySelector('.badge-crown')) {
+            b.append(h('span', { class: 'badge-crown' }));
+            b.lastChild.innerHTML = CROWN;
+          }
           if (fresh) setTimeout(() => celebrate(b, s.phase === 'end' ? 2 : 1), 300);
         }
         return;
@@ -518,8 +520,8 @@
     showView('build');
     const q = s.question;
     $('#b-num').textContent = t('play.questionOf', { n: s.questionIndex + 1, total: s.round.questions });
-    if (fresh) { build = []; links = []; }
-    drawBuild(q, fresh);
+    // Another team's answer sends a new state too: the pieces only change when this team taps them.
+    if (fresh) { build = []; links = []; drawBuild(q, true); }
     stopTimer = countdown(s.remaining, q.time * 1000, left => {
       $('#b-time').textContent = Math.ceil(left / 1000);
     });
@@ -780,7 +782,10 @@
     if (fresh) matchPick = s.ballot.map(() => null);
     const box = $('#ballot');
     box.className = 'ballot ' + mode;
-    if (mode === 'match') {
+    // Another team's vote sends a new state too: the buttons stay, so they don't fly in again and pictures don't reload.
+    if (!QB.changed(box, lastKey, mode, s.ballot, s.teamsToMatch, matchPick, I18n.lang)) {
+      if (mode === 'match') $('#match-send').disabled = s.ballot.some((b, i) => !b.mine && (matchPick[i] === null || matchPick[i] === undefined));
+    } else if (mode === 'match') {
       // Many teams: a few answers, each with a few teams to choose from (b.suspects); else every team.
       box.replaceChildren(...s.ballot.map((b, i) => (b.mine ? null : h('div', { class: 'match-row' },
         h('p', { class: 'match-text' }, b.content),
@@ -905,6 +910,8 @@
     $('#power-left').hidden = true;
     const b = $('#wait-badge');
     const mark = badge || (state && state.team ? state.team.name.charAt(0).toUpperCase() : '');
+    // Locked in and another team answers: the same badge, text and one-liner stay as they are (no new fit, no blink).
+    if (!QB.changed(b, lastKey, text, mark, !!badge, I18n.lang, state && state.team && state.team.jokerNow, state && state.powers)) return;
     b.className = 'badge' + (badge ? ' filled' : ' pulse');
     // A typed answer ("Eiffeltoren") gets smaller until it fits inside the circle.
     if (String(mark).length > 2) {
