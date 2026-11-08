@@ -80,6 +80,18 @@ test('scrambled letters are stable and never the word itself', () => {
   assert.deepEqual([...s].sort(), [...'PILSNER'].sort());
 });
 
+test('scramble hints lose AI-made letters, keep normal words, and never give the answer away', () => {
+  const h = rounds.scrambleHint;
+  assert.equal(h('Ontcijfer dit zonnestelsellichaam: SOMNCEPLUHA', 'SCHOENLEPEL'), '');
+  assert.equal(h('Ontcijfer dit dier: LIOFTANE', 'OLIFANT'), 'Ontcijfer dit dier');
+  assert.equal(h('Ontwar de letters: NAKVEAN (de aanvoerder van Club Brugge).', 'VANAKEN'), 'De aanvoerder van Club Brugge');
+  assert.equal(h('Fruit: "N A N A B A"', 'BANANA'), 'Fruit');
+  assert.equal(h('Space agency NASA launched it', 'APOLLO'), 'Space agency NASA launched it');
+  assert.equal(h('ELEPHANT in the room', 'OLIFANT'), 'ELEPHANT in the room');
+  assert.equal(h('Belgian treat', 'WAFFLE'), 'Belgian treat');
+  assert.equal(h('A big olifant', 'OLIFANT'), '', 'a hint that says the answer is dropped');
+});
+
 test('true or bluff', () => {
   const { game, ids, go } = play({ type: 'trueFalse', questions: [{ question: 'Bats are blind', correct: false }] });
   go();
@@ -640,6 +652,15 @@ test('common thread: clues and ladder points', () => {
   clock.advance(20000);
   game.answer(ids[1], 'beer'); // during clue 3: 2 points
   assert.deepEqual([...game.teams.values()].map(t => t.score), [4, 2]);
+});
+
+test('an old quiz with a wrong AI scramble in its hint shows clean tiles from the answer', () => {
+  const { game, go } = play({ type: 'scramble', questions: [{ answer: 'OLIFANT', question: 'Ontcijfer dit dier: LIOFTANE' }] });
+  go();
+  const q = game.screenState().question;
+  assert.deepEqual([...q.scrambled].sort(), [...'OLIFANT'].sort());
+  assert.notEqual(q.scrambled, 'OLIFANT');
+  assert.equal(q.hint, 'Ontcijfer dit dier');
 });
 
 test('scramble shows letters, not the word', () => {
