@@ -1,6 +1,6 @@
 {
   "name": "quizbrew",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Quiz nights on your own network: one laptop hosts, teams play on their phones.",
   "license": "UNLICENSED",
   "private": true,
