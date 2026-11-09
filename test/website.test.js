@@ -27,6 +27,9 @@ test('website: price and links come from config.js', () => {
   assert.equal(typeof C.price, 'number');
   assert.ok(C.demoTeams > 0 && C.maxTeams > C.demoTeams);
   assert.equal(C.maxTeams, require('../src/teams').MAX_TEAMS, 'maxTeams in website/js/config.js must match src/teams.js');
+  // Sales go only through the Microsoft Store: the site links to the same listing the Store package uses.
+  assert.equal(C.storeId, require('../desktop/msix/store.json').storeId, 'storeId in website/js/config.js must match desktop/msix/store.json');
+  assert.equal(typeof C.storeLive, 'boolean');
 });
 
 test('website: every file the page and stylesheet use exists', () => {
