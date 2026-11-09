@@ -59,10 +59,17 @@
       ul.replaceChildren(...fill(lang, ul.dataset.list).split('|').map(t => Object.assign(document.createElement('li'), { textContent: t })));
     });
     document.querySelectorAll('[data-price]').forEach(el => { el.textContent = price(lang); });
+    // Demo and full version are one Microsoft Store listing (trial and purchase). Until it is public the
+    // buttons lead to the price and say "coming soon"; storeLive in config.js switches them all at once.
+    const url = C.storeLive && C.storeId ? `https://apps.microsoft.com/detail/${C.storeId}?hl=${LOCALE[lang]}` : '';
     document.querySelectorAll('[data-cta]').forEach(a => {
-      const url = a.dataset.cta === 'buy' ? C.buyUrl : C.demoUrl;
       if (url) { a.href = url; a.removeAttribute('data-soon'); }
       else { a.href = '#price'; a.dataset.soon = fill(lang, 'cta.soon'); }
+    });
+    document.querySelectorAll('[data-store]').forEach(a => {
+      a.querySelector('small').textContent = fill(lang, url ? 'store.get' : 'store.soon');
+      a.classList.toggle('soon', !url);
+      if (url) { a.href = url; a.removeAttribute('aria-disabled'); } else { a.href = '#price'; a.setAttribute('aria-disabled', 'true'); }
     });
     const guide = document.getElementById('guide');
     if (guide) guide.href = GUIDES[lang] || GUIDES.en;
