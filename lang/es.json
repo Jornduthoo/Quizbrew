@@ -1083,6 +1083,7 @@
   "pro.getPro": "Hazte Pro",
   "pro.tagline": "Toda la barra, para cada noche de quiz.",
   "pro.price": "{price} una sola vez. Sin suscripción, sin internet.",
+  "pro.priceStore": "Un solo pago en Microsoft Store. Sin suscripción, sin internet.",
   "pro.buy": "Compra Pro en quizbrew.app",
   "pro.buyStore": "Comprar Pro en Microsoft Store",
   "pro.haveCode": "¿Tienes un código?",

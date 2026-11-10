@@ -30,6 +30,11 @@ test('website: price and links come from config.js', () => {
   // Sales go only through the Microsoft Store: the site links to the same listing the Store package uses.
   assert.equal(C.storeId, require('../desktop/msix/store.json').storeId, 'storeId in website/js/config.js must match desktop/msix/store.json');
   assert.equal(typeof C.storeLive, 'boolean');
+  // The app's Pro dialog and the site name the same price.
+  assert.equal(C.price, require('../src/license').PRICE, 'price in website/js/config.js must match PRICE in src/license.js');
+  // The page without JavaScript (search engines, link previews) shows that price too, not an old one.
+  for (const m of html.matchAll(/data-price>([^<]*)</g)) assert.equal(m[1], '€' + C.price, 'the fallback price in index.html is out of date');
+  assert.ok(!/€\s?49\b(?![.,]\d)/.test(html), 'index.html still says €49');
 });
 
 test('website: every file the page and stylesheet use exists', () => {

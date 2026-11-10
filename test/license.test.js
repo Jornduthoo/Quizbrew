@@ -121,6 +121,28 @@ test('the demo over the network: 4 teams, one look, no venue, 3 quizzes, a cappe
   assert.equal((await fetch(`${url}/print`, { redirect: 'manual' })).status, 200);
 });
 
+test('a Store purchase while Quizbrew runs opens Pro on every screen, without a restart', async t => {
+  const settings = memorySettings();
+  const library = require('../src/library').create(fs.mkdtempSync(path.join(os.tmpdir(), 'qb-lic-')));
+  let bought = false;
+  const store = { pro: () => bought, url: 'ms-windows-store://pdp/?ProductId=X', status: () => ({ bought }) };
+  const qb = createServer({ port: 0, settings, library, lanAddresses: () => ['192.168.1.50'], license: License.create(settings, { publicKey, store }) });
+  const port = await qb.listen();
+  const url = `http://127.0.0.1:${port}`;
+  const screen = connect(url, { query: { role: 'screen' }, transports: ['websocket'], forceNew: true });
+  t.after(async () => { screen.close(); await qb.close(); });
+  const view = await fetch(url + '/api/host/license').then(r => r.json());
+  assert.equal(view.pro, false);
+  assert.equal(view.store, true);
+  assert.equal(view.price, License.PRICE);
+  assert.equal(view.currency, 'EUR');
+  assert.equal(qb.game.teamLimit(), 4);
+  const heard = new Promise(r => screen.on('license', l => { if (l.pro) r(l); }));
+  bought = true;
+  assert.equal((await heard).teams, 40);
+  assert.equal(qb.game.teamLimit(), 40);
+});
+
 test('make-code refuses to run without the private key', () => {
   const r = require('child_process').spawnSync(process.execPath, [path.join(__dirname, '..', 'tools', 'make-code.js'), '--name', 'X'], { env: { ...process.env, QUIZBREW_PRIVATE_KEY: path.join(os.tmpdir(), 'no-such-key.pem') }, encoding: 'utf8' });
   assert.notEqual(r.status, 0);

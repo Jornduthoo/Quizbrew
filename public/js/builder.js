@@ -29,7 +29,7 @@
     $('#pro-ask-full').hidden = feature !== 'quizzes';
     $('#pro-ask-hint').hidden = feature === 'quizzes';
     $('#pro-ask-full').textContent = feature === 'quizzes' ? t('pro.quizzesFull', { max: lic.free.quizzes || 3 }) : '';
-    $('#pro-ask-price').textContent = lic.price ? t('pro.price', { price: lic.price }) : '';
+    $('#pro-ask-price').textContent = lic.store ? t('pro.priceStore') : lic.price ? t('pro.price', { price: I18n.money(lic.price, lic.currency) }) : '';
     $('#pro-ask-go').href = '/host#pro-' + feature;
     $('#pro-ask').showModal();
   }
@@ -184,12 +184,18 @@
     } catch { alert(t('error.generic')); }
   });
 
+  // Excel on Windows saves a CSV in the old Windows letters, not UTF-8: "Café" would come in as "Caf�".
+  // Read it as UTF-8 when it is, else as Windows-1252 (Western European letters: é, ü, ñ, ß ...).
+  async function readText(file) {
+    const bytes = await file.arrayBuffer();
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch { return new TextDecoder('windows-1252').decode(bytes); }
+  }
   $('#import-file').addEventListener('change', async e => {
     const file = e.target.files[0];
     e.target.value = '';
     if (!file) return;
     try {
-      const res = await api('POST', '/import', { name: file.name, text: await file.text(), folder: folderTarget });
+      const res = await api('POST', '/import', { name: file.name, text: await readText(file), folder: folderTarget });
       await refreshLibrary();
       await openQuiz({ path: res.path });
       // The demo keeps the Pro rounds of an imported quiz, locked: they play once Pro is unlocked.

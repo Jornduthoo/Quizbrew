@@ -1083,6 +1083,7 @@
   "pro.getPro": "Passer à Pro",
   "pro.tagline": "Tout le comptoir, pour chaque soirée quiz.",
   "pro.price": "{price}, une seule fois. Sans abonnement, sans internet.",
+  "pro.priceStore": "Un seul paiement dans le Microsoft Store. Sans abonnement, sans internet.",
   "pro.buy": "Acheter Pro sur quizbrew.app",
   "pro.buyStore": "Acheter Pro dans le Microsoft Store",
   "pro.haveCode": "Vous avez un code ?",
