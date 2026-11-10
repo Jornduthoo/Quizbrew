@@ -311,6 +311,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   // Demo or Pro: the code is checked here, offline. After a change every screen hears it.
   const proLocked = feature => { if (!pro()) throw new Error(`pro.locked.${feature}`); };
   const licenseChanged = () => {
+    wasPro = pro();
     game.maxTeams = pro() ? MAX_TEAMS : License.FREE.teams;
     if (!pro()) autopilot.set(false); else autopilot.set(settings.get('autopilot') === true);
     io.emit('license', publicLicense());
@@ -319,6 +320,11 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
     io.to('host').emit('auto', autopilot.view());
     game.broadcast();
   };
+  // Pro can also change by itself: a Store purchase comes through while Quizbrew runs, or a tester's code runs out.
+  // Every screen hears that within a few seconds, without a restart.
+  let wasPro = pro();
+  const proWatch = setInterval(() => { if (pro() !== wasPro) licenseChanged(); }, 5000);
+  proWatch.unref();
   api.get('/license', handle(() => license.view()));
   api.post('/license', handle(req => { const v = license.activate(req.body.code); licenseChanged(); if (pro()) cloud.sync(); return v; }));
   api.delete('/license', handle(() => { const v = license.remove(); licenseChanged(); return v; }));
@@ -717,7 +723,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
   return {
     app, io, server, game, remoteKey, cloud, license,
     listen: (p = port) => new Promise(resolve => server.listen(p, () => resolve(server.address().port))),
-    close: () => new Promise(resolve => { clearInterval(cloudTimer); clearTimeout(cloudSoon); clearTimeout(saveSoon); game.reset(); io.close(); server.close(() => resolve()); }),
+    close: () => new Promise(resolve => { clearInterval(cloudTimer); clearInterval(proWatch); clearTimeout(cloudSoon); clearTimeout(saveSoon); game.reset(); io.close(); server.close(() => resolve()); }),
   };
 }
 

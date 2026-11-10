@@ -46,6 +46,15 @@
     return null;
   };
 
+  // A price the way this language writes it: €48.99, 48,99 €, € 48,99.
+  I18n.money = function (amount, currency = 'EUR') {
+    const n = Number(amount);
+    if (!Number.isFinite(n)) return String(amount || '');
+    try {
+      return new Intl.NumberFormat(I18n.lang, { style: 'currency', currency, minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }).format(n);
+    } catch { return `€${n}`; }
+  };
+
   window.I18n = I18n;
   window.t = I18n.t;
 })();

@@ -719,6 +719,8 @@
     if (v.expired) return t('pro.expired', { date: day(v.until) });
     return t('pro.demoLine');
   }
+  // The Store shows the price in the buyer's own currency, so the Store version names no amount.
+  const priceLine = v => (v.store ? t('pro.priceStore') : t('pro.price', { price: I18n.money(v.price, v.currency) }));
   function renderProState(highlight) {
     const v = licFull;
     if (!v || !$('#pro-modal')) return;
@@ -728,7 +730,7 @@
     $('#pro-sell').hidden = v.pro && v.kind !== 'tester';
     $('#pro-form').hidden = v.pro && v.kind !== 'tester';
     $('#pro-remove').hidden = !v.pro || v.kind === 'store';
-    $('#pro-price').textContent = t('pro.price', { price: v.price });
+    $('#pro-price').textContent = priceLine(v);
     $('#pro-buy').href = v.shop;
     $('#pro-buy').textContent = t(v.store ? 'pro.buyStore' : 'pro.buy');
     $('#pro-list').replaceChildren(...v.features.map(f => h('li', { class: f === highlight ? 'hi' : '' }, h('span', { class: 'pro-check', 'aria-hidden': 'true' }, '✓'), t(`pro.locked.${f}`))));

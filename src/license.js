@@ -10,7 +10,9 @@ const VERSION = 1;
 const KINDS = { 1: 'pro', 2: 'tester' };
 const DAY0 = Date.UTC(2026, 0, 1);
 const DAY = 86400000;
-const PRICE = '€49';
+// The one-time price in the Microsoft Store (EUR); every screen writes it the way its language does.
+const PRICE = 48.99;
+const CURRENCY = 'EUR';
 const SHOP = 'https://quizbrew.app';
 
 // What the free demo can do. Everything else is shown, with a lock.
@@ -110,10 +112,10 @@ function create(settings, { now = () => Date.now(), publicKey = PUBLIC_KEY, stor
   const pro = () => bought() || codePro();
   const view = () => {
     const c = current();
-    if (bought() && !codePro()) return { pro: true, name: '', kind: 'store', until: null, expired: false, free: FREE, features: FEATURES, price: PRICE, shop: store.url || SHOP, store: true, storeState: store.status ? store.status() : null };
+    if (bought() && !codePro()) return { pro: true, name: '', kind: 'store', until: null, expired: false, free: FREE, features: FEATURES, price: PRICE, currency: CURRENCY, shop: store.url || SHOP, store: true, storeState: store.status ? store.status() : null };
     return {
       pro: !!c && !c.expired, name: c ? c.name : '', kind: c ? c.kind : null, until: c ? c.until : null, expired: !!(c && c.expired),
-      free: FREE, features: FEATURES, price: PRICE, shop: (store && store.url) || SHOP, store: !!store, storeState: store && store.status ? store.status() : null,
+      free: FREE, features: FEATURES, price: PRICE, currency: CURRENCY, shop: (store && store.url) || SHOP, store: !!store, storeState: store && store.status ? store.status() : null,
     };
   };
   return {
@@ -129,4 +131,4 @@ function create(settings, { now = () => Date.now(), publicKey = PUBLIC_KEY, stor
   };
 }
 
-module.exports = { FREE, FEATURES, PRICE, SHOP, sign, decode, trim, create, tidy };
+module.exports = { FREE, FEATURES, PRICE, CURRENCY, SHOP, sign, decode, trim, create, tidy };
