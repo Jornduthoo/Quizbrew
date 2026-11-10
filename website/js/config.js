@@ -6,7 +6,7 @@ window.QB_SITE = {
   maxTeams: 40,           // phone teams in the full version (paper teams come on top)
   // Quizbrew is sold only in the Microsoft Store: the free demo is the Store trial, buying unlocks the full version.
   storeId: '9NDTP192BGQ3',
-  storeLive: false,       // true once the Store listing is public: every button then opens the Store page
+  storeLive: true,        // live in the Microsoft Store since 2026-11-10: every button opens the Store page
   email: 'hello@quizbrew.app', // contact address in the footer (placeholder until a domain is chosen)
   compare: '€50–€200',    // what online quiz platforms typically charge per month
 };
