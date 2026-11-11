@@ -585,3 +585,28 @@ test('the quizmaster\'s call: hand-given points and an overruled answer show on 
   game.answer('team2aaaa', 0);
   assert.equal(game.teams.get('team2aaaa').score, 6);
 });
+
+test('late teams: only when the quizmaster allows it, from 0 points, the phone sees the join form', () => {
+  const { game } = setup();
+  game.join('teamaaaaaaaa', 'A', 'amber', 's1');
+  game.next(); // round intro
+  assert.equal(game.join('teamlate0001', 'Late', 'pink', 's2').error, 'error.alreadyStarted');
+  assert.equal(game.teamState(null).lateJoin, false);
+  assert.ok(game.setLateJoin(true));
+  assert.equal(game.teamState(null).lateJoin, true);
+  game.next(); // question
+  assert.equal(game.join('teamlate0001', 'Late', 'pink', 's2').ok, true);
+  assert.equal(game.teams.get('teamlate0001').score, 0);
+  // The late team answers the running question like everyone else.
+  assert.ok(game.answer('teamlate0001', 1));
+  // An undo keeps the late team in.
+  game.back();
+  assert.ok(game.teams.has('teamlate0001'));
+  game.setLateJoin(false);
+  assert.equal(game.join('teamlate0002', 'Later', 'blue', 's3').error, 'error.alreadyStarted');
+  // A teammate of a team that is in can always join it.
+  assert.equal(game.join('teamlate0001', '', '', 's4').ok, true);
+  // In the lobby of the next quiz it is off again.
+  game.load(quiz());
+  assert.equal(game.lateJoin, false);
+});

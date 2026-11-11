@@ -269,6 +269,10 @@ body.remote .key-hint { display: none; }
 .paper-in { order: 1; grid-column: 3 / -1; display: flex; align-items: center; gap: 8px; font-size: .82em; font-weight: 700; color: var(--muted); }
 .paper-in input { width: 5.5em; padding: .35em .6em; border-radius: 8px; border: 1.5px solid rgb(var(--k-cyan) / .45); background: rgba(0, 0, 0, .35); color: var(--cream); font: inherit; font-size: 1.1em; font-weight: 800; text-align: right; }
 .paper-in input:focus { outline: none; border-color: var(--neon-cyan); box-shadow: 0 0 12px rgb(var(--k-cyan) / .35); }
+.late-btn { display: inline-flex; align-items: center; gap: .5em; margin-top: 10px; }
+.late-btn .auto-dot { width: .7em; height: .7em; border-radius: 50%; background: rgb(255 255 255 / .25); transition: background .2s, box-shadow .2s; }
+.late-btn.on { border-color: var(--neon-pink); color: var(--cream); }
+.late-btn.on .auto-dot { background: var(--neon-pink); box-shadow: 0 0 8px var(--neon-pink); }
 .paper-box { margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgb(var(--k-brass-l) / .25); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .paper-form { display: flex; gap: 6px; width: 100%; }
 .paper-form input { flex: 1; min-width: 0; padding: .45em .7em; border-radius: 8px; border: 1.5px solid rgb(var(--k-brass-l) / .3); background: rgba(0, 0, 0, .35); color: var(--cream); font: inherit; }

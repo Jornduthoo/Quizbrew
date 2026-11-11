@@ -141,6 +141,7 @@
 
   const showJoin = i => {
     $('#qr').innerHTML = i.qr;
+    $('#late-qr').innerHTML = i.qr;
     $('#join-url').textContent = i.url.replace(/^https?:\/\//, '');
   };
   QB.info().then(showJoin);
@@ -158,6 +159,7 @@
     lastKey = key;
     document.body.classList.remove('urgent');
     if (s.phase !== 'lobby') lobbyShown = false;
+    $('#late-card').hidden = !(s.lateJoin && s.phase === 'roundIntro');
     if (s.round) setTheme(s.round.type);
     SFX.enabled = sfxSetting && !MUTE && !(s.round && s.round.twists.includes('silentRound'));
     if (s.phase === 'lobby') renderLobby(s);

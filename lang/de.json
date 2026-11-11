@@ -1130,5 +1130,9 @@
   "screen.otherBluffs": "{n} weitere Bluffs haben noch {m}-mal getäuscht",
   "screen.otherBluffsNobody": "{n} weitere Bluffs haben niemanden getäuscht",
   "builder.f.decoys": "Bluffs des Hauses (optional)",
-  "builder.f.decoysHint": "falsche Antworten, die eine kleine Runde auffüllen, getrennt mit |"
+  "builder.f.decoysHint": "falsche Antworten, die eine kleine Runde auffüllen, getrennt mit |",
+  "host.lateJoin": "Nachzügler dürfen mitspielen",
+  "host.lateJoinHint": "Neue Teams können noch per QR-Code einsteigen. Sie starten mit 0 Punkten; der große Bildschirm zeigt den QR-Code bei jedem Rundenstart.",
+  "screen.lateTitle": "Gerade angekommen?",
+  "screen.lateScan": "Scannen und mitspielen."
 }

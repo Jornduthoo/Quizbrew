@@ -11,6 +11,21 @@ const BASE = 'https://quizbrew.app/';
 // Same cache-busting stamp as index.html (tools/build.js sets it), so a new stylesheet reaches every page.
 const stamp = () => (fs.readFileSync(path.join(site, 'index.html'), 'utf8').match(/\?v=(\d+)/) || [])[1] || '1';
 
+// The Microsoft Store listing from config.js: once it is live, every guide gets a Store button next to "Discover".
+const vm = require('vm');
+const siteGlobal = file => { const box = { window: {} }; vm.runInNewContext(fs.readFileSync(path.join(site, 'js', file), 'utf8'), box); return box.window; };
+const LOCALE = { en: 'en-IE', nl: 'nl-BE', fr: 'fr-BE', de: 'de-DE', es: 'es-ES' };
+function storeBadge(lang) {
+  const C = siteGlobal('config.js').QB_SITE;
+  if (!C.storeLive || !C.storeId) return '';
+  const get = siteGlobal('i18n.js').QB_TEXT[lang]['store.get'];
+  return `
+      <a class="store-badge" href="https://apps.microsoft.com/detail/${C.storeId}?hl=${LOCALE[lang]}">
+        <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M11 10V8a5 5 0 0 1 10 0v2" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="5" y="10" width="22" height="18" rx="2.5" fill="currentColor"/><path d="M11.5 15h4v4h-4zM16.5 15h4v4h-4zM11.5 20h4v4h-4zM16.5 20h4v4h-4z" fill="#000"/></svg>
+        <span><small>${esc(get)}</small> Microsoft Store</span>
+      </a>`;
+}
+
 const PAGES = { en: 'quiz-night.html', nl: 'quizavond.html', fr: 'soiree-quiz.html', de: 'quizabend.html', es: 'noche-de-quiz.html' };
 const NAMES = { en: 'English', nl: 'Nederlands', fr: 'Français', de: 'Deutsch', es: 'Español' };
 
@@ -315,7 +330,7 @@ ${steps}
     <section class="cta-box">
       <h2>${esc(t.ctaH)}</h2>
       <p>${esc(t.ctaP)}</p>
-      <a class="btn brass" href="/?lang=${lang}">${esc(t.cta)}</a>
+      <a class="btn brass" href="/?lang=${lang}">${esc(t.cta)}</a>${storeBadge(lang)}
     </section>
   </div>
 </main>

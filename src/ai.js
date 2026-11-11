@@ -6,8 +6,10 @@ const rounds = require('./rounds');
 
 const PROVIDERS = {
   gemini: { name: 'Gemini', key: 'geminiKey', model: 'geminiModel', defaultModel: 'auto' },
-  claude: { name: 'Claude', key: 'claudeKey', model: 'claudeModel', defaultModel: 'claude-sonnet-5-5' },
-  openai: { name: 'ChatGPT', key: 'openaiKey', model: 'openaiModel', defaultModel: 'gpt-6.1-sol' },
+  // "auto": the first try is the model below; when the AI service has retired it, Quizbrew asks which models
+  // the key may use, takes the best one and remembers it. So the AI keeps working without an app update.
+  claude: { name: 'Claude', key: 'claudeKey', model: 'claudeModel', defaultModel: 'auto', first: 'claude-sonnet-5-5', was: ['claude-sonnet-5-5'] },
+  openai: { name: 'ChatGPT', key: 'openaiKey', model: 'openaiModel', defaultModel: 'auto', first: 'gpt-6.1-sol', was: ['gpt-6.1-sol'] },
 };
 const LANGUAGE_NAMES = { en: 'English', nl: 'Dutch (Flemish, as spoken in Belgium)', fr: 'French', de: 'German', es: 'Spanish' };
 const AUDIENCES = { mixed: 'a mixed adult pub crowd', kids: 'children aged 8 to 12', experts: 'experienced quiz fans', company: 'colleagues at a company party', family: 'a family party with all ages' };
@@ -448,6 +450,45 @@ async function openai(prompt, key, model) {
   return (data.output || []).filter(o => o.type === 'message').flatMap(o => o.content || []).filter(c => c.type === 'output_text').map(c => c.text).join('');
 }
 
+// Claude and ChatGPT with "auto": which model to take from the list the key may use.
+// Claude: the newest Sonnet (quick and good), else the newest model. ChatGPT: the highest GPT version, full before mini.
+function claudePick(models) {
+  const list = models.filter(m => /^claude-/.test(m.id)).sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  return (list.find(m => /sonnet/.test(m.id)) || list[0] || {}).id || null;
+}
+function openaiRank(id) {
+  if (!/^gpt-\d/.test(id) || /(audio|realtime|transcribe|tts|image|search|instruct|codex|embedding|nano|oss|preview|chat-latest|\d{4}-\d{2}-\d{2})/.test(id)) return -1;
+  let s = parseFloat((id.match(/^gpt-(\d+(?:\.\d+)?)/) || [])[1] || '0') * 100;
+  if (/mini/.test(id)) s -= 50;
+  return s;
+}
+function openaiPick(models) {
+  return models.map(m => m.id).filter(id => openaiRank(id) >= 0).sort((a, b) => openaiRank(b) - openaiRank(a))[0] || null;
+}
+async function listModels(url, headers) {
+  let res;
+  try { res = await fetch(url, { headers, signal: AbortSignal.timeout(20000) }); } catch { throw new AiError('ai.offline'); }
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401 || res.status === 403) throw new AiError('ai.badKey', data.error && (data.error.message || data.error));
+  return Array.isArray(data.data) ? data.data : [];
+}
+// One call with "auto": the remembered model (or the first choice); a retired model makes it look for a new one once.
+async function withAuto(id, model, settings, call, find) {
+  const p = PROVIDERS[id];
+  const auto = !model || model === 'auto' || p.was.includes(model);
+  if (!auto) return call(model);
+  const remembered = settings.get(`${id}AutoModel`) || p.first;
+  try {
+    return await call(remembered);
+  } catch (err) {
+    if (err.key !== 'ai.badModel') throw err;
+    const best = await find();
+    if (!best || best === remembered) throw err;
+    settings.set(`${id}AutoModel`, best);
+    return call(best);
+  }
+}
+
 // Gemini models come and go; with "auto" we ask which models the key may use and take the best flash model.
 function geminiRank(id) {
   if (!/^gemini-/.test(id) || /(image|tts|audio|live|embedding|vision|thinking|computer|robotics|learnlm|aqa)/.test(id)) return -1;
@@ -540,8 +581,10 @@ function create(settings) {
     const a = active();
     if (!a.apiKey) throw new AiError('ai.noKey');
     const text = a.id === 'gemini' ? await gemini(prompt, a.apiKey, a.modelId, settings)
-      : a.id === 'claude' ? await claude(prompt, a.apiKey, a.modelId)
-        : await openai(prompt, a.apiKey, a.modelId);
+      : a.id === 'claude' ? await withAuto('claude', a.modelId, settings, m => claude(prompt, a.apiKey, m),
+        async () => claudePick(await listModels(`${process.env.CLAUDE_BASE_URL || 'https://api.anthropic.com'}/v1/models?limit=100`, { 'x-api-key': a.apiKey, 'anthropic-version': '2023-06-01' })))
+        : await withAuto('openai', a.modelId, settings, m => openai(prompt, a.apiKey, m),
+          async () => openaiPick(await listModels(`${process.env.OPENAI_BASE_URL || 'https://api.openai.com'}/v1/models`, { Authorization: `Bearer ${a.apiKey}` })));
     if (!text) throw new AiError('ai.empty');
     return text;
   }

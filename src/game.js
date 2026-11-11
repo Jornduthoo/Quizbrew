@@ -58,6 +58,7 @@ class Game {
     this.timer = null;
     this.quiz = null;
     this.breakUntil = null;
+    this.lateJoin = false; // the quizmaster lets new teams join after the start
     this.phase = 'idle';
     this.roundIndex = -1;
     this.questionIndex = -1;
@@ -130,7 +131,7 @@ class Game {
       this.broadcast();
       return { ok: true, name: existing.name, color: existing.color };
     }
-    if (this.phase !== 'lobby') return { error: 'error.alreadyStarted' };
+    if (this.phase !== 'lobby' && !this.lateOpen()) return { error: 'error.alreadyStarted' };
     const clean = String(name || '').trim().replace(/\s+/g, ' ').slice(0, MAX_NAME);
     if (!clean) return { error: 'error.nameEmpty' };
     const teams = [...this.teams.values()];
@@ -144,9 +145,23 @@ class Game {
       answer: null, answeredAt: 0, correct: false, lastPoints: 0, away: false, blocked: false, wager: null,
       jokerRound: -1, mem: freshMem(), memNext: null, bank: false, buzzOut: false,
       id: teamId, lifelineRound: -1, fifty: null, vote: null, shieldRound: -1, spyKey: null, fiftyKey: null,
+      ...(this.phase !== 'lobby' ? { late: true } : {}),
     });
     this.broadcast();
     return { ok: true, name: clean, color };
+  }
+
+  // Late teams: after the start a new team only gets in when the quizmaster allows it. It starts with 0 points
+  // and plays along from the question that runs (a clock round or a final that already started, it watches).
+  lateOpen() {
+    return this.lateJoin && !['idle', 'lobby', 'end'].includes(this.phase);
+  }
+
+  setLateJoin(on) {
+    if (this.phase === 'idle') return false;
+    this.lateJoin = !!on;
+    this.broadcast();
+    return true;
   }
 
   // A team that plays on paper: no phone, the quizmaster types in its points per round from the answer sheet.
@@ -1018,7 +1033,7 @@ class Game {
       buzz: this.buzz, ballot: this.ballot, actor: this.actor,
       finalists: this.finalists, picker: this.picker, resolved: this.resolved, clocks: [...this.clocks],
       turnTeam: this.turnTeam, nextTurn: this.nextTurn, duelWinner: this.duelWinner, roundOver: this.roundOver,
-      previousRanks: this.previousRanks, teams,
+      previousRanks: this.previousRanks, teams, lateJoin: this.lateJoin,
       log: [...this.log], rankHistory: this.rankHistory,
     };
   }
@@ -1042,6 +1057,12 @@ class Game {
       const phones = before.has(id) ? before.get(id).phones : new Set();
       return [id, { ...t, phones, connected: phones.size > 0 }];
     }));
+    // A late team that came in after this step stays in on an undo, with what it has now, minus its answer.
+    for (const [id, t] of before) {
+      if (this.teams.has(id) || !t.late) continue;
+      this.teams.set(id, { ...t, answer: null, answeredAt: 0, correct: false, lastPoints: 0, wager: null, vote: null, bank: false, buzzOut: false });
+    }
+    this.lateJoin = !!s.lateJoin;
     const left = Math.max(s.remaining || 0, RESTORE_MIN);
     const now = this.clock.now();
     if (this.phase === 'question') {
@@ -1189,6 +1210,7 @@ class Game {
     const pickQ = this.phase === 'wager' && this.type.wager === 'pick' ? q : null;
     return {
       phase: this.phase,
+      lateJoin: this.lateOpen(),
       title: this.quiz ? this.quiz.title : '',
       jokers: !!(this.quiz && this.quiz.jokers),
       round: round ? {

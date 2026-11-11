@@ -529,6 +529,13 @@
     $('#team-total').textContent = s.maxTeams && s.maxTeams < 40 ? t('pro.teamsUsed', { n: s.teams.length, max: s.maxTeams }) : s.teams.length;
     $('#team-total').classList.toggle('demo', !!(s.maxTeams && s.maxTeams < 40));
     $('#no-teams').hidden = s.teams.length > 0;
+    // Late teams: the switch only shows after the start (on the laptop and on the remote).
+    const lateBtn = $('#late-join');
+    if (lateBtn) {
+      lateBtn.hidden = ['idle', 'lobby', 'end'].includes(s.phase);
+      lateBtn.classList.toggle('on', !!s.lateJoin);
+      lateBtn.setAttribute('aria-pressed', s.lateJoin ? 'true' : 'false');
+    }
     const byName = Object.fromEntries(s.teams.map(tm => [tm.name, tm]));
     $('#team-list').replaceChildren(...s.ranking.map(r => {
       const tm = byName[r.name] || {};
@@ -595,6 +602,7 @@
     });
   });
 
+  if ($('#late-join')) $('#late-join').addEventListener('click', () => socket.emit('lateJoin', !(state && state.lateJoin)));
   $('#next').addEventListener('click', () => socket.emit('next'));
   $('#back').addEventListener('click', () => socket.emit('back'));
   $('#add-time').addEventListener('click', () => socket.emit('addTime'));

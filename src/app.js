@@ -578,6 +578,7 @@ function createServer({ port = 3000, settings = Settings.create(), library = Lib
       });
       on('discard', () => { game.resumable = null; forgetLive(); game.broadcast(); });
       on('kick', teamId => game.kick(String(teamId)));
+      on('lateJoin', on => game.setLateJoin(on === true));
       on('paperTeam', (name, cb) => { const r = game.addPaperTeam(name); if (typeof cb === 'function') cb(r); });
       on('paperPoints', ({ teamId, round, points } = {}) => game.setPaperPoints(String(teamId), round, points));
       on('raffle', (opts, cb) => { const r = pro() ? drawRaffle(opts) : { error: 'pro.locked.raffle' }; if (typeof cb === 'function') cb(r); });

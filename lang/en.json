@@ -1130,5 +1130,9 @@
   "screen.otherBluffs": "{n} other bluffs fooled {m} more",
   "screen.otherBluffsNobody": "{n} other bluffs fooled nobody",
   "builder.f.decoys": "House bluffs (optional)",
-  "builder.f.decoysHint": "fake answers that fill up a small game, separated by |"
+  "builder.f.decoysHint": "fake answers that fill up a small game, separated by |",
+  "host.lateJoin": "Late teams may join",
+  "host.lateJoinHint": "New teams can still join by QR code. They start with 0 points; the big screen shows the QR code at every round intro.",
+  "screen.lateTitle": "Just arrived?",
+  "screen.lateScan": "Scan and join in."
 }
