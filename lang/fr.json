@@ -1130,5 +1130,9 @@
   "screen.otherBluffs": "{n} autres bluffs ont piégé {m} fois de plus",
   "screen.otherBluffsNobody": "{n} autres bluffs n'ont piégé personne",
   "builder.f.decoys": "Bluffs de la maison (facultatif)",
-  "builder.f.decoysHint": "fausses réponses pour compléter une petite partie, séparées par |"
+  "builder.f.decoysHint": "fausses réponses pour compléter une petite partie, séparées par |",
+  "host.lateJoin": "Les retardataires peuvent entrer",
+  "host.lateJoinHint": "De nouvelles équipes peuvent encore entrer par le QR code. Elles commencent à 0 point ; le grand écran montre le QR code à chaque début de manche.",
+  "screen.lateTitle": "Tout juste arrivés ?",
+  "screen.lateScan": "Scannez et jouez."
 }

@@ -916,6 +916,38 @@ test('AI with a key: Claude, ChatGPT and Gemini over plain fetch', async t => {
   await assert.rejects(helper.generateRound({ type: 'open', topic: 'x' }), /ai.badKey/);
 });
 
+test('AI with a key: a retired Claude or ChatGPT model makes Quizbrew pick a new one by itself', async t => {
+  const settings = (() => { const v = {}; return { get: k => v[k], set: (k, x) => { v[k] = x; } }; })();
+  const helper = ai.create(settings);
+  const answer = JSON.stringify({ questions: [{ question: 'Q?', answer: 'A' }] });
+  const used = [];
+  const realFetch = global.fetch;
+  t.after(() => { global.fetch = realFetch; });
+  const gone = new Set(['claude-sonnet-5-5', 'gpt-6.1-sol']);
+  global.fetch = async (url, opts = {}) => {
+    const body = opts.body ? JSON.parse(opts.body) : null;
+    const reply = (status, json) => ({ ok: status === 200, status, json: async () => json });
+    if (/anthropic.*\/v1\/models/.test(url)) return reply(200, { data: [
+      { id: 'claude-haiku-9-0', created_at: '2027-05-01' }, { id: 'claude-sonnet-9-0', created_at: '2027-04-01' }, { id: 'claude-sonnet-8-0', created_at: '2027-01-01' }] });
+    if (/openai.*\/v1\/models/.test(url)) return reply(200, { data: [{ id: 'gpt-9-mini' }, { id: 'gpt-9' }, { id: 'gpt-9-audio' }, { id: 'gpt-8.5' }, { id: 'dall-e-9' }] });
+    used.push(body.model);
+    if (gone.has(body.model)) return reply(404, { error: { message: `model: ${body.model} not found` } });
+    return reply(200, /anthropic/.test(url) ? { content: [{ type: 'text', text: answer }] } : { output: [{ type: 'message', content: [{ type: 'output_text', text: answer }] }] });
+  };
+  helper.update({ provider: 'claude', key: 'sk-ant', model: 'claude-sonnet-5-5' }); // saved before: the old default counts as auto
+  assert.equal((await helper.generateRound({ type: 'open', topic: 'x' }))[0].answer, 'A');
+  assert.deepEqual(used, ['claude-sonnet-5-5', 'claude-sonnet-9-0']);
+  assert.equal(settings.get('claudeAutoModel'), 'claude-sonnet-9-0');
+  helper.update({ provider: 'openai', key: 'sk-open' });
+  assert.equal(helper.publicSettings().providers.openai.model, 'auto');
+  assert.equal((await helper.generateRound({ type: 'open', topic: 'x' }))[0].answer, 'A');
+  assert.equal(settings.get('openaiAutoModel'), 'gpt-9');
+  // A model the quizmaster typed in is used as it is, and a retired one says so.
+  helper.update({ provider: 'claude', model: 'claude-sonnet-5-5-old' });
+  gone.add('claude-sonnet-5-5-old');
+  await assert.rejects(helper.generateRound({ type: 'open', topic: 'x' }), /ai.badModel/);
+});
+
 // ---------- wave 5: clocks, finales and the last twists ----------
 
 const mc = (question, correct = 0) => ({ question, answers: ['a', 'b', 'c', 'd'], correct });

@@ -1130,5 +1130,9 @@
   "screen.otherBluffs": "{n} andere bluffen foppen nog {m} keer",
   "screen.otherBluffsNobody": "{n} andere bluffen foppen niemand",
   "builder.f.decoys": "Huisbluffen (optioneel)",
-  "builder.f.decoysHint": "nepantwoorden die een klein spel aanvullen, gescheiden door |"
+  "builder.f.decoysHint": "nepantwoorden die een klein spel aanvullen, gescheiden door |",
+  "host.lateJoin": "Laatkomers mogen erbij",
+  "host.lateJoinHint": "Nieuwe teams kunnen nog binnen via de QR-code. Ze starten met 0 punten; het grote scherm toont de QR-code bij elke rondestart.",
+  "screen.lateTitle": "Net binnen?",
+  "screen.lateScan": "Scan en doe mee."
 }

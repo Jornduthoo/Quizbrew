@@ -184,11 +184,13 @@
     if (!s.team) {
       if (s.phase === 'idle') return showView('idle');
       // A teammate can always join a team that is already in, also after the start.
-      if (s.phase !== 'lobby' && !(s.teams && s.teams.length)) return wait(t('play.tooLate'));
+      // A new team only gets in after the start when the quizmaster lets late teams in.
+      const open = s.phase === 'lobby' || s.lateJoin;
+      if (!open && !(s.teams && s.teams.length)) return wait(t('play.tooLate'));
       showView('join');
-      $('#join-form').hidden = s.phase !== 'lobby';
+      $('#join-form').hidden = !open;
       renderTeamPick(s.teams || []);
-      if (s.phase === 'lobby') renderSwatches(s.takenColors);
+      if (open) renderSwatches(s.takenColors);
       return;
     }
 

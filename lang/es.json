@@ -1130,5 +1130,9 @@
   "screen.otherBluffs": "{n} faroles más engañaron {m} veces",
   "screen.otherBluffsNobody": "{n} faroles más no engañaron a nadie",
   "builder.f.decoys": "Faroles de la casa (opcional)",
-  "builder.f.decoysHint": "respuestas falsas que completan una partida pequeña, separadas por |"
+  "builder.f.decoysHint": "respuestas falsas que completan una partida pequeña, separadas por |",
+  "host.lateJoin": "Los rezagados pueden entrar",
+  "host.lateJoinHint": "Aún pueden entrar equipos nuevos con el código QR. Empiezan con 0 puntos; la pantalla grande muestra el QR al inicio de cada ronda.",
+  "screen.lateTitle": "¿Acabáis de llegar?",
+  "screen.lateScan": "Escanead y a jugar."
 }

@@ -196,7 +196,8 @@ test('a whole evening from the AI: round types by any name, every type ready to 
 });
 
 // Two teams play the whole quiz; every question gets an answer that fits its kind.
-function playThrough(quiz) {
+// With late: the quizmaster lets late teams in, a new team joins at every step and the quizmaster undoes a step now and then.
+function playThrough(quiz, { late = false } = {}) {
   const game = new Game({ clock: { now: Date.now, setTimeout: () => 0, clearTimeout: () => {} } });
   game.load(quiz);
   const ids = ['teamaaaaaaaa', 'teambbbbbbbb'];
@@ -218,7 +219,18 @@ function playThrough(quiz) {
     }
   };
   const seen = new Set();
-  for (let guard = 0; guard < 2000 && game.phase !== 'end'; guard++) {
+  const COLORS = require('../src/teams').TEAM_COLORS;
+  for (let guard = 0; guard < 4000 && game.phase !== 'end'; guard++) {
+    if (late && game.phase !== 'lobby') {
+      if (!game.lateJoin) game.setLateJoin(true);
+      if (ids.length < 16) {
+        const id = `lateteam${String(ids.length).padStart(4, '0')}`;
+        const res = game.join(id, `Late ${ids.length}`, COLORS[ids.length], `s${ids.length}`);
+        assert.ok(res.ok, `late team in ${game.phase}: ${res.error}`);
+        ids.push(id);
+      }
+      if (guard % 7 === 3) { game.back(); assert.equal(game.teams.size, ids.length, 'a late team stays in on an undo'); }
+    }
     if (game.phase === 'wager') ids.forEach((id, i) => { game.setWager(id, 1); });
     if (game.phase === 'question') {
       seen.add(game.quiz.rounds[game.roundIndex].type);
@@ -229,10 +241,17 @@ function playThrough(quiz) {
       if (game.buzz) game.judgeBuzz(true);
       if (game.whoseTurn && game.whoseTurn()) game.judgeTurn(true);
     }
+    if (late && game.phase === 'vote') {
+      ids.forEach(id => {
+        const b = game.teamState(id).ballot;
+        const pick = b && b.find(x => !x.mine);
+        if (pick && game.type.vote !== 'match') game.castVote(id, pick.id);
+      });
+    }
     game.screenState();
     game.hostState();
     ids.forEach(id => game.teamState(id));
-    game.next();
+    if (game.phase !== 'end') game.next();
   }
   assert.equal(game.phase, 'end');
   return seen;
@@ -255,6 +274,12 @@ test('every round type from the AI: saved, exported and imported as JSON and CSV
   assert.ok(validateQuiz(sheet));
   const played = playThrough(validateQuiz(back));
   assert.equal(played.size, rounds.TYPES.length - 0, `played: ${[...played].join(', ')}`);
+});
+
+test('late teams: every round type keeps playing when new teams join halfway, also around an undo', () => {
+  const quiz = { title: 'Late', rounds: rounds.TYPES.map(t => ({ type: t.id, title: '', scoring: t.defaults.scoring || null, questions: ai.parseRound(JSON.stringify({ questions: [SAMPLES[t.id], SAMPLES[t.id]] }), t.id).map(q => fillLikeBuilder(t.id, q)) })) };
+  const played = playThrough(validateQuiz(quiz), { late: true });
+  assert.equal(played.size, rounds.TYPES.length, `played: ${[...played].join(', ')}`);
 });
 
 test('importing a quiz file an AI wrote: other type names, AI shapes and sloppy JSON become a quiz the builder can open', async t => {
